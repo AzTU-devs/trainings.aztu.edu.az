@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "./VideoPlayer";
 import { LessonSidebar } from "./LessonSidebar";
 import { useUpdateLessonProgress } from "@/features/enrollment/hooks";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { enrollmentApi } from "@/features/enrollment/api";
+import { useAppDispatch } from "@/store/hooks";
 import {
   markSaved,
   setCurrentLesson,
@@ -92,25 +93,31 @@ export function LearningClient({
 
   const onEnded = () => save("COMPLETED");
 
+  // Best-effort save when the tab is being hidden or unloaded. We can't use
+  // navigator.sendBeacon here because the progress endpoint lives on the
+  // backend origin and requires a Bearer token (a beacon can't attach one).
+  // Instead we fire the authenticated client request and don't await it —
+  // the browser keeps in-flight fetches alive through `pagehide`/`visibilitychange`
+  // long enough for this small PUT to land.
   useEffect(() => {
-    const handler = () => {
-      if (!completed && currentTimeRef.current > 0) {
-        navigator.sendBeacon?.(
-          `/api/portal/enrollments/courses/${course.id}/lessons/${currentLessonId}/progress`,
-          new Blob(
-            [
-              JSON.stringify({
-                status: "IN_PROGRESS",
-                positionSec: Math.floor(currentTimeRef.current),
-              }),
-            ],
-            { type: "application/json" },
-          ),
-        );
-      }
+    const flush = () => {
+      if (completed || currentTimeRef.current <= 0) return;
+      void enrollmentApi
+        .updateLessonProgress(course.id, currentLessonId, {
+          status: "IN_PROGRESS",
+          positionSec: Math.floor(currentTimeRef.current),
+        })
+        .catch(() => undefined);
     };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [completed, course.id, currentLessonId]);
 
   const totalLessons = flatLessons.length;

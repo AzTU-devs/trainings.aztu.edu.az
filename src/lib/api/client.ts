@@ -7,7 +7,11 @@ import axios, {
 } from "axios";
 import { env } from "@/lib/env";
 import { tokenStore } from "@/lib/auth/tokens";
+import { isLocale } from "@/i18n/config";
 import type { ApiEnvelope, ApiError, FieldErrorItem } from "@/types/api";
+
+const isLocalePrefix = (seg: string | undefined): boolean =>
+  !!seg && isLocale(seg);
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -81,8 +85,14 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
       return api(original);
     }
     if (typeof window !== "undefined") {
-      const next = encodeURIComponent(window.location.pathname);
-      window.location.href = `/login?next=${next}`;
+      const next = encodeURIComponent(
+        window.location.pathname + window.location.search,
+      );
+      // Preserve the active locale prefix so the login route resolves and the
+      // post-login redirect lands back in the same language.
+      const seg = window.location.pathname.split("/")[1];
+      const prefix = isLocalePrefix(seg) ? `/${seg}` : "";
+      window.location.href = `${prefix}/login?next=${next}`;
     }
   }
 

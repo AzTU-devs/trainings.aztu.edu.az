@@ -102,6 +102,7 @@ export type Course = {
 
 export type CourseListParams = {
   type?: CourseType;
+  categoryId?: string;
   page?: number;
   size?: number;
   sort?: string;

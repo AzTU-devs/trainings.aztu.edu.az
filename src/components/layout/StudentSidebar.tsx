@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   GraduationCap,
   User as UserIcon,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { useT, useLocale } from "@/i18n/client";
@@ -33,6 +34,7 @@ const items: Item[] = [
   { href: "/certificates", icon: Award, key: "certificates" },
   { href: "/tutor", icon: GraduationCap, key: "tutor" },
   { href: "/profile", icon: UserIcon, key: "profile" },
+  { href: "/settings", icon: SettingsIcon, key: "settings" },
 ];
 
 export function StudentSidebar() {

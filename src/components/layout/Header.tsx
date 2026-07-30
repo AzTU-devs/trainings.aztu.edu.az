@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, ChevronDown, Menu, Search, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth, useLogout } from "@/features/auth/hooks";
@@ -20,29 +20,59 @@ export function Header() {
   const t = useT();
   const locale = useLocale();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { data: unread } = useUnreadCount(status === "authenticated");
   const unreadCount = unread?.count ?? 0;
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 glass">
+    <header
+      className={cn(
+        "sticky top-0 z-40 glass transition-shadow duration-300",
+        scrolled
+          ? "border-b border-border/60 shadow-[0_8px_30px_-12px_oklch(0.5_0.2_285/0.25)]"
+          : "border-b border-transparent",
+      )}
+    >
+      {/* gradient hairline accent */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"
+      />
       <div className="container-fluid flex h-16 items-center gap-3">
-        <LocaleLink href="/" aria-label="EduPlatform" className="shrink-0">
+        <LocaleLink
+          href="/"
+          aria-label="EduPlatform"
+          className="group relative shrink-0"
+        >
+          <span
+            aria-hidden
+            className="absolute -inset-2 -z-10 rounded-full bg-primary/20 opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-100"
+          />
           <Logo />
         </LocaleLink>
 
         <nav className="ml-2 hidden items-center gap-1 lg:flex">
           <LocaleLink
             href="/courses"
-            className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            className="group relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             {t("nav.courses")}
+            <span className="absolute inset-x-3 bottom-1 h-px origin-left scale-x-0 bg-gradient-to-r from-primary to-fuchsia-500 transition-transform duration-300 group-hover:scale-x-100" />
           </LocaleLink>
           <LocaleLink
             href="/categories"
-            className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            className="group relative flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             {t("nav.categories")}
             <ChevronDown className="size-3.5" />
+            <span className="absolute inset-x-3 bottom-1 h-px origin-left scale-x-0 bg-gradient-to-r from-primary to-fuchsia-500 transition-transform duration-300 group-hover:scale-x-100" />
           </LocaleLink>
         </nav>
 
@@ -106,7 +136,12 @@ export function Header() {
                 </Button>
               </LocaleLink>
               <LocaleLink href="/register" className="hidden sm:block">
-                <Button size="sm">{t("common.signUp")}</Button>
+                <Button
+                  size="sm"
+                  className="shimmer-sweep bg-gradient-to-r from-primary to-fuchsia-500 text-white shadow-md shadow-fuchsia-500/25 hover:from-primary/90 hover:to-fuchsia-500/90"
+                >
+                  {t("common.signUp")}
+                </Button>
               </LocaleLink>
             </>
           )}
@@ -181,7 +216,9 @@ export function Header() {
                 </Button>
               </LocaleLink>
               <LocaleLink href="/register" className="flex-1" onClick={() => setMobileOpen(false)}>
-                <Button className="w-full">{t("common.signUp")}</Button>
+                <Button className="w-full bg-gradient-to-r from-primary to-fuchsia-500 text-white">
+                  {t("common.signUp")}
+                </Button>
               </LocaleLink>
             </div>
           )}

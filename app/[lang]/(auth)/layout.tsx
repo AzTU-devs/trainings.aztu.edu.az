@@ -88,10 +88,10 @@ export default async function AuthLayout({ children, params }: Props) {
             {/* Feature list */}
             <ul className="space-y-3 text-sm">
               {[
-                "Free starter courses with verified tutors",
-                "Online video lessons + offline cohort enrollment",
-                "Progress tracking that saves automatically",
-                "Certificates on course completion",
+                t("auth.marketingPerk1"),
+                t("auth.marketingPerk2"),
+                t("auth.marketingPerk3"),
+                t("auth.marketingPerk4"),
               ].map((f) => (
                 <li key={f} className="flex items-start gap-2.5">
                   <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-white/95" />
@@ -104,14 +104,13 @@ export default async function AuthLayout({ children, params }: Props) {
           {/* Stats + testimonial */}
           <div className="space-y-6">
             <div className="grid grid-cols-3 gap-3">
-              <Stat icon={<Users className="size-4" />} value="12K+" label="Learners" />
-              <Stat icon={<BookOpen className="size-4" />} value="320+" label="Courses" />
-              <Stat icon={<GraduationCap className="size-4" />} value="80+" label="Tutors" />
+              <Stat icon={<Users className="size-4" />} value="12K+" label={t("home.statLearners")} />
+              <Stat icon={<BookOpen className="size-4" />} value="320+" label={t("home.statCourses")} />
+              <Stat icon={<GraduationCap className="size-4" />} value="80+" label={t("nav.tutor")} />
             </div>
             <figure className="rounded-2xl bg-white/10 p-5 ring-1 ring-white/15 backdrop-blur">
               <blockquote className="text-sm leading-relaxed">
-                &ldquo;The mix of online videos and offline classes was perfect
-                for my schedule. I finished my first course in two weeks.&rdquo;
+                &ldquo;{t("auth.marketingQuote")}&rdquo;
               </blockquote>
               <figcaption className="mt-3 flex items-center gap-3 text-xs">
                 <span
@@ -121,8 +120,8 @@ export default async function AuthLayout({ children, params }: Props) {
                   AM
                 </span>
                 <span>
-                  <span className="font-semibold">Aysel M.</span>
-                  <span className="block text-white/70">UX Designer</span>
+                  <span className="font-semibold">{t("auth.marketingQuoteName")}</span>
+                  <span className="block text-white/70">{t("auth.marketingQuoteRole")}</span>
                 </span>
               </figcaption>
             </figure>

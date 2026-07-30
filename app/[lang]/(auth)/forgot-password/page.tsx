@@ -1,17 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { KeyRound, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { KeyRound } from "lucide-react";
+import { ForgotPasswordForm } from "@/features/auth/components/ForgotPasswordForm";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
 
 export const metadata: Metadata = {
   title: "Forgot password",
-  description: "Reset your EduPlatform password.",
+  description: "Reset access to your EduPlatform account.",
 };
 
 type Props = { params: Promise<{ lang: string }> };
@@ -36,34 +34,12 @@ export default async function ForgotPasswordPage({ params }: Props) {
         </div>
       </header>
 
-      <form className="space-y-4" aria-disabled>
-        <div className="space-y-1.5">
-          <Label htmlFor="email">{t("auth.email")}</Label>
-          <div className="relative">
-            <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              className="pl-10"
-              disabled
-            />
-          </div>
-        </div>
-        <Button type="button" className="w-full" disabled>
-          Send reset link
-        </Button>
-      </form>
-
-      <p className="rounded-md border border-border bg-muted/30 p-4 text-xs text-muted-foreground">
-        {t("auth.forgotPlaceholder")}
-      </p>
+      <ForgotPasswordForm />
 
       <p className="text-center text-sm">
         <Link
           href={localeHref(locale, "/login")}
-          className="text-primary font-medium hover:underline"
+          className="font-medium text-primary hover:underline"
         >
           {t("auth.backToLogin")}
         </Link>

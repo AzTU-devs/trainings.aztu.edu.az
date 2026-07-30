@@ -34,21 +34,27 @@ export default async function LearnLessonPage({ params }: Props) {
   );
   if (!lessonExists) notFound();
 
+  let isEnrolled = false;
   try {
     const enrollments = await enrollmentServerApi.mine();
-    const isEnrolled = enrollments.some((e) => e.courseId === course.id);
-    if (!isEnrolled) {
-      redirect(localeHref(locale, `/courses/${courseSlug}`));
-    }
+    isEnrolled = enrollments.some((e) => e.courseId === course.id);
   } catch {
+    isEnrolled = false;
+  }
+  if (!isEnrolled) {
     redirect(localeHref(locale, `/courses/${courseSlug}`));
   }
+
+  const savedProgress = await enrollmentServerApi.lessonProgress(course.id);
+  const initialProgress = Object.fromEntries(
+    savedProgress.map((p) => [p.lessonId, p]),
+  );
 
   return (
     <LearningClient
       course={course}
       currentLessonId={lessonId}
-      initialProgress={{}}
+      initialProgress={initialProgress}
     />
   );
 }

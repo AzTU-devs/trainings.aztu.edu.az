@@ -14,6 +14,8 @@ import type {
   RegisterInput,
   TutorRegisterInput,
   TutorOtpInput,
+  UpdateProfileInput,
+  ForgotPasswordInput,
 } from "./schemas";
 
 export function useAuth() {
@@ -57,6 +59,43 @@ export function useTutorRegisterVerify() {
   return useMutation({
     mutationFn: (body: { email: string } & TutorOtpInput) =>
       authApi.tutorRegisterVerify(body),
+  });
+}
+
+export function useUpdateProfile() {
+  const dispatch = useAppDispatch();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateProfileInput) => authApi.updateMe(body),
+    onSuccess: (user) => {
+      dispatch(setUser(user));
+      qc.setQueryData(qk.auth.me(), user);
+    },
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (body: ForgotPasswordInput) => authApi.forgotPassword(body),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (body: { token: string; password: string }) =>
+      authApi.resetPassword(body),
+  });
+}
+
+export function useVerifyEmail() {
+  return useMutation({
+    mutationFn: (body: { token: string }) => authApi.verifyEmail(body),
+  });
+}
+
+export function useRequestEmailVerification() {
+  return useMutation({
+    mutationFn: () => authApi.requestEmailVerification(),
   });
 }
 

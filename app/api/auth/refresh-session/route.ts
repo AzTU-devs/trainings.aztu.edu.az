@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import {
   backend,
-  clearRefreshCookie,
+  clearSessionCookies,
   readRefreshCookie,
-  setRefreshCookie,
+  setSessionCookies,
   type BackendAuthTokens,
 } from "../_helpers";
 
@@ -19,12 +19,12 @@ export async function POST() {
   });
 
   if (!res.ok || !res.data) {
-    await clearRefreshCookie();
+    await clearSessionCookies();
     return NextResponse.json(res.raw ?? { message: "Refresh failed" }, {
       status: res.status,
     });
   }
 
-  await setRefreshCookie(res.data.refreshToken, res.data.refreshExpiresAt);
+  await setSessionCookies(res.data);
   return NextResponse.json({ accessToken: res.data.accessToken });
 }

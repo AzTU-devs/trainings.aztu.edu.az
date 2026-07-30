@@ -4,6 +4,11 @@ import { serverEnv } from "@/lib/env";
 import type { ApiEnvelope } from "@/types/api";
 
 export const REFRESH_COOKIE = "ep_rt";
+export const ACCESS_COOKIE = "ep_at";
+
+// Fallback access-token lifetime if the backend doesn't give us an expiry we can
+// parse. The backend's access TTL is ~15 minutes.
+const ACCESS_FALLBACK_MAX_AGE = 15 * 60;
 
 export type BackendAuthTokens = {
   accessToken: string;
@@ -82,4 +87,39 @@ export async function clearRefreshCookie() {
 export async function readRefreshCookie() {
   const jar = await cookies();
   return jar.get(REFRESH_COOKIE)?.value ?? null;
+}
+
+// Mirror the backend access token into an httpOnly cookie so that server
+// components / route handlers (serverFetch with auth:true, getSession) can read
+// it. Browser JS never reads this — the client keeps its own copy in memory.
+export async function setAccessCookie(accessToken: string, expiresAt?: string) {
+  const jar = await cookies();
+  let maxAge = ACCESS_FALLBACK_MAX_AGE;
+  if (expiresAt) {
+    const secondsLeft = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000);
+    if (Number.isFinite(secondsLeft) && secondsLeft > 0) maxAge = secondsLeft;
+  }
+  jar.set(ACCESS_COOKIE, accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge,
+  });
+}
+
+export async function clearAccessCookie() {
+  const jar = await cookies();
+  jar.delete(ACCESS_COOKIE);
+}
+
+// Convenience: persist both cookies from a successful auth response.
+export async function setSessionCookies(tokens: BackendAuthTokens) {
+  await setRefreshCookie(tokens.refreshToken, tokens.refreshExpiresAt);
+  await setAccessCookie(tokens.accessToken, tokens.accessExpiresAt);
+}
+
+export async function clearSessionCookies() {
+  await clearRefreshCookie();
+  await clearAccessCookie();
 }

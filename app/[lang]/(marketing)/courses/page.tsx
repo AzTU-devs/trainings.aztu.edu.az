@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Search } from "lucide-react";
 import { courseServerApi } from "@/features/course/api.server";
+import { categoryServerApi } from "@/features/category/api.server";
 import { CourseGrid } from "@/features/course/components/CourseGrid";
 import { FilterSidebar } from "@/features/course/components/FilterSidebar";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -30,14 +31,29 @@ export default async function CoursesPage({ params, searchParams }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
-  const { type, q, page, size, client } = parseFiltersFromSearchParams(raw);
+  const { type, categoryId, q, page, size, client } =
+    parseFiltersFromSearchParams(raw);
 
-  let data;
-  try {
-    data = q
-      ? await courseServerApi.search(q, page, size)
-      : await courseServerApi.list({ type, page, size });
-  } catch {
+  const searching = Boolean(q);
+
+  const [categories, data] = await Promise.all([
+    categoryServerApi.list().catch(() => []),
+    (async () => {
+      try {
+        // The backend /courses/search endpoint only accepts `q`, `page`, `size`
+        // (see endpoints.public.coursesSearch + courseServerApi.search) — it does
+        // NOT support `type`/`categoryId`. So while searching we post-filter by
+        // `type` client-side and hide the Category filter (needs a server filter).
+        return searching
+          ? await courseServerApi.search(q!, page, size)
+          : await courseServerApi.list({ type, categoryId, page, size });
+      } catch {
+        return null;
+      }
+    })(),
+  ]);
+
+  if (!data) {
     return (
       <div className="container-fluid py-12">
         <EmptyState
@@ -48,11 +64,26 @@ export default async function CoursesPage({ params, searchParams }: Props) {
     );
   }
 
-  const filtered = applyClientFilters(data.content, client);
+  // While searching the backend can't apply the `type` filter, so post-filter
+  // the search results here to honor the selected mode.
+  const typeFiltered =
+    searching && type
+      ? data.content.filter((c) => c.courseType === type)
+      : data.content;
+  const filtered = applyClientFilters(typeFiltered, client);
 
   return (
     <div className="container-fluid grid gap-8 py-10 lg:grid-cols-[280px_1fr]">
-      <FilterSidebar total={data.totalElements} visible={filtered.length} />
+      <FilterSidebar
+        total={data.totalElements}
+        visible={filtered.length}
+        // Category needs a server-side filter the search endpoint doesn't support,
+        // so hide it while searching rather than showing an inactive control.
+        searching={searching}
+        categories={categories
+          .filter((c) => c.active)
+          .map((c) => ({ id: c.id, name: c.name }))}
+      />
 
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

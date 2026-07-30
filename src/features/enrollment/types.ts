@@ -27,6 +27,7 @@ export type LessonProgress = {
   status: LessonProgressStatus;
   positionSec: number;
   completedAt?: string | null;
+  updatedAt?: string | null;
 };
 
 export type LessonProgressUpdate = {

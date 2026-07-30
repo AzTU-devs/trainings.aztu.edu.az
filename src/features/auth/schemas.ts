@@ -65,3 +65,28 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email("Enter a valid email"),
 });
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(10, "At least 10 characters")
+      .max(100)
+      .regex(/[A-Z]/, "Must contain an uppercase letter")
+      .regex(/[a-z]/, "Must contain a lowercase letter")
+      .regex(/\d/, "Must contain a digit"),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+export const updateProfileSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(80),
+  lastName: z.string().min(1, "Last name is required").max(80),
+  phone: z.string().max(32).optional().or(z.literal("")),
+  locale: z.enum(["en", "az"]),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

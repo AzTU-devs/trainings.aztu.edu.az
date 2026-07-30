@@ -1,9 +1,12 @@
 "use client";
 
-import { Globe, Mail, MessageCircle } from "lucide-react";
+import { Globe, Mail } from "lucide-react";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { useT } from "@/i18n/client";
 import { Logo } from "./Logo";
+
+const UNIVERSITY_URL = "https://aztu.edu.az";
+const SUPPORT_EMAIL = "support@aztu.edu.az";
 
 export function Footer() {
   const t = useT();
@@ -18,22 +21,17 @@ export function Footer() {
           <div className="flex gap-2 pt-2">
             <a
               className="grid size-9 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-              href="#"
-              aria-label="Community"
-            >
-              <MessageCircle className="size-4" />
-            </a>
-            <a
-              className="grid size-9 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-              href="#"
-              aria-label="Website"
+              href={UNIVERSITY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t("footer.websiteLabel")}
             >
               <Globe className="size-4" />
             </a>
             <a
               className="grid size-9 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-              href="mailto:hello@eduplatform.test"
-              aria-label="Email"
+              href={`mailto:${SUPPORT_EMAIL}`}
+              aria-label={t("footer.emailLabel")}
             >
               <Mail className="size-4" />
             </a>
@@ -77,15 +75,31 @@ export function Footer() {
         <div className="space-y-3 text-sm">
           <div className="font-semibold">{t("footer.company")}</div>
           <ul className="space-y-2 text-muted-foreground">
-            <li>{t("footer.about")}</li>
-            <li>{t("footer.contact")}</li>
+            <li>
+              <a
+                href={UNIVERSITY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground"
+              >
+                {t("footer.about")}
+              </a>
+            </li>
+            <li>
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="hover:text-foreground"
+              >
+                {t("footer.contact")}
+              </a>
+            </li>
           </ul>
         </div>
       </div>
       <div className="border-t border-border/60">
         <div className="container-fluid flex flex-col items-center justify-between gap-2 py-4 text-xs text-muted-foreground sm:flex-row">
-          <div>© {new Date().getFullYear()} EduPlatform. All rights reserved.</div>
-          <div>Made for learners everywhere.</div>
+          <div>{t("footer.rights", { year: new Date().getFullYear() })}</div>
+          <div>{t("footer.madeFor")}</div>
         </div>
       </div>
     </footer>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   backend,
-  setRefreshCookie,
+  setSessionCookies,
   type BackendAuthTokens,
 } from "../_helpers";
 
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     });
   }
 
-  await setRefreshCookie(res.data.refreshToken, res.data.refreshExpiresAt);
+  await setSessionCookies(res.data);
 
   return NextResponse.json({
     accessToken: res.data.accessToken,

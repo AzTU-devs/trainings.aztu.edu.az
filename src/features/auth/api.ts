@@ -7,6 +7,8 @@ import type {
   RegisterInput,
   TutorRegisterInput,
   TutorOtpInput,
+  UpdateProfileInput,
+  ForgotPasswordInput,
 } from "./schemas";
 import type {
   OtpStartResponse,
@@ -47,4 +49,22 @@ export const authApi = {
     bff.post<void>("/api/auth/session/logout").then((r) => r.data),
 
   me: () => request<User>({ url: endpoints.auth.me, method: "GET" }),
+
+  updateMe: (body: UpdateProfileInput) =>
+    request<User>({ url: endpoints.auth.me, method: "PUT", data: body }),
+
+  // Account recovery — the three public flows go through the BFF (no auth header),
+  // mirroring login/register. The email-verify request is authed and uses the
+  // client `request` so the in-memory access token is attached.
+  forgotPassword: (body: ForgotPasswordInput) =>
+    bff.post<void>("/api/auth/password/forgot", body).then((r) => r.data),
+
+  resetPassword: (body: { token: string; password: string }) =>
+    bff.post<void>("/api/auth/password/reset", body).then((r) => r.data),
+
+  verifyEmail: (body: { token: string }) =>
+    bff.post<void>("/api/auth/email/verify/confirm", body).then((r) => r.data),
+
+  requestEmailVerification: () =>
+    request<void>({ url: endpoints.auth.emailVerifyRequest, method: "POST" }),
 };

@@ -17,8 +17,8 @@ export default async function CertificatesPage({ params }: Props) {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">{t("nav.certificates")}</h1>
       <EmptyState
-        title="—"
-        description="Certificates will appear here once you complete courses."
+        title={t("student.certificatesEmpty")}
+        description={t("student.certificatesEmptyHint")}
       />
     </div>
   );

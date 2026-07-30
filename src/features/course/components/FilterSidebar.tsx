@@ -9,19 +9,31 @@ import { Input } from "@/components/ui/input";
 import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 
+type CategoryOption = { id: string; name: string };
+
 type Props = {
   total: number;
   visible: number;
+  categories: CategoryOption[];
+  // When a search query is active the backend search endpoint can't apply the
+  // category filter, so we hide the Category control instead of showing it as an
+  // active-but-ignored filter.
+  searching?: boolean;
 };
 
 const DURATIONS = [
-  { key: "lt2", label: "< 2 hours" },
-  { key: "2to6", label: "2–6 hours" },
-  { key: "6to17", label: "6–17 hours" },
-  { key: "gt17", label: "17+ hours" },
+  { key: "lt2", labelKey: "filters.durationLt2" },
+  { key: "2to6", labelKey: "filters.duration2to6" },
+  { key: "6to17", labelKey: "filters.duration6to17" },
+  { key: "gt17", labelKey: "filters.durationGt17" },
 ] as const;
 
-export function FilterSidebar({ total, visible }: Props) {
+export function FilterSidebar({
+  total,
+  visible,
+  categories,
+  searching = false,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -49,10 +61,21 @@ export function FilterSidebar({ total, visible }: Props) {
     });
   };
 
-  const activeKeys = ["type", "free", "rating", "priceMin", "priceMax", "duration", "category"];
+  const activeKeys = [
+    "type",
+    // While searching the category filter isn't applied (no server support), so
+    // don't count it as an active filter.
+    ...(searching ? [] : ["categoryId"]),
+    "free",
+    "rating",
+    "priceMin",
+    "priceMax",
+    "duration",
+  ];
   const activeCount = activeKeys.filter((k) => params.get(k)).length;
 
   const type = params.get("type");
+  const categoryId = params.get("categoryId");
   const free = params.get("free") === "1";
   const rating = Number(params.get("rating") || "0");
   const priceMin = params.get("priceMin") ?? "";
@@ -62,14 +85,14 @@ export function FilterSidebar({ total, visible }: Props) {
   return (
     <aside className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
-        <div className="text-sm font-semibold">Filters</div>
+        <div className="text-sm font-semibold">{t("filters.title")}</div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {visible !== total ? (
             <span>
               {visible}/{total}
             </span>
           ) : (
-            <span>{total} results</span>
+            <span>{t("filters.results", { count: total })}</span>
           )}
           {activeCount > 0 ? (
             <button
@@ -83,7 +106,7 @@ export function FilterSidebar({ total, visible }: Props) {
         </div>
       </div>
 
-      <Section title="Mode">
+      <Section title={t("filters.mode")}>
         <ChipRow>
           <Chip active={!type} onClick={() => setParam("type", null)}>
             {t("common.all")}
@@ -100,17 +123,47 @@ export function FilterSidebar({ total, visible }: Props) {
         </ChipRow>
       </Section>
 
-      <Section title="Price">
+      {searching ? (
+        <p className="mb-5 border-b border-border pb-5 text-[11px] leading-relaxed text-muted-foreground">
+          {t("filters.searchNote")}
+        </p>
+      ) : null}
+
+      {categories.length > 0 && !searching ? (
+        <Section title={t("filters.category")}>
+          <ChipRow>
+            <Chip
+              active={!categoryId}
+              onClick={() => setParam("categoryId", null)}
+            >
+              {t("common.all")}
+            </Chip>
+            {categories.map((c) => (
+              <Chip
+                key={c.id}
+                active={categoryId === c.id}
+                onClick={() =>
+                  setParam("categoryId", categoryId === c.id ? null : c.id)
+                }
+              >
+                {c.name}
+              </Chip>
+            ))}
+          </ChipRow>
+        </Section>
+      ) : null}
+
+      <Section title={t("filters.price")}>
         <ChipRow>
           <Chip active={free} onClick={() => setParam("free", free ? null : "1")}>
-            Free only
+            {t("filters.freeOnly")}
           </Chip>
         </ChipRow>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Input
             type="number"
             inputMode="decimal"
-            placeholder="Min"
+            placeholder={t("filters.min")}
             value={priceMin}
             onChange={(e) => setParam("priceMin", e.target.value || null)}
             min={0}
@@ -118,7 +171,7 @@ export function FilterSidebar({ total, visible }: Props) {
           <Input
             type="number"
             inputMode="decimal"
-            placeholder="Max"
+            placeholder={t("filters.max")}
             value={priceMax}
             onChange={(e) => setParam("priceMax", e.target.value || null)}
             min={0}
@@ -126,7 +179,7 @@ export function FilterSidebar({ total, visible }: Props) {
         </div>
       </Section>
 
-      <Section title="Rating">
+      <Section title={t("filters.rating")}>
         <div className="space-y-1.5">
           {[4.5, 4, 3.5, 3].map((r) => (
             <button
@@ -156,7 +209,7 @@ export function FilterSidebar({ total, visible }: Props) {
         </div>
       </Section>
 
-      <Section title="Duration">
+      <Section title={t("filters.duration")}>
         <div className="space-y-1.5">
           {DURATIONS.map((d) => (
             <button
@@ -170,12 +223,12 @@ export function FilterSidebar({ total, visible }: Props) {
                   : "hover:bg-accent",
               )}
             >
-              {d.label}
+              {t(d.labelKey)}
             </button>
           ))}
         </div>
         <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-          (server filter not exposed yet — applied client-side over current page)
+          {t("filters.durationNote")}
         </p>
       </Section>
 

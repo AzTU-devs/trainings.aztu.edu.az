@@ -9,4 +9,11 @@ export const tutorServerApi = {
       auth: true,
       cache: "no-store",
     }),
+
+  // Public profile of an approved tutor. id === course.tutorId (TutorProfile id).
+  byId: (id: string) =>
+    serverFetch<TutorProfile>(endpoints.public.tutorById(id), {
+      revalidate: 300,
+      tags: [`tutor:${id}`],
+    }),
 };

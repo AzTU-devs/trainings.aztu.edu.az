@@ -4,7 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import { fullTutorName, type TutorProfile } from "../types";
 import { formatRating } from "@/lib/utils/format";
 
-export function TutorProfileCard({ tutor }: { tutor: TutorProfile }) {
+export type TutorProfileLabels = {
+  reviews: string;
+  years: string;
+  specialties: string;
+  about: string;
+  website: string;
+  linkedin: string;
+};
+
+export function TutorProfileCard({
+  tutor,
+  labels,
+}: {
+  tutor: TutorProfile;
+  labels: TutorProfileLabels;
+}) {
   const name = fullTutorName(tutor);
   const initials = name
     .split(/\s+/)
@@ -44,18 +59,18 @@ export function TutorProfileCard({ tutor }: { tutor: TutorProfile }) {
                 <span className="font-medium text-foreground">
                   {formatRating(tutor.ratingAvg)}
                 </span>{" "}
-                ({tutor.ratingCount} reviews)
+                ({labels.reviews})
               </span>
               {tutor.yearsExperience ? (
                 <span className="flex items-center gap-1">
                   <Briefcase className="size-4" />
-                  {tutor.yearsExperience} years
+                  {labels.years}
                 </span>
               ) : null}
               {tutor.expertiseCategoryIds.length > 0 ? (
                 <span className="flex items-center gap-1">
                   <Award className="size-4" />
-                  {tutor.expertiseCategoryIds.length} specialties
+                  {labels.specialties}
                 </span>
               ) : null}
             </div>
@@ -69,7 +84,7 @@ export function TutorProfileCard({ tutor }: { tutor: TutorProfile }) {
                     className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent"
                   >
                     <Globe className="size-3.5" />
-                    Website
+                    {labels.website}
                   </a>
                 ) : null}
                 {tutor.linkedinUrl ? (
@@ -80,7 +95,7 @@ export function TutorProfileCard({ tutor }: { tutor: TutorProfile }) {
                     className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent"
                   >
                     <ExternalLink className="size-3.5" />
-                    LinkedIn
+                    {labels.linkedin}
                   </a>
                 ) : null}
               </div>
@@ -91,7 +106,7 @@ export function TutorProfileCard({ tutor }: { tutor: TutorProfile }) {
         {tutor.bio ? (
           <div className="space-y-2 border-t border-border pt-6">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              About
+              {labels.about}
             </h2>
             <p className="whitespace-pre-line text-sm">{tutor.bio}</p>
           </div>

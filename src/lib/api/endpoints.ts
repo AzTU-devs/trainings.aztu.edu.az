@@ -8,6 +8,10 @@ export const endpoints = {
     me: "/api/auth/me",
     appleStart: "/api/auth/oauth/apple/start",
     appleCallback: "/api/auth/oauth/apple/callback",
+    passwordForgot: "/api/auth/password/forgot",
+    passwordReset: "/api/auth/password/reset",
+    emailVerifyRequest: "/api/auth/email/verify/request",
+    emailVerifyConfirm: "/api/auth/email/verify/confirm",
   },
   public: {
     courses: "/api/public/courses",
@@ -17,6 +21,7 @@ export const endpoints = {
       `/api/public/courses/${courseId}/reviews`,
     categories: "/api/public/categories",
     categoryChildren: (id: string) => `/api/public/categories/${id}/children`,
+    tutorById: (id: string) => `/api/public/tutors/${id}`,
   },
   portal: {
     enrollFree: (courseId: string) =>
@@ -24,6 +29,8 @@ export const endpoints = {
     myEnrollments: "/api/portal/enrollments/mine",
     lessonProgress: (courseId: string, lessonId: string) =>
       `/api/portal/enrollments/courses/${courseId}/lessons/${lessonId}/progress`,
+    courseProgress: (courseId: string) =>
+      `/api/portal/enrollments/courses/${courseId}/progress`,
     orders: "/api/portal/orders",
     myOrders: "/api/portal/orders/mine",
     notifications: "/api/portal/notifications",

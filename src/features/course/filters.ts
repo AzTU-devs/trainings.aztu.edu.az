@@ -8,7 +8,6 @@ export type ClientFilters = {
   priceMax?: number;
   duration?: DurationBucket;
   free?: boolean;
-  category?: string;     // category slug (matched by tutorDisplayName placeholder for now — no field on summary)
 };
 
 const BUCKETS: Record<DurationBucket, { min: number; max: number }> = {
@@ -35,6 +34,7 @@ export function applyClientFilters(
 
 export function parseFiltersFromSearchParams(sp: URLSearchParams | Record<string, string | undefined>): {
   type?: CourseType;
+  categoryId?: string;
   q?: string;
   page: number;
   size: number;
@@ -49,6 +49,8 @@ export function parseFiltersFromSearchParams(sp: URLSearchParams | Record<string
     t === "ONLINE" || t === "OFFLINE" ? (t as CourseType) : undefined;
   return {
     type,
+    // Server-side filter (UUID). Applied directly in the catalog list call.
+    categoryId: get("categoryId") || undefined,
     q: get("q") || undefined,
     page: Number(get("page") ?? "0") || 0,
     size: Math.min(Number(get("size") ?? "12") || 12, 48),
@@ -58,7 +60,6 @@ export function parseFiltersFromSearchParams(sp: URLSearchParams | Record<string
       priceMin: get("priceMin") ? Number(get("priceMin")) : undefined,
       priceMax: get("priceMax") ? Number(get("priceMax")) : undefined,
       duration: (get("duration") as DurationBucket) || undefined,
-      category: get("category") || undefined,
     },
   };
 }

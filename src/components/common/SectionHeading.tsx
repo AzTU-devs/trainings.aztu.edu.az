@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils/cn";
 
 export function SectionHeading({
@@ -27,13 +26,19 @@ export function SectionHeading({
         className,
       )}
     >
-      <div className={cn("space-y-2", align === "center" && "max-w-2xl")}>
+      <div className={cn("space-y-3", align === "center" && "max-w-2xl")}>
         {eyebrow ? (
-          <Badge variant="outline" className="rounded-full">
+          <span
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary",
+              align === "center" && "mx-auto",
+            )}
+          >
+            <span className="size-1.5 rounded-full bg-gradient-to-r from-primary to-fuchsia-500" />
             {eyebrow}
-          </Badge>
+          </span>
         ) : null}
-        <h2 className="text-3xl font-bold tracking-tight">{title}</h2>
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
         {description ? (
           <p className="text-muted-foreground">{description}</p>
         ) : null}

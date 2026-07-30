@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   backend,
-  clearRefreshCookie,
+  clearSessionCookies,
   readRefreshCookie,
 } from "../../_helpers";
 
@@ -13,6 +13,6 @@ export async function POST() {
       body: { refreshToken },
     }).catch(() => undefined);
   }
-  await clearRefreshCookie();
+  await clearSessionCookies();
   return NextResponse.json({ ok: true });
 }

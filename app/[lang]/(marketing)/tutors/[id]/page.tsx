@@ -1,53 +1,96 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft, Construction } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/common/Breadcrumbs";
+import { tutorServerApi } from "@/features/tutor/api.server";
+import { TutorProfileCard } from "@/features/tutor/components/TutorProfileCard";
+import { fullTutorName, type TutorProfile } from "@/features/tutor/types";
+import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
 
-export const metadata: Metadata = { title: "Tutor profile" };
-
 type Props = { params: Promise<{ lang: string; id: string }> };
 
-// NOTE: Backend currently exposes /api/portal/tutor/me (self) and admin endpoints only.
-// There is no public GET /api/public/tutors/{id} yet, so this page is a placeholder
-// until that endpoint ships.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const tutor = await tutorServerApi.byId(id);
+    return {
+      title: fullTutorName(tutor),
+      description: tutor.headline ?? tutor.bio?.slice(0, 160) ?? undefined,
+    };
+  } catch {
+    return { title: "Tutor" };
+  }
+}
+
 export default async function PublicTutorPage({ params }: Props) {
-  const { lang } = await params;
+  const { lang, id } = await params;
   if (!isLocale(lang)) notFound();
   const locale = lang as Locale;
+  const t = await getT(locale);
+
+  let tutor: TutorProfile | null = null;
+  try {
+    tutor = await tutorServerApi.byId(id);
+  } catch {
+    tutor = null;
+  }
+
+  if (!tutor || tutor.approvalStatus !== "APPROVED") {
+    return (
+      <div className="container-fluid max-w-3xl space-y-6 py-10">
+        <Breadcrumbs
+          items={[
+            { label: t("common.home"), href: localeHref(locale, "/") },
+            { label: t("common.courses"), href: localeHref(locale, "/courses") },
+            { label: t("nav.tutor") },
+          ]}
+        />
+        <Card>
+          <CardContent className="space-y-4 p-10 text-center">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {t("tutorPage.notFoundTitle")}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {t("tutorPage.notFoundHint")}
+            </p>
+            <Link href={localeHref(locale, "/courses")} className="inline-block">
+              <Button variant="outline">
+                <ArrowLeft className="size-4" /> {t("tutorPage.backToCourses")}
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid max-w-3xl space-y-6 py-10">
       <Breadcrumbs
         items={[
-          { label: "Home", href: localeHref(locale, "/") },
-          { label: "Courses", href: localeHref(locale, "/courses") },
-          { label: "Tutor" },
+          { label: t("common.home"), href: localeHref(locale, "/") },
+          { label: t("common.courses"), href: localeHref(locale, "/courses") },
+          { label: fullTutorName(tutor) },
         ]}
       />
-      <Card>
-        <CardContent className="space-y-4 p-10 text-center">
-          <div className="mx-auto grid size-14 place-items-center rounded-full bg-muted text-muted-foreground">
-            <Construction className="size-7" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Public tutor profiles are coming soon
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            We&apos;re working on a richer tutor page. Until then you can browse
-            courses to find what each tutor offers.
-          </p>
-          <Link href={localeHref(locale, "/courses")} className="inline-block">
-            <Button variant="outline">
-              <ArrowLeft className="size-4" /> Back to courses
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+      <TutorProfileCard
+        tutor={tutor}
+        labels={{
+          reviews: t("tutorPage.reviews", { count: tutor.ratingCount }),
+          years: t("tutorPage.years", { count: tutor.yearsExperience ?? 0 }),
+          specialties: t("tutorPage.specialties", {
+            count: tutor.expertiseCategoryIds.length,
+          }),
+          about: t("tutorPage.about"),
+          website: t("tutorPage.website"),
+          linkedin: t("tutorPage.linkedin"),
+        }}
+      />
     </div>
   );
 }
