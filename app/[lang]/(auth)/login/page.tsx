@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { LogIn } from "lucide-react";
 import { LoginForm } from "@/features/auth/components/LoginForm";
-import { SocialAuthButtons } from "@/features/auth/components/SocialAuthButtons";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
@@ -36,17 +35,6 @@ export default async function LoginPage({ params }: Props) {
           <p className="text-sm text-muted-foreground">{t("auth.loginSubtitle")}</p>
         </div>
       </header>
-
-      <SocialAuthButtons />
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center" aria-hidden>
-          <span className="w-full border-t border-border" />
-        </div>
-        <span className="relative mx-auto block w-fit bg-background px-3 text-xs uppercase tracking-wide text-muted-foreground">
-          Or with email
-        </span>
-      </div>
 
       <Suspense fallback={<div className="h-64" />}>
         <LoginForm />
