@@ -1,0 +1,38 @@
+# Dependencies & build output — reinstalled/rebuilt inside the image
+node_modules
+.next
+out
+build
+
+# Local env / secrets — never bake these into the image.
+# NEXT_PUBLIC_* are inlined at build time and must be passed as --build-arg instead.
+.env
+.env.*
+!.env.example
+
+# VCS & CI
+.git
+.gitignore
+.github
+
+# IDE & OS
+.vscode
+.idea
+.DS_Store
+
+# Docs & agent instructions
+README.md
+AGENTS.md
+CLAUDE.md
+docs
+
+# Docker meta
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Misc
+*.log
+*.tsbuildinfo
+coverage
+.vercel
