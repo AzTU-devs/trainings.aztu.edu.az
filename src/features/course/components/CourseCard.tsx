@@ -43,7 +43,10 @@ export function CourseCard({ course }: { course: CourseSummary }) {
       <div
         className={`relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br ${coverFor(course.slug)}`}
       >
-        <span aria-hidden className="absolute inset-0 grid-lines opacity-40" />
+        <span
+          aria-hidden
+          className="absolute -right-8 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(200,169,81,0.4)_0%,transparent_65%)] blur-2xl"
+        />
         <span
           aria-hidden
           className="absolute inset-0 grid place-items-center font-display text-5xl tracking-tight text-white/25 transition-transform duration-500 group-hover:scale-105"

@@ -68,12 +68,8 @@ export default async function CourseDetailPage({ params }: Props) {
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-muted/30 to-background">
-        <div
-          className="absolute inset-x-0 top-0 h-64 grid-lines-soft fade-edges"
-          aria-hidden
-        />
-        <div className="container-fluid relative grid gap-8 py-12 lg:grid-cols-3">
+      <section className="surface-paper border-b border-border">
+        <div className="container-fluid grid gap-8 py-12 lg:grid-cols-3">
           <div className="space-y-5 lg:col-span-2">
             <Breadcrumbs
               items={[

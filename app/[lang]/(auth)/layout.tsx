@@ -23,17 +23,8 @@ export default async function AuthLayout({ children, params }: Props) {
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* LEFT — brand panel */}
-      <aside className="surface-deep relative hidden overflow-hidden lg:flex">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 grid-lines opacity-60" />
-          <div className="aurora -left-32 -bottom-40 size-[30rem] bg-[radial-gradient(circle,#1a5ba5_0%,transparent_65%)]" />
-          <div
-            className="aurora -right-24 -top-32 size-[26rem] bg-[radial-gradient(circle,#c8a951_0%,transparent_65%)] opacity-20"
-            style={{ animationDelay: "-8s" }}
-          />
-        </div>
-
-        <div className="relative z-10 flex w-full flex-col justify-between p-12">
+      <aside className="surface-deep hidden lg:flex">
+        <div className="flex w-full flex-col justify-between p-12">
           {/* Top */}
           <div className="space-y-12">
             <Link
@@ -42,8 +33,8 @@ export default async function AuthLayout({ children, params }: Props) {
             >
               <AztuMark tone="onDeep" className="size-9" />
               <div className="flex flex-col leading-tight">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-300">
-                  Azerbaijan Technical University
+                <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">
+                  AzTU
                 </span>
                 <span className="font-display text-base">EduPlatform</span>
               </div>

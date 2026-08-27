@@ -133,6 +133,10 @@
   }
 }
 
+:root {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+}
+
 @layer base {
   * {
     border-color: var(--border);
@@ -165,21 +169,9 @@
 /* ------------------------------------------------------------------ */
 /*  Keyframes — ambient loops only; entrance motion is JS-driven.      */
 /* ------------------------------------------------------------------ */
-@keyframes drift {
-  0%, 100% { transform: translate3d(-3%, -2%, 0) scale(1.05); }
-  50%      { transform: translate3d(3%, 3%, 0) scale(1.18); }
-}
 @keyframes sheen {
   0%   { transform: translateX(-130%) skewX(-12deg); }
   100% { transform: translateX(260%) skewX(-12deg); }
-}
-@keyframes rise {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-10px); }
-}
-@keyframes pulse-soft {
-  0%, 100% { opacity: 0.5; }
-  50%      { opacity: 0.85; }
 }
 
 @layer utilities {
@@ -201,52 +193,60 @@
      page reads as a single grid rather than a stack of unrelated blocks. */
   .section-y { padding-block: 4.5rem; }
   @media (min-width: 768px) { .section-y { padding-block: 6.5rem; } }
-  .section-y-sm { padding-block: 3.5rem; }
-  @media (min-width: 768px) { .section-y-sm { padding-block: 4.5rem; } }
 
-  /* ---- Surfaces ---- */
-  /* The deep navy canvas used by the hero and the closing CTA. */
+  /* ---- Surfaces ---------------------------------------------------- */
+  /*
+   * No repeating geometry anywhere. Depth comes from three things only:
+   * large off-canvas light washes, a fine film grain for tactility, and
+   * hairline rules for structure. Grids and dot patterns read as "template";
+   * washes and grain read as printed material.
+   */
+
+  /* The deep navy canvas: hero, closing CTA, footer, auth panel. Carries its
+     own lighting, so pages never need decorative child elements. */
   .surface-deep {
-    background:
-      radial-gradient(120% 90% at 12% 0%, #0b4a8d 0%, transparent 55%),
-      radial-gradient(100% 80% at 92% 18%, #123a6b 0%, transparent 60%),
-      linear-gradient(168deg, #002d60 0%, #001f45 45%, #00122a 100%);
-    color: #f2f6fb;
+    /* A deep, saturated navy base with the light concentrated where content
+       sits, rather than a broad pale wash that flattens the whole plane to
+       grey. Gold warmth stays a hint at the top-right. */
+    background-image:
+      var(--grain),
+      radial-gradient(58% 52% at 76% 20%, rgba(31, 106, 190, 0.50) 0%, transparent 64%),
+      radial-gradient(45% 40% at 95% 4%, rgba(200, 169, 81, 0.16) 0%, transparent 62%),
+      radial-gradient(70% 65% at 8% 92%, rgba(11, 74, 141, 0.34) 0%, transparent 62%),
+      linear-gradient(164deg, #01234a 0%, #00152f 56%, #00091b 100%);
+    color: #f3f6fb;
   }
-  /* A quiet tinted band for alternating sections. */
-  .surface-tint {
-    background: linear-gradient(180deg, var(--muted) 0%, var(--background) 100%);
+
+  /* A warm paper tint for alternating light sections. */
+  .surface-paper {
+    background-image:
+      var(--grain),
+      linear-gradient(180deg, var(--muted) 0%, var(--background) 78%);
   }
+
   .glass-nav {
-    background: color-mix(in srgb, var(--background) 82%, transparent);
-    backdrop-filter: saturate(160%) blur(14px);
-    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    background: color-mix(in srgb, var(--background) 84%, transparent);
+    backdrop-filter: saturate(160%) blur(16px);
+    -webkit-backdrop-filter: saturate(160%) blur(16px);
   }
 
-  /* ---- Brand type treatments ---- */
-  .text-gold {
-    background-image: linear-gradient(96deg, #e6cd82 0%, #c8a951 42%, #f0dfa8 70%, #c8a951 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  /* A short gold rule used under eyebrows and beside section titles. */
-  .rule-gold::before {
-    content: "";
-    display: block;
-    width: 2.5rem;
-    height: 2px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, var(--color-gold-500), transparent);
+  /* A translucent panel for use on the deep canvas. */
+  .panel-onDeep {
+    background: rgb(255 255 255 / 0.085);
+    border: 1px solid rgb(255 255 255 / 0.16);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.18),
+      0 40px 80px -24px rgb(0 6 16 / 0.95);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
 
-  /* ---- Depth ---- */
+  /* ---- Depth ---------------------------------------------------------- */
   .elev-1 { box-shadow: var(--shadow-e1); }
   .elev-2 { box-shadow: var(--shadow-e2); }
   .elev-3 { box-shadow: var(--shadow-e3); }
   .elev-4 { box-shadow: var(--shadow-e4); }
 
-  /* A hairline that reads as a bevel rather than a border. */
   .hairline {
     box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.6), var(--shadow-e2);
   }
@@ -254,30 +254,7 @@
     .hairline { box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.06), var(--shadow-e2); }
   }
 
-  /* On the deep navy canvas: a translucent panel with a lit top edge. */
-  .panel-onDeep {
-    background: rgb(255 255 255 / 0.055);
-    border: 1px solid rgb(255 255 255 / 0.10);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.12),
-      0 24px 60px -24px rgb(0 8 20 / 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  /* ---- Ambient motion ---- */
-  .aurora {
-    position: absolute;
-    border-radius: 9999px;
-    filter: blur(70px);
-    opacity: 0.5;
-    will-change: transform;
-    animation: drift 22s ease-in-out infinite;
-  }
-  .rise { animation: rise 7s ease-in-out infinite; }
-  .pulse-soft { animation: pulse-soft 6s ease-in-out infinite; }
-
-  /* A single gold sheen that sweeps a primary button on hover. */
+  /* A single gold sheen sweeping a primary button on hover. */
   .sheen { position: relative; overflow: hidden; }
   .sheen::after {
     content: "";
@@ -290,35 +267,10 @@
     pointer-events: none;
   }
   .sheen:hover::after { animation: sheen 0.9s ease-out; }
-
-  /* ---- Background patterns ---- */
-  /* For the deep navy canvas. */
-  .grid-lines {
-    background-image:
-      linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
-    background-size: 64px 64px;
-  }
-  /* For light page surfaces, where a white grid would be invisible. */
-  .grid-lines-soft {
-    background-image:
-      linear-gradient(to right, color-mix(in srgb, var(--border) 70%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in srgb, var(--border) 70%, transparent) 1px, transparent 1px);
-    background-size: 56px 56px;
-  }
-  .fade-edges {
-    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 10%, transparent 100%);
-  }
-  .fade-bottom {
-    mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
-  }
 }
 
 /* Users who ask for less motion get none of the ambient loops. */
 @media (prefers-reduced-motion: reduce) {
-  .aurora,
-  .rise,
-  .pulse-soft,
   .sheen::after {
     animation: none !important;
   }

@@ -63,14 +63,13 @@ export default async function CoursesPage({ params, searchParams }: Props) {
         <CatalogueHeader
           locale={locale}
           title={t("courses.title")}
-          subtitle={t("courses.loadError")}
+          subtitle={t("courses.loadErrorHint")}
           searchLabel={t("common.search")}
           q={q}
         />
         <div className="container-fluid py-16">
           <EmptyState
             title={t("courses.loadError")}
-            description={t("courses.loadErrorHint")}
             action={
               <Link href={localeHref(locale, "/courses")}>
                 <Button variant="outline">{t("common.retry")}</Button>
@@ -164,12 +163,8 @@ function CatalogueHeader({
   q?: string;
 }) {
   return (
-    <section className="surface-tint relative overflow-hidden border-b border-border">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 grid-lines-soft fade-edges"
-      />
-      <div className="container-fluid relative flex flex-col gap-6 py-12 sm:flex-row sm:items-end sm:justify-between">
+    <section className="surface-paper border-b border-border">
+      <div className="container-fluid flex flex-col gap-6 py-12 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-4xl leading-tight">{title}</h1>
           <p className="mt-2.5 text-sm text-muted-foreground">{subtitle}</p>

@@ -11,13 +11,8 @@ const SUPPORT_EMAIL = "support@aztu.edu.az";
 export function Footer() {
   const t = useT();
   return (
-    <footer className="surface-deep relative mt-auto overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 grid-lines fade-bottom opacity-40" />
-        <div className="aurora -left-24 -top-40 size-[28rem] bg-[radial-gradient(circle,#1a5ba5_0%,transparent_65%)]" />
-      </div>
-
-      <div className="container-fluid relative grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-12 lg:py-20">
+    <footer className="surface-deep mt-auto">
+      <div className="container-fluid grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-12 lg:py-20">
         <div className="space-y-5 lg:col-span-5">
           <Logo tone="onDeep" />
           <p className="max-w-sm text-sm leading-relaxed text-white/60">
@@ -56,7 +51,7 @@ export function Footer() {
         </FooterColumn>
       </div>
 
-      <div className="relative border-t border-white/10">
+      <div className="border-t border-white/10">
         <div className="container-fluid flex flex-col items-center justify-between gap-2 py-5 text-xs text-white/45 sm:flex-row">
           <div>{t("footer.rights", { year: new Date().getFullYear() })}</div>
           <div>{t("footer.madeFor")}</div>

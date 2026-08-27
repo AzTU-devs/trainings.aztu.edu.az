@@ -39,25 +39,16 @@ export function SectionHeading({
       )}
     >
       <div className={cn("max-w-2xl", centered && "mx-auto")}>
+        {/* Matches the section mastheads on the home page: bare gold eyebrow,
+            no rule, so every eyebrow on the site reads the same. */}
         {eyebrow ? (
           <div
             className={cn(
-              "mb-4 flex items-center gap-3",
-              centered && "justify-center",
+              "mb-5 text-[11px] font-semibold uppercase tracking-[0.2em]",
+              tone === "deep" ? "text-gold-300" : "text-gold-700 dark:text-gold-400",
             )}
           >
-            <span
-              aria-hidden
-              className="h-px w-8 bg-gradient-to-r from-gold-500 to-gold-500/0"
-            />
-            <span
-              className={cn(
-                "text-[11px] font-semibold uppercase tracking-[0.18em]",
-                tone === "deep" ? "text-gold-300" : "text-gold-700 dark:text-gold-400",
-              )}
-            >
-              {eyebrow}
-            </span>
+            {eyebrow}
           </div>
         ) : null}
         <h2
