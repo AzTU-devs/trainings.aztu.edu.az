@@ -61,7 +61,11 @@ export function CourseCard({ course }: { course: CourseSummary }) {
           <Badge variant="onDeep">
             {course.courseType === "ONLINE" ? "Online" : "Offline"}
           </Badge>
-          {course.free ? <Badge variant="gold">Free</Badge> : null}
+          {course.free ? (
+            <Badge className="border-transparent bg-gold-500 text-navy-950">
+              Free
+            </Badge>
+          ) : null}
         </div>
       </div>
 

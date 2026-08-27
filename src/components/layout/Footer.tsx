@@ -34,6 +34,7 @@ export function Footer() {
 
         <FooterColumn title={t("footer.learn")}>
           <FooterLink href="/courses">{t("footer.allCourses")}</FooterLink>
+          <FooterLink href="/experts">{t("nav.experts")}</FooterLink>
           <FooterLink href="/categories">{t("nav.categories")}</FooterLink>
         </FooterColumn>
 

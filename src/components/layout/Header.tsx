@@ -54,6 +54,7 @@ export function Header() {
 
         <nav className="ml-4 hidden items-center gap-1 lg:flex">
           <NavItem href="/courses" label={t("nav.courses")} />
+          <NavItem href="/experts" label={t("nav.experts")} />
           <NavItem href="/categories" label={t("nav.categories")} icon />
         </nav>
 
@@ -162,6 +163,9 @@ export function Header() {
           </form>
           <MobileLink href="/courses" onClick={() => setMobileOpen(false)}>
             {t("nav.courses")}
+          </MobileLink>
+          <MobileLink href="/experts" onClick={() => setMobileOpen(false)}>
+            {t("nav.experts")}
           </MobileLink>
           <MobileLink href="/categories" onClick={() => setMobileOpen(false)}>
             {t("nav.categories")}

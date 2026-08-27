@@ -117,7 +117,7 @@ export default async function CourseDetailPage({ params }: Props) {
             <p className="text-sm">
               {t("courseDetail.createdBy")}{" "}
               <Link
-                href={localeHref(locale, `/tutors/${course.tutorId}`)}
+                href={localeHref(locale, `/experts/${course.tutorId}`)}
                 className="font-medium text-primary hover:underline"
               >
                 {course.tutorDisplayName}
@@ -206,7 +206,7 @@ export default async function CourseDetailPage({ params }: Props) {
         </div>
 
         <aside className="space-y-4">
-          <h3 className="text-lg font-semibold">{t("courseDetail.aboutTutor")}</h3>
+          <h3 className="text-lg font-semibold">{t("courseDetail.aboutExpert")}</h3>
           <Card>
             <CardContent className="space-y-4 p-6">
               <div className="flex items-center gap-3">
@@ -232,7 +232,7 @@ export default async function CourseDetailPage({ params }: Props) {
                 </div>
               </div>
               <Link
-                href={localeHref(locale, `/tutors/${course.tutorId}`)}
+                href={localeHref(locale, `/experts/${course.tutorId}`)}
                 className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
               >
                 {t("courseDetail.viewProfile")} →

@@ -17,6 +17,8 @@ import { categoryServerApi } from "@/features/category/api.server";
 import { FAQ } from "@/components/common/FAQ";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Hero } from "@/components/marketing/Hero";
+import { listExperts } from "@/features/expert/directory.server";
+import { ExpertCard } from "@/features/expert/components/ExpertCard";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -27,15 +29,6 @@ import type { CourseSummary } from "@/features/course/types";
 export const revalidate = 300;
 
 type Props = { params: Promise<{ lang: string }> };
-
-// Illustrative tutor highlights. The backend has no "featured tutors" endpoint,
-// so these are static showcase entries rather than fabricated API results.
-const SHOWCASE_TUTORS = [
-  { name: "Aysel Mammadova", subject: "Frontend Engineering", rating: 4.9, students: "2.1K" },
-  { name: "Rashad Karimov", subject: "Backend & Databases", rating: 4.8, students: "1.7K" },
-  { name: "Leyla Huseynli", subject: "UX & Product Design", rating: 4.9, students: "1.4K" },
-  { name: "Elvin Aliyev", subject: "Data Science", rating: 4.7, students: "980" },
-] as const;
 
 export default async function HomePage({ params }: Props) {
   const { lang } = await params;
@@ -138,19 +131,22 @@ export default async function HomePage({ params }: Props) {
         </div>
       </Band>
 
-      {/* ── TUTORS ── portrait cards with real presence ── */}
-      <Band paper>
-        <Masthead
+      {/* ── EXPERTS ── real directory entries, not a static showcase ── */}
+      <Suspense fallback={null}>
+        <ExpertsSection
+          locale={locale}
           eyebrow={t("home.tutorsEyebrow")}
           title={t("home.tutorsTitle")}
           description={t("home.tutorsDesc")}
+          viewAll={t("common.viewAll")}
+          labelFor={(courseCount, enrolled) => ({
+            courses: t("experts.courses", { count: courseCount }),
+            students: t("experts.students", { count: enrolled }),
+            online: t("common.online"),
+            offline: t("common.offline"),
+          })}
         />
-        <Stagger className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {SHOWCASE_TUTORS.map((tutor) => (
-            <TutorCard key={tutor.name} {...tutor} />
-          ))}
-        </Stagger>
-      </Band>
+      </Suspense>
 
       {/* ── TESTIMONIALS ── one voice given room, two supporting ── */}
       <Band>
@@ -317,42 +313,6 @@ function FeatureRow({ n, title, desc }: { n: string; title: string; desc: string
   );
 }
 
-function TutorCard({
-  name,
-  subject,
-  rating,
-  students,
-}: {
-  name: string;
-  subject: string;
-  rating: number;
-  students: string;
-}) {
-  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("");
-  return (
-    <StaggerItem className="group flex h-full flex-col rounded-2xl border border-border bg-card p-7 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-primary/25 hover:elev-3">
-      <span
-        aria-hidden
-        className="grid size-16 place-items-center rounded-full bg-gradient-to-br from-navy-500 to-navy-900 font-display text-lg text-white ring-1 ring-inset ring-white/15"
-      >
-        {initials}
-      </span>
-      <h3 className="font-display mt-6 text-lg leading-snug">{name}</h3>
-      <p className="mt-1.5 text-sm text-muted-foreground">{subject}</p>
-      <div className="mt-auto flex items-center justify-between border-t border-border pt-5 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <Star className="size-3.5 fill-gold-500 text-gold-500" />
-          <span className="font-medium text-foreground">{rating}</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <Users className="size-3.5" />
-          {students}
-        </span>
-      </div>
-    </StaggerItem>
-  );
-}
-
 function LeadQuote({
   text,
   name,
@@ -452,6 +412,56 @@ async function DisciplinesSection({
           </li>
         ))}
       </ul>
+    </Band>
+  );
+}
+
+async function ExpertsSection({
+  locale,
+  eyebrow,
+  title,
+  description,
+  viewAll,
+  labelFor,
+}: {
+  locale: Locale;
+  eyebrow: string;
+  title: string;
+  description: string;
+  viewAll: string;
+  labelFor: (
+    courseCount: number,
+    enrolled: number,
+  ) => { courses: string; students: string; online: string; offline: string };
+}) {
+  const experts = (await listExperts()).slice(0, 4);
+  if (!experts.length) return null;
+
+  return (
+    <Band paper>
+      <Masthead
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        action={
+          <Link href={localeHref(locale, "/experts")}>
+            <Button variant="outline" className="group gap-2">
+              {viewAll}
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            </Button>
+          </Link>
+        }
+      />
+      <Stagger className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {experts.map((e) => (
+          <StaggerItem key={e.id} className="h-full">
+            <ExpertCard
+              expert={e}
+              labels={labelFor(e.courseCount, e.enrolledCount)}
+            />
+          </StaggerItem>
+        ))}
+      </Stagger>
     </Band>
   );
 }
