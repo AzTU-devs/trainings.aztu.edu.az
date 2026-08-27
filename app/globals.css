@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* ==================================================================== */
+/*  AzTU EduPlatform — design tokens                                    */
+/*                                                                      */
+/*  The palette is the university's: a deep navy ground (#003876 and     */
+/*  its shades) lifted by a single warm gold accent (#c8a951). Surfaces  */
+/*  are warm off-whites rather than pure white, so cards read as paper   */
+/*  rather than as holes punched in the page.                           */
+/* ==================================================================== */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -24,291 +33,296 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-brand-50: oklch(0.97 0.02 264);
-  --color-brand-100: oklch(0.93 0.05 264);
-  --color-brand-500: oklch(0.6 0.21 264);
-  --color-brand-600: oklch(0.54 0.23 264);
-  --color-brand-700: oklch(0.46 0.22 264);
-  /* Neon accent palette for the futuristic theme */
-  --color-neon-violet: oklch(0.62 0.26 295);
-  --color-neon-fuchsia: oklch(0.66 0.29 350);
-  --color-neon-cyan: oklch(0.82 0.16 195);
-  --color-neon-blue: oklch(0.62 0.24 258);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+
+  /* Brand — AzTU navy */
+  --color-navy-25: #f4f7fb;
+  --color-navy-50: #e8eef7;
+  --color-navy-100: #c9d8ec;
+  --color-navy-200: #9db8da;
+  --color-navy-300: #6d93c5;
+  --color-navy-400: #4276b3;
+  --color-navy-500: #1a5ba5;
+  --color-navy-600: #0b4a8d;
+  --color-navy-700: #003876;
+  --color-navy-800: #002d60;
+  --color-navy-900: #001f45;
+  --color-navy-950: #00122a;
+
+  /* Accent — AzTU gold */
+  --color-gold-50: #fbf7ea;
+  --color-gold-100: #f5e9c2;
+  --color-gold-200: #ecd794;
+  --color-gold-300: #e0c266;
+  --color-gold-400: #d4b04a;
+  --color-gold-500: #c8a951;
+  --color-gold-600: #a98a36;
+  --color-gold-700: #836a28;
+  --color-gold-800: #5c4a1c;
+  --color-gold-900: #3a2f12;
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 10px);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-geist-sans);
+  --font-display: var(--font-display-serif);
+
+  /* Elevation — tinted with the brand navy rather than neutral black, so
+     shadows sit in the same colour family as everything else. */
+  --shadow-e1: 0 1px 2px rgb(0 31 69 / 0.05), 0 1px 3px rgb(0 31 69 / 0.04);
+  --shadow-e2: 0 2px 4px rgb(0 31 69 / 0.04), 0 6px 16px -6px rgb(0 31 69 / 0.10);
+  --shadow-e3: 0 4px 8px rgb(0 31 69 / 0.05), 0 18px 40px -14px rgb(0 31 69 / 0.18);
+  --shadow-e4: 0 8px 16px rgb(0 31 69 / 0.06), 0 32px 64px -20px rgb(0 31 69 / 0.24);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.16 0.02 264);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0.02 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.02 264);
-  --primary: oklch(0.54 0.23 264);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.97 0.005 264);
-  --secondary-foreground: oklch(0.22 0.02 264);
-  --muted: oklch(0.97 0.005 264);
-  --muted-foreground: oklch(0.5 0.02 264);
-  --accent: oklch(0.96 0.02 264);
-  --accent-foreground: oklch(0.22 0.02 264);
-  --destructive: oklch(0.6 0.24 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.7 0.18 152);
-  --success-foreground: oklch(0.16 0.02 264);
-  --warning: oklch(0.83 0.17 84);
-  --warning-foreground: oklch(0.16 0.02 264);
-  --border: oklch(0.92 0.01 264);
-  --input: oklch(0.92 0.01 264);
-  --ring: oklch(0.54 0.23 264);
-  --radius: 0.85rem;
+  --background: #ffffff;
+  --foreground: #0d1b2f;
+  --card: #ffffff;
+  --card-foreground: #0d1b2f;
+  --popover: #ffffff;
+  --popover-foreground: #0d1b2f;
+  --primary: #003876;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f5fa;
+  --secondary-foreground: #12233b;
+  --muted: #f4f6fa;
+  --muted-foreground: #5a6b83;
+  --accent: #eef2f9;
+  --accent-foreground: #12233b;
+  --destructive: #c0342c;
+  --destructive-foreground: #ffffff;
+  --success: #17784f;
+  --success-foreground: #ffffff;
+  --warning: #a97b12;
+  --warning-foreground: #1a1206;
+  --border: #e3e8f0;
+  --input: #e3e8f0;
+  --ring: #1a5ba5;
+  --radius: 0.75rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.15 0.02 264);
-    --foreground: oklch(0.97 0.005 264);
-    --card: oklch(0.2 0.02 264);
-    --card-foreground: oklch(0.97 0.005 264);
-    --popover: oklch(0.2 0.02 264);
-    --popover-foreground: oklch(0.97 0.005 264);
-    --primary: oklch(0.7 0.2 264);
-    --primary-foreground: oklch(0.18 0.02 264);
-    --secondary: oklch(0.26 0.02 264);
-    --secondary-foreground: oklch(0.97 0.005 264);
-    --muted: oklch(0.26 0.02 264);
-    --muted-foreground: oklch(0.72 0.02 264);
-    --accent: oklch(0.28 0.04 264);
-    --accent-foreground: oklch(0.97 0.005 264);
-    --destructive: oklch(0.7 0.2 22);
-    --destructive-foreground: oklch(0.18 0.02 264);
-    --success: oklch(0.75 0.2 152);
-    --success-foreground: oklch(0.16 0.02 264);
-    --warning: oklch(0.83 0.17 84);
-    --warning-foreground: oklch(0.16 0.02 264);
-    --border: oklch(1 0 0 / 12%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.7 0.2 264);
+    --background: #060d18;
+    --foreground: #eef2f8;
+    --card: #0c1524;
+    --card-foreground: #eef2f8;
+    --popover: #0c1524;
+    --popover-foreground: #eef2f8;
+    --primary: #a8c4e6;
+    --primary-foreground: #00122a;
+    --secondary: #131f31;
+    --secondary-foreground: #eef2f8;
+    --muted: #111c2c;
+    --muted-foreground: #93a3b8;
+    --accent: #16233a;
+    --accent-foreground: #eef2f8;
+    --destructive: #e2685f;
+    --destructive-foreground: #1a0706;
+    --success: #45c08a;
+    --success-foreground: #04170f;
+    --warning: #e0c266;
+    --warning-foreground: #1a1206;
+    --border: #1d2b41;
+    --input: #24344d;
+    --ring: #6d93c5;
   }
 }
 
 @layer base {
-  * { border-color: var(--border); }
+  * {
+    border-color: var(--border);
+  }
   body {
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   ::selection {
-    background: oklch(0.54 0.23 264 / 0.25);
+    background: color-mix(in srgb, var(--color-gold-400) 40%, transparent);
+    color: var(--foreground);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Display face for headings — a serif carries the institutional register
+     that a geometric sans cannot. */
+  .font-display {
+    font-family: var(--font-display-serif), Georgia, "Times New Roman", serif;
+    font-weight: 500;
+    letter-spacing: -0.015em;
   }
 }
 
 /* ------------------------------------------------------------------ */
-/*  Keyframes — ambient, looping motion (entrance motion is JS-driven) */
+/*  Keyframes — ambient loops only; entrance motion is JS-driven.      */
 /* ------------------------------------------------------------------ */
-@keyframes aurora-pan {
-  0%   { transform: translate3d(-8%, -4%, 0) rotate(0deg) scale(1.1); }
-  50%  { transform: translate3d(8%, 6%, 0) rotate(8deg) scale(1.25); }
-  100% { transform: translate3d(-8%, -4%, 0) rotate(0deg) scale(1.1); }
+@keyframes drift {
+  0%, 100% { transform: translate3d(-3%, -2%, 0) scale(1.05); }
+  50%      { transform: translate3d(3%, 3%, 0) scale(1.18); }
 }
-@keyframes gradient-pan {
-  0%, 100% { background-position: 0% 50%; }
-  50%      { background-position: 100% 50%; }
+@keyframes sheen {
+  0%   { transform: translateX(-130%) skewX(-12deg); }
+  100% { transform: translateX(260%) skewX(-12deg); }
 }
-@keyframes float-y {
+@keyframes rise {
   0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-14px); }
+  50%      { transform: translateY(-10px); }
 }
-@keyframes float-y-slow {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-22px); }
-}
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.55; transform: scale(1); }
-  50%      { opacity: 0.9; transform: scale(1.08); }
-}
-@keyframes shimmer {
-  0%   { transform: translateX(-120%); }
-  100% { transform: translateX(220%); }
-}
-@keyframes spin-slow {
-  to { transform: rotate(360deg); }
-}
-@keyframes blob {
-  0%, 100% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; }
-  33%      { border-radius: 66% 34% 38% 62% / 59% 33% 67% 41%; }
-  66%      { border-radius: 38% 62% 56% 44% / 33% 62% 38% 67%; }
-}
-@keyframes twinkle {
-  0%, 100% { opacity: 0.2; }
-  50%      { opacity: 1; }
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.85; }
 }
 
 @layer utilities {
+  /* ---- Layout ---- */
   .container-fluid {
-    max-width: 1400px;
+    width: 100%;
+    max-width: 84rem;
     margin-inline: auto;
-    padding-inline: 1rem;
+    padding-inline: 1.25rem;
   }
   @media (min-width: 768px) {
     .container-fluid { padding-inline: 2rem; }
   }
+  @media (min-width: 1280px) {
+    .container-fluid { padding-inline: 2.5rem; }
+  }
 
-  /* ---- Gradient text ---- */
-  .gradient-text {
-    background: linear-gradient(135deg, oklch(0.54 0.23 264), oklch(0.6 0.21 320));
+  /* Vertical rhythm — every marketing section uses one of these two, so the
+     page reads as a single grid rather than a stack of unrelated blocks. */
+  .section-y { padding-block: 4.5rem; }
+  @media (min-width: 768px) { .section-y { padding-block: 6.5rem; } }
+  .section-y-sm { padding-block: 3.5rem; }
+  @media (min-width: 768px) { .section-y-sm { padding-block: 4.5rem; } }
+
+  /* ---- Surfaces ---- */
+  /* The deep navy canvas used by the hero and the closing CTA. */
+  .surface-deep {
+    background:
+      radial-gradient(120% 90% at 12% 0%, #0b4a8d 0%, transparent 55%),
+      radial-gradient(100% 80% at 92% 18%, #123a6b 0%, transparent 60%),
+      linear-gradient(168deg, #002d60 0%, #001f45 45%, #00122a 100%);
+    color: #f2f6fb;
+  }
+  /* A quiet tinted band for alternating sections. */
+  .surface-tint {
+    background: linear-gradient(180deg, var(--muted) 0%, var(--background) 100%);
+  }
+  .glass-nav {
+    background: color-mix(in srgb, var(--background) 82%, transparent);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+  }
+
+  /* ---- Brand type treatments ---- */
+  .text-gold {
+    background-image: linear-gradient(96deg, #e6cd82 0%, #c8a951 42%, #f0dfa8 70%, #c8a951 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
-  .text-aurora {
-    background-image: linear-gradient(
-      110deg,
-      var(--color-neon-blue),
-      var(--color-neon-violet) 30%,
-      var(--color-neon-fuchsia) 55%,
-      var(--color-neon-cyan) 80%,
-      var(--color-neon-blue)
-    );
-    background-size: 220% 100%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation: gradient-pan 7s ease-in-out infinite;
+  /* A short gold rule used under eyebrows and beside section titles. */
+  .rule-gold::before {
+    content: "";
+    display: block;
+    width: 2.5rem;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--color-gold-500), transparent);
   }
 
-  /* ---- Glass surfaces ---- */
-  .glass {
-    background: oklch(1 0 0 / 0.7);
-    backdrop-filter: saturate(180%) blur(14px);
-  }
-  .glass-dark {
-    background: oklch(0.16 0.03 264 / 0.55);
-    backdrop-filter: saturate(160%) blur(16px);
-    border: 1px solid oklch(1 0 0 / 0.1);
+  /* ---- Depth ---- */
+  .elev-1 { box-shadow: var(--shadow-e1); }
+  .elev-2 { box-shadow: var(--shadow-e2); }
+  .elev-3 { box-shadow: var(--shadow-e3); }
+  .elev-4 { box-shadow: var(--shadow-e4); }
+
+  /* A hairline that reads as a bevel rather than a border. */
+  .hairline {
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.6), var(--shadow-e2);
   }
   @media (prefers-color-scheme: dark) {
-    .glass { background: oklch(0.15 0.02 264 / 0.65); }
+    .hairline { box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.06), var(--shadow-e2); }
   }
 
-  /* ---- The cosmic hero canvas (always dark, futuristic) ---- */
-  .hero-cosmic {
-    background:
-      radial-gradient(1200px 600px at 50% -10%, oklch(0.4 0.2 285 / 0.5), transparent 70%),
-      radial-gradient(900px 500px at 85% 20%, oklch(0.45 0.2 200 / 0.35), transparent 65%),
-      radial-gradient(900px 600px at 10% 80%, oklch(0.5 0.24 340 / 0.32), transparent 60%),
-      linear-gradient(180deg, oklch(0.13 0.03 280), oklch(0.1 0.02 270));
-    color: oklch(0.97 0.01 264);
+  /* On the deep navy canvas: a translucent panel with a lit top edge. */
+  .panel-onDeep {
+    background: rgb(255 255 255 / 0.055);
+    border: 1px solid rgb(255 255 255 / 0.10);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.12),
+      0 24px 60px -24px rgb(0 8 20 / 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
-  /* ---- Animated aurora blobs ---- */
-  .aurora-blob {
+  /* ---- Ambient motion ---- */
+  .aurora {
     position: absolute;
     border-radius: 9999px;
-    filter: blur(72px);
-    opacity: 0.6;
+    filter: blur(70px);
+    opacity: 0.5;
     will-change: transform;
-    animation: aurora-pan 18s ease-in-out infinite;
+    animation: drift 22s ease-in-out infinite;
   }
+  .rise { animation: rise 7s ease-in-out infinite; }
+  .pulse-soft { animation: pulse-soft 6s ease-in-out infinite; }
 
-  /* ---- Glow helpers ---- */
-  .glow-pulse { animation: glow-pulse 6s ease-in-out infinite; }
-  .glow-ring {
-    box-shadow:
-      0 0 0 1px oklch(1 0 0 / 0.08),
-      0 10px 40px -10px oklch(0.5 0.24 285 / 0.55),
-      0 0 60px -16px oklch(0.6 0.26 320 / 0.5);
-  }
-  .text-glow { text-shadow: 0 0 28px oklch(0.7 0.2 285 / 0.55); }
-
-  /* ---- Floating / ambient motion ---- */
-  .float { animation: float-y 6s ease-in-out infinite; }
-  .float-slow { animation: float-y-slow 9s ease-in-out infinite; }
-  .spin-slow { animation: spin-slow 22s linear infinite; }
-  .blob { animation: blob 14s ease-in-out infinite; }
-  .twinkle { animation: twinkle 4s ease-in-out infinite; }
-
-  /* ---- Shimmer sweep (used on buttons / borders) ---- */
-  .shimmer-sweep { position: relative; overflow: hidden; }
-  .shimmer-sweep::after {
+  /* A single gold sheen that sweeps a primary button on hover. */
+  .sheen { position: relative; overflow: hidden; }
+  .sheen::after {
     content: "";
     position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      100deg,
-      transparent 30%,
-      oklch(1 0 0 / 0.25) 50%,
-      transparent 70%
-    );
-    transform: translateX(-120%);
-    animation: shimmer 3.5s ease-in-out infinite;
-  }
-
-  /* ---- 3D perspective helpers ---- */
-  .perspective { perspective: 1200px; }
-  .preserve-3d { transform-style: preserve-3d; }
-  .backface-hidden { backface-visibility: hidden; }
-
-  /* ---- Gradient conic border card ---- */
-  .border-gradient {
-    position: relative;
-    background-clip: padding-box;
-  }
-  .border-gradient::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, var(--color-neon-violet), var(--color-neon-cyan), var(--color-neon-fuchsia));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
+    inset-block: 0;
+    left: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent);
+    transform: translateX(-130%) skewX(-12deg);
     pointer-events: none;
   }
+  .sheen:hover::after { animation: sheen 0.9s ease-out; }
 
   /* ---- Background patterns ---- */
-  .grid-pattern {
+  /* For the deep navy canvas. */
+  .grid-lines {
     background-image:
-      linear-gradient(to right, oklch(0.5 0.02 264 / 0.06) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(0.5 0.02 264 / 0.06) 1px, transparent 1px);
-    background-size: 48px 48px;
+      linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+    background-size: 64px 64px;
   }
-  .grid-pattern-glow {
+  /* For light page surfaces, where a white grid would be invisible. */
+  .grid-lines-soft {
     background-image:
-      linear-gradient(to right, oklch(0.8 0.12 285 / 0.12) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(0.8 0.12 285 / 0.12) 1px, transparent 1px);
+      linear-gradient(to right, color-mix(in srgb, var(--border) 70%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--border) 70%, transparent) 1px, transparent 1px);
     background-size: 56px 56px;
   }
-  .mask-radial-fade {
-    mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 0%, transparent 100%);
+  .fade-edges {
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 10%, transparent 100%);
   }
-  .mask-b-fade {
-    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  .fade-bottom {
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
   }
 }
 
-/* Respect users who prefer reduced motion: silence ambient loops */
+/* Users who ask for less motion get none of the ambient loops. */
 @media (prefers-reduced-motion: reduce) {
-  .aurora-blob,
-  .glow-pulse,
-  .float,
-  .float-slow,
-  .spin-slow,
-  .blob,
-  .twinkle,
-  .text-aurora,
-  .shimmer-sweep::after {
+  .aurora,
+  .rise,
+  .pulse-soft,
+  .sheen::after {
     animation: none !important;
+  }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
   }
 }

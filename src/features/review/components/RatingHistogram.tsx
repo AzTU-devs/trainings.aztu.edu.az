@@ -30,7 +30,7 @@ export function RatingHistogram({
               key={i}
               className={
                 i < Math.round(avg)
-                  ? "size-4 fill-amber-400 text-amber-400"
+                  ? "size-4 fill-gold-500 text-gold-500"
                   : "size-4 text-muted-foreground/40"
               }
             />
@@ -46,7 +46,7 @@ export function RatingHistogram({
             <span className="w-12 text-muted-foreground">{b.stars} ★</span>
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full bg-amber-400"
+                className="h-full bg-gold-500"
                 style={{ width: `${(b.count / max) * 100}%` }}
               />
             </div>

@@ -23,7 +23,7 @@ export default async function MyCoursesPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">
+      <h1 className="font-display text-3xl leading-tight">
         {t("student.myCoursesTitle")}
       </h1>
 

@@ -27,7 +27,7 @@ export default async function CheckoutSuccess({ params, searchParams }: Props) {
             <CheckCircle2 className="size-7" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="font-display text-2xl leading-tight">
               {t("checkout.successTitle")}
             </h1>
             <p className="text-sm text-muted-foreground">{t("checkout.successHint")}</p>

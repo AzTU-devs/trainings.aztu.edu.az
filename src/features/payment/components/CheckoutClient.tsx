@@ -42,11 +42,11 @@ export function CheckoutClient({ course }: { course: Course }) {
     <div className="container-fluid grid gap-8 lg:grid-cols-3">
       <Card className="lg:col-span-2">
         <CardContent className="space-y-5 p-8">
-          <h2 className="text-2xl font-bold tracking-tight">{t("checkout.title")}</h2>
+          <h2 className="font-display text-2xl leading-tight">{t("checkout.title")}</h2>
 
           <div className="flex gap-4 rounded-2xl border border-border bg-background p-4">
             <div
-              className="size-20 shrink-0 rounded-xl bg-gradient-to-br from-primary to-violet-500"
+              className="size-20 shrink-0 rounded-xl bg-gradient-to-br from-navy-500 to-navy-800"
               aria-hidden
             />
             <div className="min-w-0 flex-1 space-y-1">

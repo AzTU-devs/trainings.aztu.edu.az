@@ -197,7 +197,7 @@ export function FilterSidebar({
                     key={i}
                     className={
                       i < Math.floor(r)
-                        ? "size-3.5 fill-amber-400 text-amber-400"
+                        ? "size-3.5 fill-gold-500 text-gold-500"
                         : "size-3.5 text-muted-foreground/40"
                     }
                   />

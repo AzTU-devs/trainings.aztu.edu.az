@@ -45,13 +45,13 @@ export default async function DashboardPage({ params }: Props) {
   return (
     <div className="space-y-8">
       {/* Hero card */}
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-violet-500/5 to-transparent p-8">
+      <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-navy-500/10 via-navy-700/5 to-transparent p-8">
         <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-primary/10 blur-3xl" aria-hidden />
         <div className="relative space-y-1">
           <p className="text-sm font-medium text-primary">
             {new Date().toLocaleDateString(locale, { weekday: "long" })}
           </p>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="font-display text-3xl leading-tight sm:text-4xl">
             {t("student.greeting", { name: user ? fullName(user) : "" })}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -81,7 +81,7 @@ export default async function DashboardPage({ params }: Props) {
 
       <section className="space-y-4">
         <div className="flex items-end justify-between">
-          <h2 className="text-xl font-semibold">{t("student.continueLearning")}</h2>
+          <h2 className="font-display text-xl leading-snug">{t("student.continueLearning")}</h2>
           {active.length > 3 ? (
             <Link
               href={localeHref(locale, "/my-courses")}

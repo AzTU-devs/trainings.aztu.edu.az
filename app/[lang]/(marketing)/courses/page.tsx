@@ -19,7 +19,8 @@ import {
 
 export const metadata: Metadata = {
   title: "Courses",
-  description: "Browse all online and offline courses on EduPlatform.",
+  description:
+    "Browse every online and in-person course on the AzTU EduPlatform catalogue.",
 };
 
 type SP = Promise<Record<string, string | undefined>>;
@@ -53,14 +54,31 @@ export default async function CoursesPage({ params, searchParams }: Props) {
     })(),
   ]);
 
+  // The catalogue can fail to load; when it does the page still keeps its
+  // header and its search field, so the visitor has somewhere to go rather than
+  // an unbranded error card floating on an empty page.
   if (!data) {
     return (
-      <div className="container-fluid py-12">
-        <EmptyState
-          title={t("courses.loadError")}
-          description={t("courses.loadErrorHint")}
+      <>
+        <CatalogueHeader
+          locale={locale}
+          title={t("courses.title")}
+          subtitle={t("courses.loadError")}
+          searchLabel={t("common.search")}
+          q={q}
         />
-      </div>
+        <div className="container-fluid py-16">
+          <EmptyState
+            title={t("courses.loadError")}
+            description={t("courses.loadErrorHint")}
+            action={
+              <Link href={localeHref(locale, "/courses")}>
+                <Button variant="outline">{t("common.retry")}</Button>
+              </Link>
+            }
+          />
+        </div>
+      </>
     );
   }
 
@@ -73,71 +91,104 @@ export default async function CoursesPage({ params, searchParams }: Props) {
   const filtered = applyClientFilters(typeFiltered, client);
 
   return (
-    <div className="container-fluid grid gap-8 py-10 lg:grid-cols-[280px_1fr]">
-      <FilterSidebar
-        total={data.totalElements}
-        visible={filtered.length}
-        // Category needs a server-side filter the search endpoint doesn't support,
-        // so hide it while searching rather than showing an inactive control.
-        searching={searching}
-        categories={categories
-          .filter((c) => c.active)
-          .map((c) => ({ id: c.id, name: c.name }))}
+    <>
+      <CatalogueHeader
+        locale={locale}
+        title={q ? `“${q}”` : t("courses.title")}
+        subtitle={t("courses.results", { count: data.totalElements })}
+        searchLabel={t("common.search")}
+        q={q}
       />
 
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {q ? `“${q}”` : t("courses.title")}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {t("courses.results", { count: data.totalElements })}
-            </p>
-          </div>
-          <form
-            action={localeHref(locale, "/courses")}
-            className="relative w-full max-w-sm"
-          >
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              name="q"
-              defaultValue={q ?? ""}
-              placeholder={t("common.search")}
-              className="h-10 rounded-full bg-muted/40 pl-10"
-            />
-          </form>
-        </div>
+      <div className="container-fluid grid gap-10 py-12 lg:grid-cols-[260px_1fr]">
+        <FilterSidebar
+          total={data.totalElements}
+          visible={filtered.length}
+          // Category needs a server-side filter the search endpoint doesn't support,
+          // so hide it while searching rather than showing an inactive control.
+          searching={searching}
+          categories={categories
+            .filter((c) => c.active)
+            .map((c) => ({ id: c.id, name: c.name }))}
+        />
 
-        {filtered.length === 0 ? (
-          <EmptyState
-            title={t("courses.empty")}
-            description={t("courses.emptyHint")}
-            action={
-              <Link href={localeHref(locale, "/courses")}>
-                <Button variant="outline">{t("common.clearFilters")}</Button>
-              </Link>
-            }
-          />
-        ) : (
-          <>
-            <CourseGrid courses={filtered} />
-            <Pagination
-              locale={locale}
-              page={data.page}
-              totalPages={data.totalPages}
-              params={raw}
-              prevLabel={t("common.previous")}
-              nextLabel={t("common.next")}
-              pageOfLabel={t("courses.pageOf", {
-                page: data.page + 1,
-                total: data.totalPages,
-              })}
+        <div className="space-y-6">
+          {filtered.length === 0 ? (
+            <EmptyState
+              title={t("courses.empty")}
+              description={t("courses.emptyHint")}
+              action={
+                <Link href={localeHref(locale, "/courses")}>
+                  <Button variant="outline">{t("common.clearFilters")}</Button>
+                </Link>
+              }
             />
-          </>
-        )}
+          ) : (
+            <>
+              <CourseGrid courses={filtered} />
+              <Pagination
+                locale={locale}
+                page={data.page}
+                totalPages={data.totalPages}
+                params={raw}
+                prevLabel={t("common.previous")}
+                nextLabel={t("common.next")}
+                pageOfLabel={t("courses.pageOf", {
+                  page: data.page + 1,
+                  total: data.totalPages,
+                })}
+              />
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
+  );
+}
+
+/**
+ * The catalogue's own header band. Shared by the loaded and the failed state so
+ * the page never renders without its title and search field.
+ */
+function CatalogueHeader({
+  locale,
+  title,
+  subtitle,
+  searchLabel,
+  q,
+}: {
+  locale: Locale;
+  title: string;
+  subtitle: string;
+  searchLabel: string;
+  q?: string;
+}) {
+  return (
+    <section className="surface-tint relative overflow-hidden border-b border-border">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 grid-lines-soft fade-edges"
+      />
+      <div className="container-fluid relative flex flex-col gap-6 py-12 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-4xl leading-tight">{title}</h1>
+          <p className="mt-2.5 text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+        <form
+          action={localeHref(locale, "/courses")}
+          className="relative w-full sm:max-w-sm"
+        >
+          <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder={searchLabel}
+            aria-label={searchLabel}
+            className="rounded-full bg-background pl-10"
+          />
+        </form>
+      </div>
+    </section>
   );
 }
 
@@ -171,13 +222,15 @@ function Pagination({
   const prev = Math.max(0, page - 1);
   const next = Math.min(totalPages - 1, page + 1);
   return (
-    <div className="flex items-center justify-center gap-2 pt-4">
+    <div className="flex items-center justify-center gap-3 pt-6">
       <Link
         href={make(prev)}
         aria-disabled={page === 0}
         className={
-          "rounded-md border px-3 py-1.5 text-sm " +
-          (page === 0 ? "pointer-events-none opacity-50" : "hover:bg-accent")
+          "rounded-full border border-border px-4 py-2 text-sm transition-colors " +
+          (page === 0
+            ? "pointer-events-none opacity-40"
+            : "hover:border-primary/40 hover:bg-accent")
         }
       >
         {prevLabel}
@@ -187,10 +240,10 @@ function Pagination({
         href={make(next)}
         aria-disabled={page >= totalPages - 1}
         className={
-          "rounded-md border px-3 py-1.5 text-sm " +
+          "rounded-full border border-border px-4 py-2 text-sm transition-colors " +
           (page >= totalPages - 1
-            ? "pointer-events-none opacity-50"
-            : "hover:bg-accent")
+            ? "pointer-events-none opacity-40"
+            : "hover:border-primary/40 hover:bg-accent")
         }
       >
         {nextLabel}

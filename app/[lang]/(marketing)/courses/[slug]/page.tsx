@@ -70,7 +70,7 @@ export default async function CourseDetailPage({ params }: Props) {
     <>
       <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-muted/30 to-background">
         <div
-          className="absolute inset-x-0 top-0 h-64 grid-pattern mask-radial-fade"
+          className="absolute inset-x-0 top-0 h-64 grid-lines-soft fade-edges"
           aria-hidden
         />
         <div className="container-fluid relative grid gap-8 py-12 lg:grid-cols-3">
@@ -91,7 +91,7 @@ export default async function CourseDetailPage({ params }: Props) {
               <Badge variant="outline">{course.level}</Badge>
               {course.free ? <Badge variant="success">{t("common.free")}</Badge> : null}
             </div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            <h1 className="font-display text-3xl leading-tight sm:text-4xl">
               {course.title}
             </h1>
             {course.subtitle ? (
@@ -99,7 +99,7 @@ export default async function CourseDetailPage({ params }: Props) {
             ) : null}
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Star className="size-4 fill-amber-400 text-amber-400" />
+                <Star className="size-4 fill-gold-500 text-gold-500" />
                 <span className="font-medium text-foreground">
                   {formatRating(course.ratingAvg)}
                 </span>{" "}
@@ -169,7 +169,7 @@ export default async function CourseDetailPage({ params }: Props) {
         <div className="space-y-10 lg:col-span-2">
           {course.learningOutcomes ? (
             <div className="space-y-3">
-              <h2 className="text-xl font-semibold">{t("courseDetail.whatYouLearn")}</h2>
+              <h2 className="font-display text-xl leading-snug">{t("courseDetail.whatYouLearn")}</h2>
               <p className="whitespace-pre-line text-sm text-muted-foreground">
                 {course.learningOutcomes}
               </p>
@@ -178,7 +178,7 @@ export default async function CourseDetailPage({ params }: Props) {
 
           {course.description ? (
             <div className="space-y-3">
-              <h2 className="text-xl font-semibold">{t("courseDetail.description")}</h2>
+              <h2 className="font-display text-xl leading-snug">{t("courseDetail.description")}</h2>
               <p className="whitespace-pre-line text-sm text-muted-foreground">
                 {course.description}
               </p>
@@ -186,7 +186,7 @@ export default async function CourseDetailPage({ params }: Props) {
           ) : null}
 
           <div className="space-y-3">
-            <h2 className="text-xl font-semibold">{t("courseDetail.curriculum")}</h2>
+            <h2 className="font-display text-xl leading-snug">{t("courseDetail.curriculum")}</h2>
             <CurriculumAccordion
               modules={course.modules}
               emptyMessage={t("courseDetail.curriculumEmpty")}
@@ -195,7 +195,7 @@ export default async function CourseDetailPage({ params }: Props) {
 
           {course.requirements ? (
             <div className="space-y-3">
-              <h2 className="text-xl font-semibold">{t("courseDetail.requirements")}</h2>
+              <h2 className="font-display text-xl leading-snug">{t("courseDetail.requirements")}</h2>
               <p className="whitespace-pre-line text-sm text-muted-foreground">
                 {course.requirements}
               </p>
@@ -216,7 +216,7 @@ export default async function CourseDetailPage({ params }: Props) {
               <div className="flex items-center gap-3">
                 <span
                   aria-hidden
-                  className="grid size-12 place-items-center rounded-full bg-gradient-to-br from-primary to-violet-500 text-base font-semibold text-white"
+                  className="grid size-12 place-items-center rounded-full bg-gradient-to-br from-navy-500 to-navy-800 text-base font-semibold text-white"
                 >
                   {course.tutorDisplayName
                     ?.split(/\s+/)

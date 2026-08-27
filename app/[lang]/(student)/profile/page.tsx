@@ -26,7 +26,7 @@ export default async function ProfilePage({ params }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="font-display text-3xl leading-tight">
           {t("student.profileTitle")}
         </h1>
         <Link href={localeHref(locale, "/settings")}>

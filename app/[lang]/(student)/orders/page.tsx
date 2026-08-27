@@ -38,7 +38,7 @@ export default async function OrdersPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">{t("nav.orders")}</h1>
+      <h1 className="font-display text-3xl leading-tight">{t("nav.orders")}</h1>
       {orders.length === 0 ? (
         <EmptyState title="—" description={t("student.noEnrollments")} />
       ) : (

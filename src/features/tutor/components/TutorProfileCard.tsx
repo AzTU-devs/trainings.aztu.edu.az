@@ -35,13 +35,13 @@ export function TutorProfileCard({
         <div className="flex flex-col items-start gap-5 sm:flex-row">
           <span
             aria-hidden
-            className="grid size-20 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-violet-500 text-2xl font-bold text-white"
+            className="grid size-20 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-navy-500 to-navy-800 text-2xl font-bold text-white"
           >
             {initials}
           </span>
           <div className="flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{name}</h1>
+              <h1 className="font-display text-2xl leading-tight">{name}</h1>
               <Badge
                 variant={
                   tutor.approvalStatus === "APPROVED" ? "success" : "secondary"
@@ -55,7 +55,7 @@ export function TutorProfileCard({
             ) : null}
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Star className="size-4 fill-amber-400 text-amber-400" />
+                <Star className="size-4 fill-gold-500 text-gold-500" />
                 <span className="font-medium text-foreground">
                   {formatRating(tutor.ratingAvg)}
                 </span>{" "}

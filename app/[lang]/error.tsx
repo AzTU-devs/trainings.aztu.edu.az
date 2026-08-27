@@ -19,7 +19,7 @@ export default function LangError({
   return (
     <div className="grid min-h-screen place-items-center bg-background p-6">
       <div className="max-w-md space-y-4 text-center">
-        <h1 className="text-2xl font-semibold">{t("errors.title")}</h1>
+        <h1 className="font-display text-2xl leading-tight">{t("errors.title")}</h1>
         <p className="text-sm text-muted-foreground">
           {error.message || t("errors.description")}
         </p>

@@ -23,7 +23,7 @@ export default async function MyTutorProfilePage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">{t("nav.tutor")}</h1>
+      <h1 className="font-display text-3xl leading-tight">{t("nav.tutor")}</h1>
 
       {profile ? (
         <TutorProfileCard

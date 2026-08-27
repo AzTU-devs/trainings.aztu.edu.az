@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ export function ReviewForm({ courseId }: { courseId: string }) {
     defaultValues: { rating: 0, title: "", body: "" },
   });
 
-  const rating = form.watch("rating");
+  const rating = useWatch({ control: form.control, name: "rating" });
 
   const onSubmit = (values: ReviewInput) => {
     create.mutate(
@@ -51,11 +51,16 @@ export function ReviewForm({ courseId }: { courseId: string }) {
     >
       <div className="space-y-1">
         <h3 className="font-semibold">{t("review.writeYours")}</h3>
-        <p className="text-sm text-muted-foreground">{t("review.shareYourThoughts")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("review.shareYourThoughts")}
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label>{t("review.rating")}</Label>
-        <StarsInput value={rating} onChange={(v) => form.setValue("rating", v, { shouldValidate: true })} />
+        <StarsInput
+          value={rating}
+          onChange={(v) => form.setValue("rating", v, { shouldValidate: true })}
+        />
         <FormError message={form.formState.errors.rating?.message} />
       </div>
       <div className="space-y-1.5">

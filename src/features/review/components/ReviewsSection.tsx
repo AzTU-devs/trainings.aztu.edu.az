@@ -25,7 +25,7 @@ export function ReviewsSection({ courseId, ratingAvg, ratingCount }: Props) {
   return (
     <section className="space-y-6">
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold">{t("review.title")}</h2>
+        <h2 className="font-display text-xl leading-snug">{t("review.title")}</h2>
         <p className="text-sm text-muted-foreground">{t("review.subtitle")}</p>
       </div>
 
@@ -55,7 +55,7 @@ export function ReviewsSection({ courseId, ratingAvg, ratingCount }: Props) {
               <div className="flex items-center gap-3">
                 <span
                   aria-hidden
-                  className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-primary to-violet-500 text-xs font-semibold text-white"
+                  className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-navy-500 to-navy-800 text-xs font-semibold text-white"
                 >
                   {r.authorName?.split(" ").map((w) => w[0]).join("").slice(0, 2)}
                 </span>

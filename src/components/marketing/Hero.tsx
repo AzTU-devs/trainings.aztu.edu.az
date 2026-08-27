@@ -1,19 +1,15 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import {
   Search,
-  CheckCircle2,
+  Check,
   ShieldCheck,
   PlayCircle,
-  GraduationCap,
   Award,
   Star,
-  Sparkles,
-  Code2,
-  Brain,
-  Rocket,
+  Clock,
+  Users,
+  ArrowRight,
 } from "lucide-react";
 import {
   motion,
@@ -24,8 +20,8 @@ import {
   type MotionValue,
 } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { Icon3D } from "@/components/common/Icon3D";
 import { Counter } from "@/components/common/Counter";
+import { AztuMark } from "@/components/layout/AztuMark";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -53,11 +49,11 @@ export type HeroLabels = {
 
 const container = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.09, delayChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.06 } },
 };
 const item = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE } },
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.75, ease: EASE } },
 };
 
 export function Hero({
@@ -74,8 +70,8 @@ export function Hero({
   // Pointer parallax — normalised to [-0.5, 0.5] across the hero.
   const px = useMotionValue(0);
   const py = useMotionValue(0);
-  const sx = useSpring(px, { stiffness: 110, damping: 18, mass: 0.4 });
-  const sy = useSpring(py, { stiffness: 110, damping: 18, mass: 0.4 });
+  const sx = useSpring(px, { stiffness: 90, damping: 20, mass: 0.5 });
+  const sy = useSpring(py, { stiffness: 90, damping: 20, mass: 0.5 });
 
   function onMove(e: React.MouseEvent<HTMLDivElement>) {
     if (reduce) return;
@@ -92,55 +88,47 @@ export function Hero({
     <section
       onMouseMove={onMove}
       onMouseLeave={onLeave}
-      className="hero-cosmic relative overflow-hidden"
+      className="surface-deep relative overflow-hidden"
     >
       {/* ---- Ambient background ---- */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="aurora-blob left-[-10%] top-[-15%] size-[42rem] bg-[radial-gradient(circle,oklch(0.6_0.26_295)_0%,transparent_60%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="aurora -left-[12%] -top-[20%] size-[46rem] bg-[radial-gradient(circle,#1a5ba5_0%,transparent_62%)]" />
         <div
-          className="aurora-blob right-[-12%] top-[8%] size-[40rem] bg-[radial-gradient(circle,oklch(0.7_0.18_200)_0%,transparent_60%)]"
-          style={{ animationDelay: "-6s" }}
+          className="aurora -right-[8%] top-[6%] size-[36rem] bg-[radial-gradient(circle,#c8a951_0%,transparent_62%)] opacity-[0.18]"
+          style={{ animationDelay: "-9s" }}
         />
-        <div
-          className="aurora-blob bottom-[-25%] left-[25%] size-[44rem] bg-[radial-gradient(circle,oklch(0.62_0.27_345)_0%,transparent_60%)]"
-          style={{ animationDelay: "-12s" }}
-        />
-        <div className="absolute inset-0 grid-pattern-glow mask-radial-fade" />
-        <Stars />
+        <div className="absolute inset-0 grid-lines fade-edges" />
       </div>
 
-      <div className="container-fluid relative grid gap-14 py-20 lg:grid-cols-12 lg:py-28">
+      <div className="container-fluid relative grid items-center gap-16 py-20 lg:grid-cols-12 lg:gap-10 lg:py-28">
         {/* ---- Copy column ---- */}
         <motion.div
           variants={container}
           initial="hidden"
           animate="show"
-          className="space-y-7 lg:col-span-6"
+          className="lg:col-span-6"
         >
-          <motion.div variants={item}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur">
-              <Image
-                src="/aztu-logo-mark.png"
-                alt=""
-                width={16}
-                height={16}
-                className="size-4 object-contain"
-              />
+          <motion.div variants={item} className="mb-7 flex items-center gap-3">
+            <span
+              aria-hidden
+              className="h-px w-8 bg-gradient-to-r from-gold-400 to-gold-400/0"
+            />
+            <AztuMark tone="onDeep" className="size-[18px]" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-300">
               {labels.university}
-              <span className="ml-1 size-1.5 animate-pulse rounded-full bg-emerald-400" />
             </span>
           </motion.div>
 
           <motion.h1
             variants={item}
-            className="text-balance text-5xl font-bold leading-[1.04] tracking-tight text-white sm:text-6xl lg:text-7xl"
+            className="font-display text-balance text-[2.75rem] leading-[1.06] text-white sm:text-6xl lg:text-[4.25rem]"
           >
-            <span className="text-aurora text-glow">{labels.heroTitle}</span>
+            {labels.heroTitle}
           </motion.h1>
 
           <motion.p
             variants={item}
-            className="max-w-xl text-lg text-white/70"
+            className="mt-6 max-w-xl text-pretty text-lg leading-relaxed text-white/65"
           >
             {labels.heroSubtitle}
           </motion.p>
@@ -148,43 +136,50 @@ export function Hero({
           <motion.form
             variants={item}
             action={coursesHref}
-            className="group flex max-w-xl items-center gap-2 rounded-full border border-white/15 bg-white/10 p-1.5 pl-5 backdrop-blur-xl transition-all focus-within:border-violet-400/60 focus-within:shadow-[0_0_40px_-8px_oklch(0.62_0.26_295/0.7)]"
+            className="panel-onDeep mt-9 flex max-w-xl items-center gap-2 rounded-full p-2 pl-5 transition-[border-color] focus-within:border-gold-500/40"
           >
-            <Search className="size-4 text-white/60" />
+            <Search className="size-4 shrink-0 text-white/50" />
             <input
               name="q"
               type="search"
               placeholder={labels.searchPlaceholder}
-              className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/45"
+              aria-label={labels.searchPlaceholder}
+              className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
             />
-            <Button
-              type="submit"
-              size="sm"
-              className="shimmer-sweep rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-fuchsia-500/30 hover:from-violet-400 hover:to-fuchsia-400"
-            >
+            <Button type="submit" variant="gold" size="sm" className="shrink-0">
               {labels.browseCourses}
             </Button>
           </motion.form>
 
-          <motion.div
-            variants={item}
-            className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-sm text-white/70"
-          >
-            <Trust icon={<CheckCircle2 className="size-4 text-emerald-400" />} text={labels.badgeFree} />
-            <Trust icon={<CheckCircle2 className="size-4 text-emerald-400" />} text={labels.badgeModes} />
-            <Trust icon={<ShieldCheck className="size-4 text-cyan-400" />} text={labels.badgeVerified} />
+          <motion.div variants={item} className="mt-5">
+            <a
+              href={registerHref}
+              className="group inline-flex items-center gap-1.5 text-sm font-medium text-white/75 underline-offset-4 transition-colors hover:text-white hover:underline"
+            >
+              {labels.createAccount}
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            </a>
           </motion.div>
+
+          <motion.ul
+            variants={item}
+            className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-white/60"
+          >
+            <Trust icon={<Check className="size-3.5" />} text={labels.badgeFree} />
+            <Trust icon={<Check className="size-3.5" />} text={labels.badgeModes} />
+            <Trust icon={<ShieldCheck className="size-3.5" />} text={labels.badgeVerified} />
+          </motion.ul>
         </motion.div>
 
-        {/* ---- 3D visual column ---- */}
+        {/* ---- Showcase column ---- */}
         <div className="relative hidden lg:col-span-6 lg:block">
           <Showcase sx={sx} sy={sy} labels={labels} />
         </div>
       </div>
 
       {/* ---- Stat bar ---- */}
-      <div className="relative border-t border-white/10 bg-white/[0.03] backdrop-blur-sm">
-        <div className="container-fluid grid grid-cols-2 gap-y-8 py-10 sm:grid-cols-4">
+      <div className="relative border-t border-white/10">
+        <div className="container-fluid grid grid-cols-2 gap-y-9 divide-white/10 py-10 sm:grid-cols-4 sm:gap-y-0 sm:divide-x">
           <Stat label={labels.statLearners} value={<Counter to={12} suffix="K+" />} />
           <Stat label={labels.statCourses} value={<Counter to={320} suffix="+" />} />
           <Stat label={labels.statTutors} value={<Counter to={80} suffix="+" />} />
@@ -197,25 +192,35 @@ export function Hero({
 
 function Trust({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <span className="flex items-center gap-1.5">
-      {icon}
+    <li className="flex items-center gap-2">
+      <span
+        aria-hidden
+        className="grid size-5 place-items-center rounded-full bg-gold-500/15 text-gold-300"
+      >
+        {icon}
+      </span>
       {text}
-    </span>
+    </li>
   );
 }
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="text-center sm:text-left">
-      <div className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl">
+    <div className="px-2 text-center sm:px-6 sm:text-left sm:first:pl-0">
+      <div className="font-display text-4xl leading-none text-white sm:text-[2.75rem]">
         {value}
       </div>
-      <div className="mt-1 text-xs uppercase tracking-wider text-white/50">{label}</div>
+      <div className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
+        {label}
+      </div>
     </div>
   );
 }
 
-/** The floating 3D card cluster, parallaxed against pointer movement. */
+/**
+ * The floating card cluster. Two credible course cards and a progress chip —
+ * a small, honest preview of the product rather than an abstract glow.
+ */
 function Showcase({
   sx,
   sy,
@@ -225,82 +230,103 @@ function Showcase({
   sy: MotionValue<number>;
   labels: HeroLabels;
 }) {
-  // Different depths move at different magnitudes for a parallax feel.
-  const deep = useParallax(sx, sy, 14);
-  const mid = useParallax(sx, sy, 26);
-  const near = useParallax(sx, sy, 42);
+  const deep = useParallax(sx, sy, 10);
+  const mid = useParallax(sx, sy, 20);
+  const near = useParallax(sx, sy, 32);
 
   return (
-    <div className="perspective relative mx-auto aspect-square w-full max-w-lg">
-      {/* halo */}
-      <div className="absolute inset-6 rounded-full bg-gradient-to-br from-violet-500/30 via-fuchsia-500/20 to-cyan-400/20 blur-2xl glow-pulse" />
+    <div className="relative mx-auto aspect-[5/4] w-full max-w-xl">
+      {/* A soft gold pool behind the cluster gives it something to sit on. */}
+      <div
+        aria-hidden
+        className="pulse-soft absolute inset-x-10 inset-y-14 rounded-full bg-[radial-gradient(circle,#c8a951_0%,transparent_65%)] opacity-20 blur-3xl"
+      />
 
-      {/* main video card */}
-      <motion.div
+      {/* Primary course card */}
+      <motion.article
         style={{ x: mid.x, y: mid.y }}
-        initial={{ opacity: 0, scale: 0.9, rotate: -3 }}
-        animate={{ opacity: 1, scale: 1, rotate: -4 }}
-        transition={{ duration: 0.9, ease: EASE, delay: 0.2 }}
-        className="absolute left-2 top-8 w-64 rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur-xl glow-ring"
+        initial={{ opacity: 0, y: 24, rotate: -3 }}
+        animate={{ opacity: 1, y: 0, rotate: -2.5 }}
+        transition={{ duration: 0.9, ease: EASE, delay: 0.18 }}
+        className="panel-onDeep absolute left-0 top-4 w-[19rem] rounded-3xl p-3"
       >
-        <div className="mb-3 grid aspect-video w-full place-items-center rounded-2xl bg-gradient-to-br from-sky-500 via-violet-600 to-fuchsia-600">
-          <PlayCircle className="size-12 text-white/95 drop-shadow-lg" />
+        <div className="relative mb-3.5 grid aspect-video place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-navy-500 via-navy-700 to-navy-950">
+          <div aria-hidden className="absolute inset-0 grid-lines opacity-50" />
+          <PlayCircle className="relative size-11 text-white/90" strokeWidth={1.25} />
+          <span className="absolute left-3 top-3 rounded-full border border-white/20 bg-black/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur">
+            Online
+          </span>
         </div>
-        <div className="text-sm font-semibold text-white">{labels.previewCourse1Title}</div>
-        <div className="text-xs text-white/55">{labels.previewCourse1Meta}</div>
-      </motion.div>
+        <div className="px-1 pb-1">
+          <h3 className="text-[15px] font-semibold text-white">
+            {labels.previewCourse1Title}
+          </h3>
+          <div className="mt-2 flex items-center gap-3.5 text-[11px] text-white/50">
+            <span className="flex items-center gap-1">
+              <Clock className="size-3" />
+              {labels.previewCourse1Meta}
+            </span>
+            <span className="flex items-center gap-1">
+              <Users className="size-3" />
+              1.2K
+            </span>
+          </div>
+        </div>
+      </motion.article>
 
-      {/* rating card */}
-      <motion.div
+      {/* Secondary course card */}
+      <motion.article
         style={{ x: near.x, y: near.y }}
-        initial={{ opacity: 0, scale: 0.9, rotate: 5 }}
-        animate={{ opacity: 1, scale: 1, rotate: 4 }}
-        transition={{ duration: 0.9, ease: EASE, delay: 0.35 }}
-        className="absolute bottom-10 right-0 w-60 rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur-xl glow-ring"
+        initial={{ opacity: 0, y: 24, rotate: 4 }}
+        animate={{ opacity: 1, y: 0, rotate: 3 }}
+        transition={{ duration: 0.9, ease: EASE, delay: 0.32 }}
+        className="panel-onDeep absolute bottom-2 right-0 w-[17.5rem] rounded-3xl p-3"
       >
-        <div className="mb-3 grid aspect-video w-full place-items-center rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500">
-          <GraduationCap className="size-12 text-white/95 drop-shadow-lg" />
+        <div className="relative mb-3.5 grid aspect-video place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-gold-300 via-gold-500 to-gold-700">
+          <div aria-hidden className="absolute inset-0 grid-lines opacity-30" />
+          <Award className="relative size-11 text-navy-950/80" strokeWidth={1.25} />
+          <span className="absolute left-3 top-3 rounded-full border border-white/25 bg-black/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur">
+            Offline
+          </span>
         </div>
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-white">{labels.previewCourse2Title}</div>
-          <span className="flex items-center gap-0.5 text-xs text-white">
-            <Star className="size-3 fill-amber-400 text-amber-400" />
+        <div className="flex items-start justify-between gap-2 px-1 pb-1">
+          <div className="min-w-0">
+            <h3 className="truncate text-[15px] font-semibold text-white">
+              {labels.previewCourse2Title}
+            </h3>
+            <p className="mt-1.5 text-[11px] text-white/50">
+              {labels.previewCourse2Meta}
+            </p>
+          </div>
+          <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-white">
+            <Star className="size-3 fill-gold-400 text-gold-400" />
             4.9
           </span>
         </div>
-        <div className="text-xs text-white/55">{labels.previewCourse2Meta}</div>
-      </motion.div>
+      </motion.article>
 
-      {/* floating 3D icons */}
-      <motion.div style={{ x: near.x, y: near.y }} className="absolute right-6 top-0">
-        <Icon3D icon={Rocket} tone="fuchsia" size="lg" float />
-      </motion.div>
-      <motion.div style={{ x: deep.x, y: deep.y }} className="absolute left-0 top-1/2">
-        <Icon3D icon={Code2} tone="cyan" size="md" float />
-      </motion.div>
-      <motion.div style={{ x: mid.x, y: mid.y }} className="absolute bottom-2 left-16">
-        <Icon3D icon={Brain} tone="violet" size="md" float />
-      </motion.div>
-      <motion.div style={{ x: near.x, y: near.y }} className="absolute right-16 top-1/2">
-        <Icon3D icon={Award} tone="amber" size="sm" float />
-      </motion.div>
-
-      {/* XP pill */}
+      {/* Progress chip */}
       <motion.div
-        style={{ x: near.x, y: near.y }}
-        initial={{ opacity: 0, y: 12 }}
+        style={{ x: deep.x, y: deep.y }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: EASE, delay: 0.6 }}
-        className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 backdrop-blur-xl glow-ring"
+        transition={{ duration: 0.7, ease: EASE, delay: 0.5 }}
+        className="panel-onDeep absolute left-4 top-[62%] flex w-56 items-center gap-3 rounded-2xl px-3.5 py-3"
       >
-        <span className="grid size-8 place-items-center rounded-full bg-emerald-400/20 text-emerald-300">
-          <CheckCircle2 className="size-4" />
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gold-500/20 text-gold-300">
+          <Check className="size-4" strokeWidth={2.5} />
         </span>
-        <div className="text-xs">
-          <div className="font-semibold text-white">{labels.previewLessonDone}</div>
-          <div className="text-white/55">{labels.previewXp}</div>
+        <div className="min-w-0">
+          <div className="truncate text-[13px] font-semibold text-white">
+            {labels.previewLessonDone}
+          </div>
+          <div className="mt-1 truncate text-[11px] text-white/50">
+            {labels.previewXp}
+          </div>
+          <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/15">
+            <span className="block h-full w-[72%] rounded-full bg-gold-400" />
+          </div>
         </div>
-        <Sparkles className="size-4 text-amber-300" />
       </motion.div>
     </div>
   );
@@ -311,28 +337,4 @@ function useParallax(sx: MotionValue<number>, sy: MotionValue<number>, mag: numb
     x: useTransform(sx, [-0.5, 0.5], [-mag, mag]),
     y: useTransform(sy, [-0.5, 0.5], [-mag, mag]),
   };
-}
-
-/** A sprinkle of deterministic twinkling stars (no Math.random for SSR safety). */
-function Stars() {
-  const stars = [
-    [8, 18], [22, 62], [35, 12], [48, 38], [60, 72], [72, 22],
-    [84, 54], [92, 16], [16, 84], [40, 88], [66, 8], [78, 80],
-    [12, 44], [55, 26], [88, 36], [30, 70],
-  ];
-  return (
-    <>
-      {stars.map(([l, t], i) => (
-        <span
-          key={i}
-          className="twinkle absolute size-[3px] rounded-full bg-white/80"
-          style={{
-            left: `${l}%`,
-            top: `${t}%`,
-            animationDelay: `${(i % 6) * 0.6}s`,
-          }}
-        />
-      ))}
-    </>
-  );
 }

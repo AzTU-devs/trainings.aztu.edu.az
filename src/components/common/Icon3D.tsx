@@ -1,7 +1,15 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
+/**
+ * Tone names are kept from the previous palette so call sites don't churn, but
+ * every one now resolves into the AzTU navy/gold family: deep navies for
+ * structure, gold for emphasis, and two muted supporting tones. The result is
+ * a set of tiles that read as one material instead of a rainbow.
+ */
 export type Icon3DTone =
+  | "navy"
+  | "gold"
   | "violet"
   | "blue"
   | "cyan"
@@ -10,31 +18,71 @@ export type Icon3DTone =
   | "amber"
   | "rose";
 
-const TONES: Record<Icon3DTone, { face: string; glow: string }> = {
-  violet: { face: "from-violet-400 via-violet-500 to-indigo-600", glow: "shadow-violet-500/50" },
-  blue: { face: "from-sky-400 via-blue-500 to-indigo-600", glow: "shadow-blue-500/50" },
-  cyan: { face: "from-cyan-300 via-teal-400 to-sky-600", glow: "shadow-cyan-500/50" },
-  fuchsia: { face: "from-fuchsia-400 via-pink-500 to-rose-600", glow: "shadow-fuchsia-500/50" },
-  emerald: { face: "from-emerald-300 via-green-500 to-teal-600", glow: "shadow-emerald-500/50" },
-  amber: { face: "from-amber-300 via-orange-400 to-rose-500", glow: "shadow-amber-500/50" },
-  rose: { face: "from-rose-400 via-pink-500 to-fuchsia-600", glow: "shadow-rose-500/50" },
+type ToneSpec = { face: string; ring: string; glow: string };
+
+const TONES: Record<Icon3DTone, ToneSpec> = {
+  navy: {
+    face: "from-navy-500 via-navy-700 to-navy-900",
+    ring: "ring-white/25",
+    glow: "shadow-[0_18px_36px_-14px_rgb(0_56_118/0.75)]",
+  },
+  gold: {
+    face: "from-gold-300 via-gold-500 to-gold-700",
+    ring: "ring-white/40",
+    glow: "shadow-[0_18px_36px_-14px_rgb(200_169_81/0.7)]",
+  },
+  // Supporting tones — deliberately close to the two brand colours.
+  blue: {
+    face: "from-navy-400 via-navy-600 to-navy-800",
+    ring: "ring-white/25",
+    glow: "shadow-[0_18px_36px_-14px_rgb(11_74_141/0.7)]",
+  },
+  cyan: {
+    face: "from-[#3f8fb0] via-navy-600 to-navy-800",
+    ring: "ring-white/25",
+    glow: "shadow-[0_18px_36px_-14px_rgb(26_91_165/0.65)]",
+  },
+  violet: {
+    face: "from-navy-500 via-navy-700 to-navy-950",
+    ring: "ring-white/20",
+    glow: "shadow-[0_18px_36px_-14px_rgb(0_31_69/0.8)]",
+  },
+  fuchsia: {
+    face: "from-gold-400 via-gold-600 to-navy-800",
+    ring: "ring-white/30",
+    glow: "shadow-[0_18px_36px_-14px_rgb(169_138_54/0.65)]",
+  },
+  emerald: {
+    face: "from-[#3f9c78] via-[#1f6d55] to-navy-800",
+    ring: "ring-white/25",
+    glow: "shadow-[0_18px_36px_-14px_rgb(23_120_79/0.6)]",
+  },
+  amber: {
+    face: "from-gold-200 via-gold-400 to-gold-600",
+    ring: "ring-white/45",
+    glow: "shadow-[0_18px_36px_-14px_rgb(212_176_74/0.7)]",
+  },
+  rose: {
+    face: "from-gold-300 via-gold-500 to-navy-700",
+    ring: "ring-white/35",
+    glow: "shadow-[0_18px_36px_-14px_rgb(200_169_81/0.6)]",
+  },
 };
 
 const SIZES = {
-  sm: { box: "size-11 rounded-xl", icon: "size-5" },
-  md: { box: "size-14 rounded-2xl", icon: "size-7" },
-  lg: { box: "size-20 rounded-[1.4rem]", icon: "size-9" },
+  sm: { box: "size-10 rounded-xl", icon: "size-[18px]" },
+  md: { box: "size-12 rounded-2xl", icon: "size-6" },
+  lg: { box: "size-16 rounded-[1.15rem]", icon: "size-8" },
 } as const;
 
 /**
- * A CSS-sculpted "3D" icon tile: a vivid gradient face with a glossy top
- * highlight, a beveled inner edge and a coloured glow beneath, so flat Lucide
- * glyphs read as floating 3D objects. Tilts and lifts on hover (pure CSS — no
- * JS — so it is safe inside server components).
+ * A CSS-sculpted icon tile: a brand gradient face with a lit top edge, an inner
+ * bevel and a tinted shadow beneath, so a flat Lucide glyph reads as a small
+ * physical object. Pure CSS, so it is safe inside server components.
  */
 export function Icon3D({
   icon: Icon,
-  tone = "violet",
+  tone = "navy",
   size = "md",
   float = false,
   className,
@@ -50,40 +98,37 @@ export function Icon3D({
   return (
     <span
       className={cn(
-        "group/icon relative inline-grid shrink-0 place-items-center perspective",
-        float && "float",
+        "group/icon relative inline-grid shrink-0 place-items-center",
+        float && "rise",
         className,
       )}
     >
-      {/* coloured glow pool */}
-      <span
-        aria-hidden
-        className={cn(
-          "absolute inset-0 -z-10 translate-y-2 scale-90 rounded-[inherit] bg-gradient-to-br opacity-70 blur-xl transition-all duration-500 group-hover/icon:scale-110 group-hover/icon:opacity-100",
-          t.face,
-        )}
-      />
-      {/* the 3D face */}
       <span
         className={cn(
-          "relative grid place-items-center bg-gradient-to-br shadow-lg transition-transform duration-500 will-change-transform",
-          "[transform:rotateX(18deg)_rotateY(-16deg)] group-hover/icon:[transform:rotateX(6deg)_rotateY(8deg)_translateY(-4px)]",
+          "relative grid place-items-center bg-gradient-to-br transition-transform duration-500 will-change-transform group-hover/icon:-translate-y-1",
           s.box,
           t.face,
           t.glow,
         )}
       >
-        {/* glossy top highlight */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[inherit] bg-gradient-to-b from-white/55 via-white/5 to-transparent"
+          className="pointer-events-none absolute inset-0 rounded-[inherit] bg-gradient-to-b from-white/40 via-white/5 to-transparent"
         />
-        {/* inner bevel ring */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/30"
+          className={cn(
+            "pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset",
+            t.ring,
+          )}
         />
-        <Icon className={cn("relative text-white drop-shadow-[0_2px_5px_rgba(0,0,0,0.35)]", s.icon)} />
+        <Icon
+          className={cn(
+            "relative text-white drop-shadow-[0_1px_3px_rgb(0_18_42/0.45)]",
+            tone === "gold" || tone === "amber" ? "text-navy-900 drop-shadow-none" : "",
+            s.icon,
+          )}
+        />
       </span>
     </span>
   );

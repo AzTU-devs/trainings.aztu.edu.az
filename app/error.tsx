@@ -17,7 +17,7 @@ export default function GlobalError({
     <html>
       <body className="grid min-h-screen place-items-center bg-background p-6 text-foreground">
         <div className="max-w-md space-y-4 text-center">
-          <h1 className="text-2xl font-semibold">Something went wrong</h1>
+          <h1 className="font-display text-2xl leading-tight">Something went wrong</h1>
           <p className="text-sm text-muted-foreground">
             {error.message || "An unexpected error occurred."}
           </p>

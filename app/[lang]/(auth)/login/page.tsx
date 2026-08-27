@@ -29,7 +29,7 @@ export default async function LoginPage({ params }: Props) {
           <LogIn className="size-5" />
         </div>
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="font-display text-3xl leading-tight">
             {t("auth.loginTitle")}
           </h1>
           <p className="text-sm text-muted-foreground">{t("auth.loginSubtitle")}</p>

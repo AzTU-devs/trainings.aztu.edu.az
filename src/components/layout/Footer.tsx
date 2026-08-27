@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Mail } from "lucide-react";
+import { Globe, Mail, ArrowUpRight } from "lucide-react";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { useT } from "@/i18n/client";
 import { Logo } from "./Logo";
@@ -11,97 +11,131 @@ const SUPPORT_EMAIL = "support@aztu.edu.az";
 export function Footer() {
   const t = useT();
   return (
-    <footer className="mt-auto border-t border-border/60 bg-gradient-to-b from-muted/20 to-background">
-      <div className="container-fluid grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-5">
-        <div className="space-y-3 lg:col-span-2">
-          <Logo />
-          <p className="max-w-sm text-sm text-muted-foreground">
+    <footer className="surface-deep relative mt-auto overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 grid-lines fade-bottom opacity-40" />
+        <div className="aurora -left-24 -top-40 size-[28rem] bg-[radial-gradient(circle,#1a5ba5_0%,transparent_65%)]" />
+      </div>
+
+      <div className="container-fluid relative grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-12 lg:py-20">
+        <div className="space-y-5 lg:col-span-5">
+          <Logo tone="onDeep" />
+          <p className="max-w-sm text-sm leading-relaxed text-white/60">
             {t("footer.tagline")}
           </p>
-          <div className="flex gap-2 pt-2">
-            <a
-              className="grid size-9 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+          <div className="flex gap-2 pt-1">
+            <IconLink
               href={UNIVERSITY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t("footer.websiteLabel")}
+              label={t("footer.websiteLabel")}
+              external
             >
               <Globe className="size-4" />
-            </a>
-            <a
-              className="grid size-9 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-              href={`mailto:${SUPPORT_EMAIL}`}
-              aria-label={t("footer.emailLabel")}
-            >
+            </IconLink>
+            <IconLink href={`mailto:${SUPPORT_EMAIL}`} label={t("footer.emailLabel")}>
               <Mail className="size-4" />
-            </a>
+            </IconLink>
           </div>
         </div>
-        <div className="space-y-3 text-sm">
-          <div className="font-semibold">{t("footer.learn")}</div>
-          <ul className="space-y-2 text-muted-foreground">
-            <li>
-              <LocaleLink href="/courses" className="hover:text-foreground">
-                {t("footer.allCourses")}
-              </LocaleLink>
-            </li>
-            <li>
-              <LocaleLink href="/categories" className="hover:text-foreground">
-                {t("nav.categories")}
-              </LocaleLink>
-            </li>
-          </ul>
-        </div>
-        <div className="space-y-3 text-sm">
-          <div className="font-semibold">{t("footer.account")}</div>
-          <ul className="space-y-2 text-muted-foreground">
-            <li>
-              <LocaleLink href="/login" className="hover:text-foreground">
-                {t("common.signIn")}
-              </LocaleLink>
-            </li>
-            <li>
-              <LocaleLink href="/register" className="hover:text-foreground">
-                {t("common.signUp")}
-              </LocaleLink>
-            </li>
-            <li>
-              <LocaleLink href="/dashboard" className="hover:text-foreground">
-                {t("nav.dashboard")}
-              </LocaleLink>
-            </li>
-          </ul>
-        </div>
-        <div className="space-y-3 text-sm">
-          <div className="font-semibold">{t("footer.company")}</div>
-          <ul className="space-y-2 text-muted-foreground">
-            <li>
-              <a
-                href={UNIVERSITY_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-foreground"
-              >
-                {t("footer.about")}
-              </a>
-            </li>
-            <li>
-              <a
-                href={`mailto:${SUPPORT_EMAIL}`}
-                className="hover:text-foreground"
-              >
-                {t("footer.contact")}
-              </a>
-            </li>
-          </ul>
-        </div>
+
+        <FooterColumn title={t("footer.learn")}>
+          <FooterLink href="/courses">{t("footer.allCourses")}</FooterLink>
+          <FooterLink href="/categories">{t("nav.categories")}</FooterLink>
+        </FooterColumn>
+
+        <FooterColumn title={t("footer.account")}>
+          <FooterLink href="/login">{t("common.signIn")}</FooterLink>
+          <FooterLink href="/register">{t("common.signUp")}</FooterLink>
+          <FooterLink href="/dashboard">{t("nav.dashboard")}</FooterLink>
+        </FooterColumn>
+
+        <FooterColumn title={t("footer.company")}>
+          <ExternalLink href={UNIVERSITY_URL}>{t("footer.about")}</ExternalLink>
+          <ExternalLink href={`mailto:${SUPPORT_EMAIL}`}>
+            {t("footer.contact")}
+          </ExternalLink>
+        </FooterColumn>
       </div>
-      <div className="border-t border-border/60">
-        <div className="container-fluid flex flex-col items-center justify-between gap-2 py-4 text-xs text-muted-foreground sm:flex-row">
+
+      <div className="relative border-t border-white/10">
+        <div className="container-fluid flex flex-col items-center justify-between gap-2 py-5 text-xs text-white/45 sm:flex-row">
           <div>{t("footer.rights", { year: new Date().getFullYear() })}</div>
           <div>{t("footer.madeFor")}</div>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterColumn({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="lg:col-span-2 xl:col-span-2">
+      <div className="mb-4 flex items-center gap-2">
+        <span aria-hidden className="h-px w-4 bg-gold-500/70" />
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-300">
+          {title}
+        </h3>
+      </div>
+      <ul className="space-y-2.5 text-sm">{children}</ul>
+    </div>
+  );
+}
+
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <li>
+      <LocaleLink
+        href={href}
+        className="text-white/60 transition-colors hover:text-white"
+      >
+        {children}
+      </LocaleLink>
+    </li>
+  );
+}
+
+function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const external = href.startsWith("http");
+  return (
+    <li>
+      <a
+        href={href}
+        {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        className="group inline-flex items-center gap-1 text-white/60 transition-colors hover:text-white"
+      >
+        {children}
+        {external ? (
+          <ArrowUpRight className="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
+        ) : null}
+      </a>
+    </li>
+  );
+}
+
+function IconLink({
+  href,
+  label,
+  external,
+  children,
+}: {
+  href: string;
+  label: string;
+  external?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      aria-label={label}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className="grid size-10 place-items-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-gold-500/50 hover:bg-white/10 hover:text-white"
+    >
+      {children}
+    </a>
   );
 }

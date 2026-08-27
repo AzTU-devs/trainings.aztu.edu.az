@@ -21,7 +21,7 @@ export default async function SettingsPage({ params }: Props) {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">{t("settings.title")}</h1>
+        <h1 className="font-display text-3xl leading-tight">{t("settings.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("settings.subtitle")}</p>
       </div>
       {!user.emailVerified ? <ResendVerificationButton /> : null}

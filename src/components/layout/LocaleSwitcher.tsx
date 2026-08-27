@@ -5,6 +5,11 @@ import { Globe } from "lucide-react";
 import { locales, localeNames, type Locale } from "@/i18n/config";
 import { useLocale } from "@/i18n/client";
 
+/**
+ * A native <select> keeps this accessible and dependency-free, but the raw
+ * control looks nothing like the rest of the header — so it is made transparent
+ * and overlaid on a styled pill that shows the current locale.
+ */
 export function LocaleSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
@@ -25,13 +30,14 @@ export function LocaleSwitcher() {
   };
 
   return (
-    <label className="flex items-center gap-1 text-sm">
-      <Globe className="size-4 text-muted-foreground" />
+    <div className="relative inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-within:bg-accent focus-within:text-foreground">
+      <Globe className="size-4 shrink-0" aria-hidden />
+      <span className="hidden font-medium uppercase sm:inline">{current}</span>
       <select
         value={current}
         onChange={onChange}
         aria-label="Language"
-        className="rounded-md border border-input bg-background px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="absolute inset-0 cursor-pointer opacity-0"
       >
         {locales.map((l) => (
           <option key={l} value={l}>
@@ -39,6 +45,6 @@ export function LocaleSwitcher() {
           </option>
         ))}
       </select>
-    </label>
+    </div>
   );
 }

@@ -52,7 +52,7 @@ export function StudentSidebar() {
             <div className="flex items-center gap-3">
               <span
                 aria-hidden
-                className="grid size-10 place-items-center rounded-full bg-gradient-to-br from-primary to-violet-500 text-sm font-semibold text-white"
+                className="grid size-10 place-items-center rounded-full bg-gradient-to-br from-navy-500 to-navy-800 text-sm font-semibold text-white"
               >
                 {user.firstName?.[0]}
                 {user.lastName?.[0]}

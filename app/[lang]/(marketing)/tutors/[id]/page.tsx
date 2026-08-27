@@ -52,7 +52,7 @@ export default async function PublicTutorPage({ params }: Props) {
         />
         <Card>
           <CardContent className="space-y-4 p-10 text-center">
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="font-display text-2xl leading-tight">
               {t("tutorPage.notFoundTitle")}
             </h1>
             <p className="text-sm text-muted-foreground">

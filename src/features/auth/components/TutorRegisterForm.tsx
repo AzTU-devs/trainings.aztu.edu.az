@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
@@ -55,13 +55,16 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
     defaultValues: { otp: "" },
   });
 
-  const selected = form.watch("categoryIds");
+  const selected = useWatch({ control: form.control, name: "categoryIds" });
 
   const toggleCategory = (id: string) => {
     const next = selected.includes(id)
       ? selected.filter((c) => c !== id)
       : [...selected, id];
-    form.setValue("categoryIds", next, { shouldValidate: true, shouldDirty: true });
+    form.setValue("categoryIds", next, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
   };
 
   const onStart = (values: TutorRegisterInput) => {
@@ -83,7 +86,9 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
         const err = error as unknown as ApiError;
         if (err.errors) {
           for (const fe of err.errors) {
-            form.setError(fe.field as keyof TutorRegisterInput, { message: fe.message });
+            form.setError(fe.field as keyof TutorRegisterInput, {
+              message: fe.message,
+            });
           }
         }
         toast.error(err.message ?? t("auth.registerFailed"));
@@ -101,7 +106,9 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
         },
         onError: (error) => {
           const err = error as unknown as ApiError;
-          otpForm.setError("otp", { message: err.message ?? t("auth.otpInvalid") });
+          otpForm.setError("otp", {
+            message: err.message ?? t("auth.otpInvalid"),
+          });
           toast.error(err.message ?? t("auth.otpInvalid"));
         },
       },
@@ -158,19 +165,34 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
 
       <div className="space-y-1.5">
         <Label htmlFor="email">{t("auth.email")}</Label>
-        <Input id="email" type="email" autoComplete="email" {...form.register("email")} />
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          {...form.register("email")}
+        />
         <FormError message={form.formState.errors.email?.message} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="password">{t("auth.password")}</Label>
-          <Input id="password" type="password" autoComplete="new-password" {...form.register("password")} />
+          <Input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            {...form.register("password")}
+          />
           <FormError message={form.formState.errors.password?.message} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
-          <Input id="confirmPassword" type="password" autoComplete="new-password" {...form.register("confirmPassword")} />
+          <Input
+            id="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            {...form.register("confirmPassword")}
+          />
           <FormError message={form.formState.errors.confirmPassword?.message} />
         </div>
       </div>
@@ -188,7 +210,9 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
             id="yearsExperience"
             type="number"
             min={0}
-            {...form.register("yearsExperience", { setValueAs: (v) => (v === "" ? undefined : Number(v)) })}
+            {...form.register("yearsExperience", {
+              setValueAs: (v) => (v === "" ? undefined : Number(v)),
+            })}
           />
           <FormError message={form.formState.errors.yearsExperience?.message} />
         </div>
@@ -196,7 +220,11 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
 
       <div className="space-y-1.5">
         <Label htmlFor="headline">{t("auth.headline")}</Label>
-        <Input id="headline" placeholder={t("auth.headlinePlaceholder")} {...form.register("headline")} />
+        <Input
+          id="headline"
+          placeholder={t("auth.headlinePlaceholder")}
+          {...form.register("headline")}
+        />
         <FormError message={form.formState.errors.headline?.message} />
       </div>
 
@@ -219,19 +247,31 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="websiteUrl">{t("auth.websiteUrl")}</Label>
-          <Input id="websiteUrl" type="url" placeholder="https://" {...form.register("websiteUrl")} />
+          <Input
+            id="websiteUrl"
+            type="url"
+            placeholder="https://"
+            {...form.register("websiteUrl")}
+          />
           <FormError message={form.formState.errors.websiteUrl?.message} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="linkedinUrl">{t("auth.linkedinUrl")}</Label>
-          <Input id="linkedinUrl" type="url" placeholder="https://linkedin.com/in/…" {...form.register("linkedinUrl")} />
+          <Input
+            id="linkedinUrl"
+            type="url"
+            placeholder="https://linkedin.com/in/…"
+            {...form.register("linkedinUrl")}
+          />
           <FormError message={form.formState.errors.linkedinUrl?.message} />
         </div>
       </div>
 
       <div className="space-y-2">
         <Label>{t("auth.expertise")}</Label>
-        <p className="text-xs text-muted-foreground">{t("auth.expertiseHint")}</p>
+        <p className="text-xs text-muted-foreground">
+          {t("auth.expertiseHint")}
+        </p>
         <div className="flex flex-wrap gap-2">
           {categories.map((c) => {
             const active = selected.includes(c.id);
@@ -253,7 +293,9 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
             );
           })}
           {categories.length === 0 && (
-            <p className="text-xs text-muted-foreground">{t("auth.expertiseEmpty")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("auth.expertiseEmpty")}
+            </p>
           )}
         </div>
         <FormError message={form.formState.errors.categoryIds?.message} />

@@ -1,9 +1,9 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { CheckCircle2, GraduationCap, Sparkles, Users, BookOpen, Globe } from "lucide-react";
+import { CheckCircle2, GraduationCap, Users, BookOpen, Globe } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
+import { AztuMark } from "@/components/layout/AztuMark";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -23,32 +23,15 @@ export default async function AuthLayout({ children, params }: Props) {
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* LEFT — brand panel */}
-      <aside className="relative hidden overflow-hidden bg-gradient-to-br from-primary via-violet-700 to-fuchsia-700 text-white lg:flex">
-        <div
-          className="absolute inset-0 opacity-[0.08] mix-blend-overlay"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, white 0, transparent 40%), radial-gradient(circle at 80% 60%, white 0, transparent 40%)",
-          }}
-          aria-hidden
-        />
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
-          aria-hidden
-        />
-        <div
-          className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-fuchsia-400/30 blur-3xl"
-          aria-hidden
-        />
-        <div
-          className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-violet-300/30 blur-3xl"
-          aria-hidden
-        />
+      <aside className="surface-deep relative hidden overflow-hidden lg:flex">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 grid-lines opacity-60" />
+          <div className="aurora -left-32 -bottom-40 size-[30rem] bg-[radial-gradient(circle,#1a5ba5_0%,transparent_65%)]" />
+          <div
+            className="aurora -right-24 -top-32 size-[26rem] bg-[radial-gradient(circle,#c8a951_0%,transparent_65%)] opacity-20"
+            style={{ animationDelay: "-8s" }}
+          />
+        </div>
 
         <div className="relative z-10 flex w-full flex-col justify-between p-12">
           {/* Top */}
@@ -57,32 +40,26 @@ export default async function AuthLayout({ children, params }: Props) {
               href={localeHref(locale, "/")}
               className="inline-flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/20 backdrop-blur"
             >
-              <Image
-                src="/aztu-logo-mark.png"
-                alt="AZTU"
-                width={36}
-                height={36}
-                className="size-9 rounded bg-white/95 p-1 object-contain"
-              />
+              <AztuMark tone="onDeep" className="size-9" />
               <div className="flex flex-col leading-tight">
-                <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/70">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-300">
                   Azerbaijan Technical University
                 </span>
-                <span className="text-base font-semibold">
-                  edu.platform
-                </span>
+                <span className="font-display text-base">EduPlatform</span>
               </div>
             </Link>
 
             <div className="space-y-4 max-w-md">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs ring-1 ring-white/20">
-                <Sparkles className="size-3" />
-                {t("auth.marketingHeadline")}
-              </span>
-              <h2 className="text-balance text-4xl font-bold leading-tight tracking-tight">
+              <div className="flex items-center gap-3">
+                <span aria-hidden className="h-px w-8 bg-gradient-to-r from-gold-400 to-gold-400/0" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-300">
+                  {t("home.university")}
+                </span>
+              </div>
+              <h2 className="font-display text-balance text-[2.5rem] leading-[1.1] text-white">
                 {t("auth.marketingHeadline")}
               </h2>
-              <p className="max-w-md text-white/80">{t("auth.marketingSub")}</p>
+              <p className="max-w-md leading-relaxed text-white/65">{t("auth.marketingSub")}</p>
             </div>
 
             {/* Feature list */}
@@ -94,8 +71,8 @@ export default async function AuthLayout({ children, params }: Props) {
                 t("auth.marketingPerk4"),
               ].map((f) => (
                 <li key={f} className="flex items-start gap-2.5">
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-white/95" />
-                  <span className="text-white/90">{f}</span>
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-gold-400" />
+                  <span className="text-white/75">{f}</span>
                 </li>
               ))}
             </ul>
@@ -106,9 +83,9 @@ export default async function AuthLayout({ children, params }: Props) {
             <div className="grid grid-cols-3 gap-3">
               <Stat icon={<Users className="size-4" />} value="12K+" label={t("home.statLearners")} />
               <Stat icon={<BookOpen className="size-4" />} value="320+" label={t("home.statCourses")} />
-              <Stat icon={<GraduationCap className="size-4" />} value="80+" label={t("nav.tutor")} />
+              <Stat icon={<GraduationCap className="size-4" />} value="80+" label={t("home.statTutors")} />
             </div>
-            <figure className="rounded-2xl bg-white/10 p-5 ring-1 ring-white/15 backdrop-blur">
+            <figure className="panel-onDeep rounded-2xl p-5">
               <blockquote className="text-sm leading-relaxed">
                 &ldquo;{t("auth.marketingQuote")}&rdquo;
               </blockquote>
@@ -163,10 +140,10 @@ function Stat({
   label: string;
 }) {
   return (
-    <div className="rounded-xl bg-white/10 p-3 ring-1 ring-white/15 backdrop-blur">
-      <div className="mb-1 text-white/80">{icon}</div>
-      <div className="text-xl font-bold leading-none">{value}</div>
-      <div className="mt-1 text-[10px] uppercase tracking-wide text-white/60">
+    <div className="panel-onDeep rounded-xl p-3.5">
+      <div className="mb-1.5 text-gold-300">{icon}</div>
+      <div className="font-display text-xl leading-none text-white">{value}</div>
+      <div className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
         {label}
       </div>
     </div>
