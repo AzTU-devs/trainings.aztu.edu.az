@@ -1,52 +1,59 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 
+const NAVY = "/brand/aztu-mark.png";
+const WHITE = "/brand/aztu-mark-white.png";
+
 /**
- * The AzTU shield, drawn inline.
+ * The AzTU shield.
  *
- * The raster mark in /public is a navy glyph baked onto an opaque white canvas,
- * so it shows as a white block on the navy surfaces this site now uses. Drawing
- * it as an SVG lets the same mark sit correctly on light and deep backgrounds
- * and costs no extra request.
+ * Both files are the university's own mark, trimmed to the glyph and put on
+ * transparency — one navy for light surfaces, one white for the navy canvas.
+ * The supplied source art is dark-on-white with an opaque background, which is
+ * why it cannot simply be dropped onto a dark surface as-is.
+ *
+ * `tone="auto"` swaps on the colour scheme by rendering both and hiding one,
+ * so no JavaScript is involved and there is no flash on first paint.
  */
 export function AztuMark({
   className,
   tone = "auto",
 }: {
   className?: string;
-  /** `onDeep` swaps the shield body for a translucent white on dark canvases. */
+  /** `onDeep` forces the white mark, for the navy canvas. */
   tone?: "auto" | "onDeep";
 }) {
-  const onDeep = tone === "onDeep";
+  // Callers size the box (they all pass `size-*`); the mark letterboxes inside
+  // it via object-contain, so the shield keeps its proportions at any size.
+  const box = cn("relative inline-block size-9 shrink-0", className);
+
+  if (tone === "onDeep") {
+    return (
+      <span className={box}>
+        <Image src={WHITE} alt="AzTU" fill sizes="64px" className="object-contain" priority />
+      </span>
+    );
+  }
+
   return (
-    <svg
-      viewBox="0 0 56 56"
-      role="img"
-      aria-label="AzTU"
-      className={cn("size-9 shrink-0", className)}
-    >
-      <defs>
-        <linearGradient id="aztuShieldBody" x1="0" y1="0" x2="0" y2="1">
-          {onDeep ? (
-            <>
-              <stop offset="0" stopColor="#ffffff" stopOpacity="0.20" />
-              <stop offset="1" stopColor="#ffffff" stopOpacity="0.08" />
-            </>
-          ) : (
-            <>
-              <stop offset="0" stopColor="#0b4a8d" />
-              <stop offset="1" stopColor="#003876" />
-            </>
-          )}
-        </linearGradient>
-      </defs>
-      <path
-        d="M28 4 L50 14 V28 C50 40 40 49 28 52 C16 49 6 40 6 28 V14 Z"
-        fill="url(#aztuShieldBody)"
-        stroke="#c8a951"
-        strokeWidth="1.5"
+    <span className={box}>
+      <Image
+        src={NAVY}
+        alt="AzTU"
+        fill
+        sizes="64px"
+        className="object-contain dark:hidden"
+        priority
       />
-      {/* The "A" device */}
-      <path d="M28 14 L40 38 H34 L32 33 H24 L22 38 H16 Z M26 28 H30 L28 22 Z" fill="#c8a951" />
-    </svg>
+      <Image
+        src={WHITE}
+        alt=""
+        aria-hidden
+        fill
+        sizes="64px"
+        className="hidden object-contain dark:block"
+        priority
+      />
+    </span>
   );
 }
