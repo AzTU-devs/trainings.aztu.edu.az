@@ -66,9 +66,9 @@
     "howItWorks": "How it works",
     "howItWorksTitle": "From sign-up to certificate in three steps",
     "step1Title": "Pick a course",
-    "step1Desc": "Browse the catalog by category, mode (online or offline), price and rating.",
+    "step1Desc": "Browse the catalog by category, mode (online or offline), rating and duration.",
     "step2Title": "Enroll",
-    "step2Desc": "Free courses start instantly. Paid and offline cohorts go through a quick checkout.",
+    "step2Desc": "Every course is free for now, so enrollment starts instantly. Offline cohorts are confirmed by the expert.",
     "step3Title": "Learn & earn",
     "step3Desc": "Progress is saved automatically. Finish the course to unlock your certificate.",
     "whyUs": "Why us",
@@ -100,7 +100,7 @@
     "faq1Q": "How are AZTU EduPlatform courses different from regular videos?",
     "faq1A": "Every course has structured modules and lessons, tracks your progress automatically, supports notes, and gives you a verifiable certificate when complete. Offline courses also include schedules and assigned rooms.",
     "faq2Q": "Do I need to pay to start?",
-    "faq2A": "Many starter courses are free. Paid courses go through a quick checkout. Offline cohorts may require approval from the expert before your seat is confirmed.",
+    "faq2A": "No — every course in the catalog is free right now. Offline cohorts may require approval from the expert before your seat is confirmed.",
     "faq3Q": "Can I switch between online and offline?",
     "faq3A": "Each course is set up either as online or offline by the expert. You can enroll in any number of either kind at the same time.",
     "faq4Q": "Will my progress be saved if I switch devices?",
@@ -129,13 +129,12 @@
     "freeOnly": "Free only",
     "min": "Min",
     "max": "Max",
+    "allFreeNote": "Every course in the catalog is free right now.",
     "ratingAndUp": "{rating} & up",
     "durationLt2": "< 2 hours",
     "duration2to6": "2–6 hours",
     "duration6to17": "6–17 hours",
-    "durationGt17": "17+ hours",
-    "durationNote": "Duration is filtered on the current page only — the server filter isn't available yet.",
-    "searchNote": "While searching, only the Mode filter applies. Clear the search to filter by category."
+    "durationGt17": "17+ hours"
   },
   "courses": {
     "title": "All courses",
@@ -161,6 +160,8 @@
     "enrollFree": "Enroll for free",
     "buyNow": "Buy now",
     "requestEnrollment": "Request enrollment",
+    "paidUnavailable": "Paid enrollment unavailable",
+    "paidUnavailableHint": "Online payment isn't available yet. Contact the training center to reserve a seat on this course.",
     "signInToEnroll": "Sign in to enroll",
     "enrolled": "You're enrolled",
     "enrollError": "Could not enroll",
@@ -283,7 +284,9 @@
     "locale": "Language",
     "editProfile": "Edit profile",
     "certificatesEmpty": "No certificates yet",
-    "certificatesEmptyHint": "Certificates will appear here once you complete a course."
+    "certificatesEmptyHint": "Certificates will appear here once you complete a course.",
+    "ordersEmpty": "No orders yet",
+    "ordersEmptyHint": "All courses are free at the moment, so enrolling creates no order."
   },
   "settings": {
     "title": "Settings",

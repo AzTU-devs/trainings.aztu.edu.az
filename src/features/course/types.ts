@@ -6,6 +6,8 @@ export type CourseStatus =
   | "PUBLISHED"
   | "REJECTED"
   | "ARCHIVED";
+/** Catalogue duration filter, in the buckets the API understands. */
+export type DurationBucket = "lt2" | "2to6" | "6to17" | "gt17";
 export type LessonContentType =
   | "VIDEO"
   | "TEXT"
@@ -31,6 +33,13 @@ export type CourseSummary = {
   tutorId: string;
   tutorDisplayName: string;
   publishedAt?: string | null;
+  /**
+   * Total course length in seconds — video time for ONLINE, classroom hours for
+   * OFFLINE. Null while the course has no detail row yet.
+   */
+  totalDurationSec: number | null;
+  /** Media path (`/api/public/media/{id}/content`); resolve with `mediaSrc()`. */
+  thumbnailUrl: string | null;
 };
 
 export type Lesson = {
@@ -100,9 +109,22 @@ export type Course = {
   modules: CourseModule[];
 };
 
+/**
+ * Query for `GET /api/public/courses`. Every field is a server-side filter and
+ * all of them combine, the free-text `q` included — nothing is post-filtered in
+ * the browser, so a filtered page 2 is as correct as page 1.
+ */
 export type CourseListParams = {
+  q?: string;
   type?: CourseType;
   categoryId?: string;
+  level?: CourseLevel;
+  language?: string;
+  free?: boolean;
+  priceMin?: number;
+  priceMax?: number;
+  ratingMin?: number;
+  durationBucket?: DurationBucket;
   page?: number;
   size?: number;
   sort?: string;

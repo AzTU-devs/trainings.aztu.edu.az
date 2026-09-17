@@ -11,13 +11,6 @@ export const courseApi = {
       params,
     }),
 
-  search: (q: string, params: Omit<CourseListParams, "type"> = {}) =>
-    request<Page<CourseSummary>>({
-      url: endpoints.public.coursesSearch,
-      method: "GET",
-      params: { q, ...params },
-    }),
-
   bySlug: (slug: string) =>
     request<Course>({
       url: endpoints.public.courseBySlug(slug),

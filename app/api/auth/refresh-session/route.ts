@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   backend,
+  forwardedErrorHeaders,
   clearSessionCookies,
   readRefreshCookie,
   setSessionCookies,
@@ -21,7 +22,7 @@ export async function POST() {
   if (!res.ok || !res.data) {
     await clearSessionCookies();
     return NextResponse.json(res.raw ?? { message: "Refresh failed" }, {
-      status: res.status,
+      status: res.status, headers: forwardedErrorHeaders(res),
     });
   }
 

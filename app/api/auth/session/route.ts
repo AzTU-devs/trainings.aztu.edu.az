@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   backend,
+  forwardedErrorHeaders,
   setSessionCookies,
   type BackendAuthTokens,
 } from "../_helpers";
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
 
   if (!res.ok || !res.data) {
     return NextResponse.json(res.raw ?? { message: "Login failed" }, {
-      status: res.status,
+      status: res.status, headers: forwardedErrorHeaders(res),
     });
   }
 

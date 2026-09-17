@@ -8,32 +8,34 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
+import { PAYMENTS_ENABLED } from "../payments";
+import type { DurationBucket } from "../types";
 
 type CategoryOption = { id: string; name: string };
 
 type Props = {
   total: number;
-  visible: number;
   categories: CategoryOption[];
-  // When a search query is active the backend search endpoint can't apply the
-  // category filter, so we hide the Category control instead of showing it as an
-  // active-but-ignored filter.
-  searching?: boolean;
 };
 
-const DURATIONS = [
+const DURATIONS: readonly { key: DurationBucket; labelKey: string }[] = [
   { key: "lt2", labelKey: "filters.durationLt2" },
   { key: "2to6", labelKey: "filters.duration2to6" },
   { key: "6to17", labelKey: "filters.duration6to17" },
   { key: "gt17", labelKey: "filters.durationGt17" },
-] as const;
+];
 
-export function FilterSidebar({
-  total,
-  visible,
-  categories,
-  searching = false,
-}: Props) {
+// Every control here maps to a server-side filter, so they all combine with each
+// other and with the search box, on every page of the result.
+const FILTER_KEYS = [
+  "type",
+  "categoryId",
+  "rating",
+  "duration",
+  ...(PAYMENTS_ENABLED ? ["free", "priceMin", "priceMax"] : []),
+];
+
+export function FilterSidebar({ total, categories }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -61,18 +63,7 @@ export function FilterSidebar({
     });
   };
 
-  const activeKeys = [
-    "type",
-    // While searching the category filter isn't applied (no server support), so
-    // don't count it as an active filter.
-    ...(searching ? [] : ["categoryId"]),
-    "free",
-    "rating",
-    "priceMin",
-    "priceMax",
-    "duration",
-  ];
-  const activeCount = activeKeys.filter((k) => params.get(k)).length;
+  const activeCount = FILTER_KEYS.filter((k) => params.get(k)).length;
 
   const type = params.get("type");
   const categoryId = params.get("categoryId");
@@ -87,13 +78,7 @@ export function FilterSidebar({
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm font-semibold">{t("filters.title")}</div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {visible !== total ? (
-            <span>
-              {visible}/{total}
-            </span>
-          ) : (
-            <span>{t("filters.results", { count: total })}</span>
-          )}
+          <span>{t("filters.results", { count: total })}</span>
           {activeCount > 0 ? (
             <button
               type="button"
@@ -123,13 +108,7 @@ export function FilterSidebar({
         </ChipRow>
       </Section>
 
-      {searching ? (
-        <p className="mb-5 border-b border-border pb-5 text-[11px] leading-relaxed text-muted-foreground">
-          {t("filters.searchNote")}
-        </p>
-      ) : null}
-
-      {categories.length > 0 && !searching ? (
+      {categories.length > 0 ? (
         <Section title={t("filters.category")}>
           <ChipRow>
             <Chip
@@ -154,29 +133,40 @@ export function FilterSidebar({
       ) : null}
 
       <Section title={t("filters.price")}>
-        <ChipRow>
-          <Chip active={free} onClick={() => setParam("free", free ? null : "1")}>
-            {t("filters.freeOnly")}
-          </Chip>
-        </ChipRow>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Input
-            type="number"
-            inputMode="decimal"
-            placeholder={t("filters.min")}
-            value={priceMin}
-            onChange={(e) => setParam("priceMin", e.target.value || null)}
-            min={0}
-          />
-          <Input
-            type="number"
-            inputMode="decimal"
-            placeholder={t("filters.max")}
-            value={priceMax}
-            onChange={(e) => setParam("priceMax", e.target.value || null)}
-            min={0}
-          />
-        </div>
+        {PAYMENTS_ENABLED ? (
+          <>
+            <ChipRow>
+              <Chip active={free} onClick={() => setParam("free", free ? null : "1")}>
+                {t("filters.freeOnly")}
+              </Chip>
+            </ChipRow>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder={t("filters.min")}
+                value={priceMin}
+                onChange={(e) => setParam("priceMin", e.target.value || null)}
+                min={0}
+              />
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder={t("filters.max")}
+                value={priceMax}
+                onChange={(e) => setParam("priceMax", e.target.value || null)}
+                min={0}
+              />
+            </div>
+          </>
+        ) : (
+          // Nothing is for sale yet, so the catalogue is free courses only: a
+          // price window and a "Free only" chip would filter nothing out. Both
+          // come back with PAYMENTS_ENABLED (see ../payments.ts).
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {t("filters.allFreeNote")}
+          </p>
+        )}
       </Section>
 
       <Section title={t("filters.rating")}>
@@ -227,9 +217,6 @@ export function FilterSidebar({
             </button>
           ))}
         </div>
-        <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-          {t("filters.durationNote")}
-        </p>
       </Section>
 
       <Button variant="outline" size="sm" className="w-full" onClick={clearAll}>

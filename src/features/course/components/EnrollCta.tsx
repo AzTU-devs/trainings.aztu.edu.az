@@ -35,6 +35,26 @@ export function EnrollCta({ course }: { course: Course }) {
     },
   });
 
+  // No payment provider exists, so the API refuses every order and the catalogue
+  // serves free courses only — a paid course is reachable by direct link alone.
+  // Say that plainly rather than sending the visitor to a checkout that cannot
+  // charge them; signing in first would not change the answer, so this comes
+  // before the sign-in prompt. Restoring the paid call to action is described in
+  // ../payments.ts.
+  if (!course.free) {
+    return (
+      <div className="space-y-2">
+        <Button className="w-full" size="lg" disabled>
+          {t("courseDetail.paidUnavailable")} ·{" "}
+          {formatPrice(course.price, course.currency)}
+        </Button>
+        <p className="text-center text-xs leading-relaxed text-muted-foreground">
+          {t("courseDetail.paidUnavailableHint")}
+        </p>
+      </div>
+    );
+  }
+
   if (status !== "authenticated") {
     return (
       <Button
@@ -52,39 +72,14 @@ export function EnrollCta({ course }: { course: Course }) {
     );
   }
 
-  if (course.free) {
-    return (
-      <Button
-        className="w-full"
-        size="lg"
-        loading={enrollFree.isPending}
-        onClick={() => enrollFree.mutate()}
-      >
-        {t("courseDetail.enrollFree")}
-      </Button>
-    );
-  }
-
-  if (course.courseType === "OFFLINE") {
-    return (
-      <Button
-        className="w-full"
-        size="lg"
-        onClick={() => router.push(localeHref(locale, `/checkout/${course.slug}`))}
-      >
-        {t("courseDetail.requestEnrollment")} ·{" "}
-        {formatPrice(course.price, course.currency)}
-      </Button>
-    );
-  }
-
   return (
     <Button
       className="w-full"
       size="lg"
-      onClick={() => router.push(localeHref(locale, `/checkout/${course.slug}`))}
+      loading={enrollFree.isPending}
+      onClick={() => enrollFree.mutate()}
     >
-      {t("courseDetail.buyNow")} · {formatPrice(course.price, course.currency)}
+      {t("courseDetail.enrollFree")}
     </Button>
   );
 }

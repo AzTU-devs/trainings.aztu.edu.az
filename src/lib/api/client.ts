@@ -111,8 +111,25 @@ export function normalizeError(error: unknown): ApiError {
           errors?: FieldErrorItem[];
         }
       | undefined;
+    const status = body?.status ?? error.response?.status ?? 0;
+
+    // The API rate-limits the auth endpoints per IP and answers 429 with a
+    // Retry-After. Campus networks are NATed, so an ordinary student can be
+    // throttled by a neighbour's activity; the backend's own message does not know
+    // the wait, and without this the form shows a generic failure that reads as a
+    // wrong password.
+    if (status === 429) {
+      return {
+        status,
+        code: body?.code ?? "RATE_LIMITED",
+        message: retryAfterMessage(error.response?.headers?.["retry-after"]),
+        path: body?.path,
+        requestId: body?.requestId,
+      };
+    }
+
     return {
-      status: body?.status ?? error.response?.status ?? 0,
+      status,
       code: body?.code,
       message: body?.message ?? error.message,
       path: body?.path,
@@ -121,6 +138,23 @@ export function normalizeError(error: unknown): ApiError {
     };
   }
   return { status: 0, message: "Unexpected error" };
+}
+
+/**
+ * Human wording for a 429's `Retry-After`. The header is in the API's CORS
+ * exposed-headers list, but can still be stripped by a proxy — so degrade to
+ * actionable advice rather than to a bare status.
+ */
+function retryAfterMessage(header: unknown): string {
+  const seconds = Number(header);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return "Too many attempts from this network. Please wait a little and try again.";
+  }
+  if (seconds < 60) {
+    return `Too many attempts from this network. Please try again in ${Math.ceil(seconds)} seconds.`;
+  }
+  const minutes = Math.ceil(seconds / 60);
+  return `Too many attempts from this network. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
 }
 
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {

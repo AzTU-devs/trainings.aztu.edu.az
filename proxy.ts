@@ -12,7 +12,6 @@ const PROTECTED_PREFIXES = [
   "/profile",
   "/settings",
   "/learn",
-  "/checkout",
 ];
 
 const ACCESS_COOKIE = "ep_at";
@@ -56,12 +55,20 @@ function detectLocale(req: NextRequest): string {
 // interceptor + /api/auth/refresh-session route handler, just one layer earlier.
 async function refreshTokens(
   refreshToken: string,
+  clientIp?: string,
 ): Promise<BackendAuthTokens | null> {
   const base = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   try {
     const res = await fetch(new URL("/api/auth/refresh", base).toString(), {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        // Server-to-server call, so pass the real caller through: /api/auth/refresh
+        // is rate-limited per IP, and without this every visitor's refresh shares
+        // this process's single bucket. Same reasoning as app/api/auth/_helpers.ts.
+        ...(clientIp ? { "X-Forwarded-For": clientIp } : {}),
+      },
       body: JSON.stringify({ refreshToken }),
       cache: "no-store",
     });
@@ -138,7 +145,13 @@ export async function proxy(req: NextRequest) {
     // before the page renders so the user isn't bounced to /login.
     if (!hasAccess && hasRefresh) {
       const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
-      rotated = refreshToken ? await refreshTokens(refreshToken) : null;
+      // X-Real-IP first: the terminator sets it from $remote_addr, which a client
+      // cannot forge, whereas it can prepend its own X-Forwarded-For entry.
+      const clientIp =
+        req.headers.get("x-real-ip")?.trim() ||
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        undefined;
+      rotated = refreshToken ? await refreshTokens(refreshToken, clientIp) : null;
 
       if (!rotated) {
         // Refresh failed — fall through to the unauthenticated path.

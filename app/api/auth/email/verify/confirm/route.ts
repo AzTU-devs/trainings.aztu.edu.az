@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { backend } from "../../../_helpers";
+import { backend , forwardedErrorHeaders } from "../../../_helpers";
 
 // Public — confirms an email-verification token. Relays the backend status so the
 // client can distinguish success (204) from an invalid/expired token (400).
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   if (!res.ok) {
     return NextResponse.json(
       res.raw ?? { message: "Email verification failed" },
-      { status: res.status },
+      { status: res.status, headers: forwardedErrorHeaders(res) },
     );
   }
   return new NextResponse(null, { status: 204 });

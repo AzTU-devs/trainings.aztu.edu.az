@@ -14,8 +14,9 @@ export const endpoints = {
     emailVerifyConfirm: "/api/auth/email/verify/confirm",
   },
   public: {
+    // Free text is the `q` param of the catalogue list; the API's
+    // /courses/search alias exists only for the admin portal.
     courses: "/api/public/courses",
-    coursesSearch: "/api/public/courses/search",
     courseBySlug: (slug: string) => `/api/public/courses/${slug}`,
     courseReviews: (courseId: string) =>
       `/api/public/courses/${courseId}/reviews`,

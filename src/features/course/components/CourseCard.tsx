@@ -1,14 +1,22 @@
-import { Star, Users } from "lucide-react";
+import Image from "next/image";
+import { Clock, Star, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LocaleLink } from "@/i18n/LocaleLink";
-import { formatPrice, formatRating, formatCompact } from "@/lib/utils/format";
+import {
+  formatCompact,
+  formatDuration,
+  formatPrice,
+  formatRating,
+} from "@/lib/utils/format";
+import { mediaSrc } from "../media";
 import type { CourseSummary } from "../types";
 
 /**
- * Courses have no cover art yet, so each card generates one. The previous
- * version hashed the slug into a random hue, which produced a rainbow grid at
- * odds with the brand; this walks a fixed set of navy-and-gold gradients
- * instead, so the catalogue reads as one family while cards stay distinct.
+ * A course without a thumbnail still needs a cover, so each card generates one.
+ * The previous version hashed the slug into a random hue, which produced a
+ * rainbow grid at odds with the brand; this walks a fixed set of navy-and-gold
+ * gradients instead, so the catalogue reads as one family while cards stay
+ * distinct.
  */
 const COVERS = [
   "from-navy-500 via-navy-700 to-navy-950",
@@ -26,6 +34,8 @@ function coverFor(slug: string) {
 }
 
 export function CourseCard({ course }: { course: CourseSummary }) {
+  const thumbnail = mediaSrc(course.thumbnailUrl);
+
   const initials = course.title
     .split(/\s+/)
     .map((w) => w[0])
@@ -43,16 +53,30 @@ export function CourseCard({ course }: { course: CourseSummary }) {
       <div
         className={`relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br ${coverFor(course.slug)}`}
       >
-        <span
-          aria-hidden
-          className="absolute -right-8 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(200,169,81,0.4)_0%,transparent_65%)] blur-2xl"
-        />
-        <span
-          aria-hidden
-          className="absolute inset-0 grid place-items-center font-display text-5xl tracking-tight text-white/25 transition-transform duration-500 group-hover:scale-105"
-        >
-          {initials}
-        </span>
+        {thumbnail ? (
+          // The title sits right below, so the cover is decorative; the gradient
+          // stays underneath and shows through while the image loads.
+          <Image
+            src={thumbnail}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <>
+            <span
+              aria-hidden
+              className="absolute -right-8 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(200,169,81,0.4)_0%,transparent_65%)] blur-2xl"
+            />
+            <span
+              aria-hidden
+              className="absolute inset-0 grid place-items-center font-display text-5xl tracking-tight text-white/25 transition-transform duration-500 group-hover:scale-105"
+            >
+              {initials}
+            </span>
+          </>
+        )}
         <span
           aria-hidden
           className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent"
@@ -74,6 +98,16 @@ export function CourseCard({ course }: { course: CourseSummary }) {
           <span>{course.level === "ALL" ? "All levels" : course.level.toLowerCase()}</span>
           <span aria-hidden className="size-0.5 rounded-full bg-current" />
           <span>{course.language?.toUpperCase()}</span>
+          {/* Zero seconds means "not published yet", not "an empty course". */}
+          {course.totalDurationSec ? (
+            <>
+              <span aria-hidden className="size-0.5 rounded-full bg-current" />
+              <span className="inline-flex items-center gap-1">
+                <Clock className="size-3" />
+                {formatDuration(course.totalDurationSec)}
+              </span>
+            </>
+          ) : null}
         </div>
 
         <h3 className="mt-2.5 line-clamp-2 font-display text-[17px] leading-snug transition-colors group-hover:text-primary">

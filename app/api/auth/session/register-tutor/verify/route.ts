@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { backend } from "../../../_helpers";
+import { backend , forwardedErrorHeaders } from "../../../_helpers";
 
 // Public OTP step — no cookie/login. Creates a PENDING tutor application on the backend.
 export async function POST(req: Request) {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   if (!res.ok) {
     return NextResponse.json(res.raw ?? { message: "OTP verification failed" }, {
-      status: res.status,
+      status: res.status, headers: forwardedErrorHeaders(res),
     });
   }
   return NextResponse.json(res.data, { status: 201 });

@@ -60,12 +60,42 @@ rotation exactly when its static pages are the most useful thing still serving.
 `proxy.ts` short-circuits `/api/*` before locale redirection, so the probe is not
 redirected to `/en/api/health`.
 
+## TLS / reverse proxy
+
+**No TLS configuration ships in this repo.** `docker-compose.prod.yml` uses
+`network_mode: host`, so the app binds `PORT` (3000) on the host over plain HTTP.
+Certificates, HSTS and the `http → https` redirect belong to the reverse proxy in
+front of it.
+
+One requirement is easy to miss and fails silently:
+
+- **The proxy must set `X-Real-IP $remote_addr`.**
+
+  Auth calls from the browser go to this app's BFF (`app/api/auth/*`), which then
+  calls the API server-to-server. The API rate-limits those endpoints per client
+  IP, so the BFF forwards the caller's address — and it trusts `X-Real-IP` for it,
+  because a client can prepend its own `X-Forwarded-For` entry and nginx's usual
+  `$proxy_add_x_forwarded_for` appends rather than replaces.
+
+  Without that header every visitor shares one bucket, and the symptoms are
+  bizarre rather than obviously a misconfiguration: the 11th login *site-wide* in
+  a minute is refused, the 4th password-reset request in an hour is refused, and
+  one attacker can lock out every student at once.
+
+  ```nginx
+  proxy_set_header X-Real-IP         $remote_addr;
+  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  ```
+
+  The API must also be configured to trust these — see `TRUST_FORWARD_HEADERS` in
+  the backend's `DEPLOY.md`, including the warning about firewalling its port.
+
 ## Notes
 
-- `next.config.ts` allows remote images from **any** https host
-  (`hostname: "**"`). Narrow `images.remotePatterns` to your real CDN/S3 origins
-  before go-live — as-is, any URL the API returns can be proxied through the
-  image optimizer.
+- `images.remotePatterns` is narrowed to the API origin plus localhost. Keep it
+  that way: `hostname: "**"` turns the image optimizer into an open proxy for any
+  URL the API returns. Add a CDN/S3 host explicitly if one is introduced.
 - The build runs `next build` with `NODE_ENV=production` and telemetry disabled.
 - `public/` and `.next/static` are copied explicitly; the standalone tracer does
   not include them.

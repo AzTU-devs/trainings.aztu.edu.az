@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { backend } from "../../../_helpers";
+import { backend , forwardedErrorHeaders } from "../../../_helpers";
 
 // Public OTP step — no cookie set. Just proxies to the backend and relays the result.
 export async function POST(req: Request) {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   if (!res.ok) {
     return NextResponse.json(res.raw ?? { message: "Could not start tutor signup" }, {
-      status: res.status,
+      status: res.status, headers: forwardedErrorHeaders(res),
     });
   }
   return NextResponse.json(res.data, { status: 202 });

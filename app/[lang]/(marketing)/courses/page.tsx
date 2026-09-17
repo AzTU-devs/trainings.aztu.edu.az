@@ -12,10 +12,7 @@ import { Input } from "@/components/ui/input";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
-import {
-  applyClientFilters,
-  parseFiltersFromSearchParams,
-} from "@/features/course/filters";
+import { parseFiltersFromSearchParams } from "@/features/course/filters";
 
 export const metadata: Metadata = {
   title: "Courses",
@@ -32,26 +29,15 @@ export default async function CoursesPage({ params, searchParams }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
-  const { type, categoryId, q, page, size, client } =
-    parseFiltersFromSearchParams(raw);
-
-  const searching = Boolean(q);
+  // The catalogue is one request: `GET /api/public/courses` applies the free
+  // text and every filter together, so a filtered page 2 is as correct as page 1
+  // and searching no longer costs the visitor their filters.
+  const query = parseFiltersFromSearchParams(raw);
+  const q = query.q;
 
   const [categories, data] = await Promise.all([
     categoryServerApi.list().catch(() => []),
-    (async () => {
-      try {
-        // The backend /courses/search endpoint only accepts `q`, `page`, `size`
-        // (see endpoints.public.coursesSearch + courseServerApi.search) — it does
-        // NOT support `type`/`categoryId`. So while searching we post-filter by
-        // `type` client-side and hide the Category filter (needs a server filter).
-        return searching
-          ? await courseServerApi.search(q!, page, size)
-          : await courseServerApi.list({ type, categoryId, page, size });
-      } catch {
-        return null;
-      }
-    })(),
+    courseServerApi.list(query).catch(() => null),
   ]);
 
   // The catalogue can fail to load; when it does the page still keeps its
@@ -66,6 +52,7 @@ export default async function CoursesPage({ params, searchParams }: Props) {
           subtitle={t("courses.loadErrorHint")}
           searchLabel={t("common.search")}
           q={q}
+          params={raw}
         />
         <div className="container-fluid py-16">
           <EmptyState
@@ -81,14 +68,6 @@ export default async function CoursesPage({ params, searchParams }: Props) {
     );
   }
 
-  // While searching the backend can't apply the `type` filter, so post-filter
-  // the search results here to honor the selected mode.
-  const typeFiltered =
-    searching && type
-      ? data.content.filter((c) => c.courseType === type)
-      : data.content;
-  const filtered = applyClientFilters(typeFiltered, client);
-
   return (
     <>
       <CatalogueHeader
@@ -97,22 +76,19 @@ export default async function CoursesPage({ params, searchParams }: Props) {
         subtitle={t("courses.results", { count: data.totalElements })}
         searchLabel={t("common.search")}
         q={q}
+        params={raw}
       />
 
       <div className="container-fluid grid gap-10 py-12 lg:grid-cols-[260px_1fr]">
         <FilterSidebar
           total={data.totalElements}
-          visible={filtered.length}
-          // Category needs a server-side filter the search endpoint doesn't support,
-          // so hide it while searching rather than showing an inactive control.
-          searching={searching}
           categories={categories
             .filter((c) => c.active)
             .map((c) => ({ id: c.id, name: c.name }))}
         />
 
         <div className="space-y-6">
-          {filtered.length === 0 ? (
+          {data.content.length === 0 ? (
             <EmptyState
               title={t("courses.empty")}
               description={t("courses.emptyHint")}
@@ -124,7 +100,7 @@ export default async function CoursesPage({ params, searchParams }: Props) {
             />
           ) : (
             <>
-              <CourseGrid courses={filtered} />
+              <CourseGrid courses={data.content} />
               <Pagination
                 locale={locale}
                 page={data.page}
@@ -155,12 +131,14 @@ function CatalogueHeader({
   subtitle,
   searchLabel,
   q,
+  params,
 }: {
   locale: Locale;
   title: string;
   subtitle: string;
   searchLabel: string;
   q?: string;
+  params: Record<string, string | undefined>;
 }) {
   return (
     <section className="surface-paper border-b border-border">
@@ -181,6 +159,17 @@ function CatalogueHeader({
             aria-label={searchLabel}
             className="rounded-full bg-background pl-10"
           />
+          {/*
+            A GET form replaces the query string wholesale, so the active filters
+            ride along as hidden fields — searching narrows the current selection
+            instead of silently clearing it. `page` is left out on purpose: a new
+            search starts at the first page.
+          */}
+          {Object.entries(params).map(([key, value]) =>
+            value && key !== "q" && key !== "page" ? (
+              <input key={key} type="hidden" name={key} value={value} />
+            ) : null,
+          )}
         </form>
       </div>
     </section>

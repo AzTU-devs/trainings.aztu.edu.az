@@ -5,18 +5,13 @@ import type { Page } from "@/types/api";
 import type { Course, CourseListParams, CourseSummary } from "./types";
 
 export const courseServerApi = {
+  // One endpoint covers the whole catalogue: free text, every filter and paging
+  // are applied together server-side, so there is no separate search call.
   list: (params: CourseListParams = {}) =>
     serverFetch<Page<CourseSummary>>(endpoints.public.courses, {
       searchParams: params,
       revalidate: 60,
       tags: ["courses:list"],
-    }),
-
-  search: (q: string, page = 0, size = 24) =>
-    serverFetch<Page<CourseSummary>>(endpoints.public.coursesSearch, {
-      searchParams: { q, page, size },
-      revalidate: 60,
-      tags: ["courses:search"],
     }),
 
   bySlug: (slug: string) =>
