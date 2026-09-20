@@ -56,10 +56,24 @@ export function CourseCard({ course }: { course: CourseSummary }) {
         {thumbnail ? (
           // The title sits right below, so the cover is decorative; the gradient
           // stays underneath and shows through while the image loads.
+          //
+          // `unoptimized` makes the browser fetch the API URL itself instead of
+          // going through /_next/image. The optimizer would fetch the API's
+          // PUBLIC hostname from inside the server, and in production that can
+          // fail: Next refuses a hostname that resolves to a private IP (split
+          // DNS or /etc/hosts on the university network), and without a NAT
+          // hairpin the fetch times out. Either way every card would show a
+          // broken image while the API itself is fine. The cost is that the
+          // original upload is sent unresized; it is still cached, because the
+          // API serves it `public, max-age=86400, immutable` with a strong ETag.
+          // CSP img-src in next.config.ts already allows the API origin.
+          // `sizes` has no effect while unoptimized; it stays so that dropping
+          // the flag brings responsive widths back.
           <Image
             src={thumbnail}
             alt=""
             fill
+            unoptimized
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
