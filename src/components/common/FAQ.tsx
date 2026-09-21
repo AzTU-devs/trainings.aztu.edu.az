@@ -11,33 +11,43 @@ export function FAQ({ items }: { items: FaqItem[] }) {
   const baseId = useId();
 
   return (
-    <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+    <div className="space-y-3">
       {items.map((item, i) => {
         const open = openIdx === i;
         const panelId = `${baseId}-panel-${i}`;
         const buttonId = `${baseId}-button-${i}`;
         return (
-          <div key={i}>
+          // Each question is its own rounded card; the open one lifts and
+          // takes a navy hairline so it is obvious which answer you are on.
+          <div
+            key={i}
+            className={cn(
+              "rounded-3xl border bg-card transition-[border-color,box-shadow] duration-300",
+              open
+                ? "border-navy-200/80 elev-2 dark:border-navy-700/70"
+                : "border-border/80 elev-1 hover:border-navy-200/60 dark:hover:border-navy-800",
+            )}
+          >
             <h3>
               <button
                 id={buttonId}
                 type="button"
                 onClick={() => setOpenIdx(open ? null : i)}
-                className="flex w-full items-center justify-between gap-6 px-6 py-5 text-left transition-colors hover:bg-accent/50"
+                className="flex w-full items-center justify-between gap-5 rounded-3xl px-5 py-5 text-left sm:px-6"
                 aria-expanded={open}
                 aria-controls={panelId}
               >
-                <span className="font-medium leading-snug">{item.q}</span>
+                <span className="font-display text-base leading-snug sm:text-[17px]">{item.q}</span>
                 <span
                   aria-hidden
                   className={cn(
-                    "grid size-7 shrink-0 place-items-center rounded-full border border-border transition-[transform,background-color,border-color,color] duration-300",
+                    "grid size-9 shrink-0 place-items-center rounded-xl transition-[transform,background-color,color] duration-300",
                     open
-                      ? "rotate-45 border-gold-500/40 bg-gold-500/15 text-gold-700 dark:text-gold-300"
-                      : "text-muted-foreground",
+                      ? "rotate-45 bg-primary text-primary-foreground"
+                      : "bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100",
                   )}
                 >
-                  <Plus className="size-3.5" />
+                  <Plus className="size-4" />
                 </span>
               </button>
             </h3>
@@ -53,7 +63,10 @@ export function FAQ({ items }: { items: FaqItem[] }) {
               )}
             >
               <div className="overflow-hidden">
-                <p className="px-6 pb-6 text-sm leading-relaxed text-muted-foreground">
+                {/* Full card width: only the question row needs room for the
+                    toggle, and on a phone that strip would waste a fifth of
+                    the line. */}
+                <p className="px-5 pb-6 text-[15px] leading-relaxed text-muted-foreground sm:px-6">
                   {item.a}
                 </p>
               </div>

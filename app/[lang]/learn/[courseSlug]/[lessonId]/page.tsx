@@ -4,14 +4,20 @@ import { LearningClient } from "@/features/learning/components/LearningClient";
 import { courseServerApi } from "@/features/course/api.server";
 import { enrollmentServerApi } from "@/features/enrollment/api.server";
 import { getSession } from "@/lib/auth/session";
+import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
-
-export const metadata: Metadata = { title: "Learn" };
 
 type Props = {
   params: Promise<{ lang: string; courseSlug: string; lessonId: string }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { lang } = await params;
+  if (!isLocale(lang)) return {};
+  const t = await getT(lang);
+  return { title: t("learn.title") };
+}
 
 export default async function LearnLessonPage({ params }: Props) {
   const { lang, courseSlug, lessonId } = await params;

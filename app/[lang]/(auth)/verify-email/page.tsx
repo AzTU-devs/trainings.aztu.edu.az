@@ -4,16 +4,19 @@ import { MailCheck } from "lucide-react";
 import { VerifyEmail } from "@/features/auth/components/VerifyEmail";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
-
-export const metadata: Metadata = {
-  title: "Verify email",
-  description: "Confirm your EduPlatform email address.",
-};
+import { AuthCard } from "../_components/AuthCard";
 
 type Props = {
   params: Promise<{ lang: string }>;
   searchParams: Promise<{ token?: string | string[] }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { lang } = await params;
+  if (!isLocale(lang)) return {};
+  const t = await getT(lang);
+  return { title: t("auth.verifyTitle"), description: t("auth.verifySubtitle") };
+}
 
 export default async function VerifyEmailPage({ params, searchParams }: Props) {
   const { lang } = await params;
@@ -25,20 +28,12 @@ export default async function VerifyEmailPage({ params, searchParams }: Props) {
   const verifyToken = Array.isArray(token) ? token[0] : token;
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-3 text-center">
-        <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <MailCheck className="size-5" />
-        </div>
-        <div className="space-y-1">
-          <h1 className="font-display text-3xl leading-tight">
-            {t("auth.verifyTitle")}
-          </h1>
-          <p className="text-sm text-muted-foreground">{t("auth.verifySubtitle")}</p>
-        </div>
-      </header>
-
+    <AuthCard
+      icon={<MailCheck />}
+      title={t("auth.verifyTitle")}
+      subtitle={t("auth.verifySubtitle")}
+    >
       <VerifyEmail token={verifyToken} />
-    </div>
+    </AuthCard>
   );
 }

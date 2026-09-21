@@ -42,6 +42,14 @@ export function EnrollCta({ course }: { course: Course }) {
     },
     onError: (err) => {
       const e = err as unknown as ApiError;
+      // This button does not know whether the participant has already joined, so
+      // a second click is routine rather than a failure: take them to the course
+      // they are in instead of showing the API's English conflict message.
+      if (e.code === "ALREADY_ENROLLED") {
+        toast.info(t("courseDetail.alreadyEnrolled"));
+        if (hasLessons) router.push(localeHref(locale, `/learn/${course.slug}`));
+        return;
+      }
       toast.error(e.message ?? t("courseDetail.enrollError"));
     },
   });
@@ -54,12 +62,18 @@ export function EnrollCta({ course }: { course: Course }) {
   // ../payments.ts.
   if (!course.free) {
     return (
-      <div className="space-y-2">
-        <Button className="w-full" size="lg" disabled>
+      <div className="space-y-3">
+        {/* Wraps instead of overflowing: the label and price are long for a
+            sidebar-width pill. */}
+        <Button
+          className="h-auto min-h-12 w-full whitespace-normal py-3 text-center leading-snug"
+          size="lg"
+          disabled
+        >
           {t("courseDetail.paidUnavailable")} ·{" "}
-          {formatPrice(course.price, course.currency)}
+          {formatPrice(course.price, course.currency, locale)}
         </Button>
-        <p className="text-center text-xs leading-relaxed text-muted-foreground">
+        <p className="rounded-2xl bg-muted/70 px-4 py-3 text-center text-xs leading-relaxed text-muted-foreground">
           {t("courseDetail.paidUnavailableHint")}
         </p>
       </div>
@@ -69,6 +83,7 @@ export function EnrollCta({ course }: { course: Course }) {
   if (status !== "authenticated") {
     return (
       <Button
+        variant="gold"
         className="w-full"
         size="lg"
         onClick={() =>
@@ -85,6 +100,7 @@ export function EnrollCta({ course }: { course: Course }) {
 
   return (
     <Button
+      variant="gold"
       className="w-full"
       size="lg"
       loading={enrollFree.isPending}

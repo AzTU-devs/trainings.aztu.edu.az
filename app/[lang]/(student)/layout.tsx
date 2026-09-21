@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { StudentSidebar } from "@/components/layout/StudentSidebar";
 import { getSession } from "@/lib/auth/session";
+import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
 
@@ -22,12 +23,25 @@ export default async function StudentLayout({ children, params }: Props) {
     redirect(localeHref(locale, "/login"));
   }
 
+  const t = await getT(locale);
+
   return (
     <div className="flex min-h-screen flex-col">
+      <a
+        href="#main"
+        className="sr-only z-[60] rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground elev-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        {t("nav.skipToContent")}
+      </a>
       <Header />
-      <div className="container mx-auto flex flex-1 gap-6 px-4 py-6">
+      {/* The same container as the floating header, so the sidebar card lines
+          up under the logo and the content under the search field. Below md
+          the sidebar becomes a pill strip stacked above the content. */}
+      <div className="container-fluid flex flex-1 flex-col gap-6 pb-16 pt-6 md:flex-row md:gap-8 md:pt-8 lg:gap-10">
         <StudentSidebar />
-        <main className="flex-1 min-w-0">{children}</main>
+        <main id="main" className="min-w-0 flex-1">
+          {children}
+        </main>
       </div>
     </div>
   );

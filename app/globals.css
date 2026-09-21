@@ -60,26 +60,34 @@
   --color-gold-800: #5c4a1c;
   --color-gold-900: #3a2f12;
 
-  --radius-sm: calc(var(--radius) - 6px);
-  --radius-md: calc(var(--radius) - 3px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 10px);
+  /* A fixed, generous radius scale. The whole site is built from soft,
+     rounded shapes: pill buttons and chips, 24–32px cards, and imagery inset
+     inside its card with a matching smaller radius. */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-4xl: 2.5rem;
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-jakarta);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-display-serif);
+  --font-display: var(--font-jakarta);
 
   /* Elevation — tinted with the brand navy rather than neutral black, so
-     shadows sit in the same colour family as everything else. */
-  --shadow-e1: 0 1px 2px rgb(0 31 69 / 0.05), 0 1px 3px rgb(0 31 69 / 0.04);
-  --shadow-e2: 0 2px 4px rgb(0 31 69 / 0.04), 0 6px 16px -6px rgb(0 31 69 / 0.10);
-  --shadow-e3: 0 4px 8px rgb(0 31 69 / 0.05), 0 18px 40px -14px rgb(0 31 69 / 0.18);
-  --shadow-e4: 0 8px 16px rgb(0 31 69 / 0.06), 0 32px 64px -20px rgb(0 31 69 / 0.24);
+     shadows sit in the same colour family as everything else. Kept soft and
+     wide: depth reads from blur, not from a dark edge. */
+  --shadow-e1: 0 1px 2px rgb(0 31 69 / 0.04), 0 2px 6px -2px rgb(0 31 69 / 0.05);
+  --shadow-e2: 0 1px 2px rgb(0 31 69 / 0.04), 0 10px 24px -12px rgb(0 31 69 / 0.12);
+  --shadow-e3: 0 2px 4px rgb(0 31 69 / 0.04), 0 24px 48px -20px rgb(0 31 69 / 0.20);
+  --shadow-e4: 0 4px 8px rgb(0 31 69 / 0.05), 0 40px 80px -28px rgb(0 31 69 / 0.28);
 }
 
 :root {
-  --background: #ffffff;
+  /* The page is a soft cool grey and content sits on white cards above it,
+     so every card, form and panel reads as a distinct rounded object. */
+  --background: #f6f8fc;
   --foreground: #0d1b2f;
   --card: #ffffff;
   --card-foreground: #0d1b2f;
@@ -87,11 +95,11 @@
   --popover-foreground: #0d1b2f;
   --primary: #003876;
   --primary-foreground: #ffffff;
-  --secondary: #f2f5fa;
+  --secondary: #eef2f8;
   --secondary-foreground: #12233b;
-  --muted: #f4f6fa;
-  --muted-foreground: #5a6b83;
-  --accent: #eef2f9;
+  --muted: #eef2f8;
+  --muted-foreground: #56677f;
+  --accent: #e9eff8;
   --accent-foreground: #12233b;
   --destructive: #c0342c;
   --destructive-foreground: #ffffff;
@@ -99,10 +107,10 @@
   --success-foreground: #ffffff;
   --warning: #a97b12;
   --warning-foreground: #1a1206;
-  --border: #e3e8f0;
-  --input: #e3e8f0;
+  --border: #e3e9f2;
+  --input: #d9e1ec;
   --ring: #1a5ba5;
-  --radius: 0.75rem;
+  --radius: 1rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -144,8 +152,7 @@
   body {
     background: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-    font-feature-settings: "cv11", "ss01";
+    font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -157,12 +164,12 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-  /* Display face for headings — a serif carries the institutional register
-     that a geometric sans cannot. */
+  /* Headings: the same family as the text, set heavier and tighter. The
+     weight is a default — a heading can still ask for font-extrabold. */
   .font-display {
-    font-family: var(--font-display-serif), Georgia, "Times New Roman", serif;
-    font-weight: 500;
-    letter-spacing: -0.015em;
+    font-family: var(--font-jakarta), system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.03em;
   }
 }
 
@@ -226,8 +233,9 @@
 
   .glass-nav {
     background: color-mix(in srgb, var(--background) 84%, transparent);
-    backdrop-filter: saturate(160%) blur(16px);
-    -webkit-backdrop-filter: saturate(160%) blur(16px);
+    --glass-filter: saturate(160%) blur(16px);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
   }
 
   /* A translucent panel for use on the deep canvas. */
@@ -237,8 +245,9 @@
     box-shadow:
       inset 0 1px 0 0 rgb(255 255 255 / 0.18),
       0 40px 80px -24px rgb(0 6 16 / 0.95);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    --glass-filter: blur(14px);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
   }
 
   /* ---- Depth ---------------------------------------------------------- */
@@ -276,5 +285,64 @@
   }
   *, *::before, *::after {
     scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Site chrome — the floating header and its popovers.                */
+/* ------------------------------------------------------------------ */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@layer utilities {
+  /* The floating header pill. A translucent *card* rather than the page
+     colour (compare .glass-nav), so the bar reads as a white object resting
+     on the grey canvas — and stays legible when it drifts over the navy
+     hero as the page scrolls. */
+  .glass-bar {
+    background: color-mix(in srgb, var(--card) 80%, transparent);
+    /* Through a variable on purpose: given a literal value, the CSS
+       minifier folds the pair into the -webkit- form alone, which Chromium
+       ignores — so the bar would not blur at all there. */
+    --glass-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+  }
+
+  /* Popovers and the mobile sheet drop in from the bar they belong to. */
+  .animate-pop-in {
+    animation: pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: top center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop-in { animation: none !important; }
+}
+
+@layer utilities {
+  /* In dark mode a deep panel's gradient ends almost on the page colour, so
+     its rounded lower corners dissolve into the canvas and the contained
+     panel reads as a smudge. Two small fixes keep it an object: the base
+     gradient stops a step short of black (the same layers as .surface-deep,
+     only the last stop differs), and a faint hairline traces the edge. The
+     hairline is an outline rather than a box-shadow so it never fights the
+     elev-* and ring-* shadows those panels already carry, and it steps
+     aside for a focus ring. */
+  @media (prefers-color-scheme: dark) {
+    .surface-deep {
+      background-image:
+        var(--grain),
+        radial-gradient(58% 52% at 76% 20%, rgba(31, 106, 190, 0.50) 0%, transparent 64%),
+        radial-gradient(45% 40% at 95% 4%, rgba(200, 169, 81, 0.16) 0%, transparent 62%),
+        radial-gradient(70% 65% at 8% 92%, rgba(11, 74, 141, 0.34) 0%, transparent 62%),
+        linear-gradient(164deg, #01234a 0%, #00152f 56%, #001026 100%);
+    }
+    .surface-deep:not(:focus-visible) {
+      outline: 1px solid rgb(255 255 255 / 0.08);
+      outline-offset: -1px;
+    }
   }
 }

@@ -23,10 +23,10 @@ export function Logo({
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       {mark}
       {showText ? (
-        <span className="flex flex-col leading-none">
+        <span className="flex flex-col gap-0.5 leading-none">
           <span
             className={cn(
-              "text-[9px] font-semibold uppercase tracking-[0.22em]",
+              "text-[10px] font-bold uppercase tracking-[0.2em]",
               tone === "onDeep" ? "text-gold-300" : "text-gold-700 dark:text-gold-400",
             )}
           >
@@ -34,7 +34,7 @@ export function Logo({
           </span>
           <span
             className={cn(
-              "font-display text-[15px] leading-tight tracking-tight",
+              "font-display text-[17px] font-extrabold leading-none",
               tone === "onDeep" ? "text-white" : "text-foreground",
             )}
           >

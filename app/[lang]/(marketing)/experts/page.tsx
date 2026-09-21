@@ -1,24 +1,44 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BookOpen, Users } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/common/EmptyState";
+import { PageIntro } from "@/components/common/PageIntro";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { listExperts } from "@/features/expert/directory.server";
-import { ExpertCard } from "@/features/expert/components/ExpertCard";
+import {
+  ExpertCard,
+  ExpertInviteCard,
+} from "@/features/expert/components/ExpertCard";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
+import { cn } from "@/lib/utils/cn";
 
 export const revalidate = 300;
 
-export const metadata: Metadata = {
-  title: "Experts",
-  description:
-    "Meet the AzTU EduPlatform experts — faculty and industry specialists teaching online and in person.",
-};
-
 type Props = { params: Promise<{ lang: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { lang } = await params;
+  if (!isLocale(lang)) return {};
+  const t = await getT(lang);
+  return {
+    title: t("experts.metaTitle"),
+    description: t("experts.metaDescription"),
+  };
+}
+
+/**
+ * Column spans for the invitation tile, per breakpoint of the grid below
+ * (2 columns at sm, 3 at lg, 4 at xl): it takes the rest of the last row, or
+ * a row of its own when that row is full. Static strings so Tailwind sees
+ * every class.
+ */
+const SM_SPAN = ["sm:col-span-2", "sm:col-span-1"];
+const LG_SPAN = ["lg:col-span-3", "lg:col-span-2", "lg:col-span-1"];
+const XL_SPAN = ["xl:col-span-4", "xl:col-span-3", "xl:col-span-2", "xl:col-span-1"];
 
 export default async function ExpertsPage({ params }: Props) {
   const { lang } = await params;
@@ -27,56 +47,70 @@ export default async function ExpertsPage({ params }: Props) {
   const t = await getT(locale);
 
   const experts = await listExperts();
+  const n = experts.length;
 
   return (
     <>
-      <section className="surface-paper border-b border-border">
-        <div className="container-fluid flex flex-col gap-8 py-16 sm:flex-row sm:items-end sm:justify-between sm:gap-12">
-          <div className="max-w-2xl">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-700 dark:text-gold-400">
-              {t("experts.eyebrow")}
+      <PageIntro
+        eyebrow={t("experts.eyebrow")}
+        title={t("experts.title")}
+        description={t("experts.subtitle")}
+        aside={
+          n ? (
+            <div className="flex lg:justify-end">
+              <span className="inline-flex h-10 items-center gap-2.5 rounded-full border border-border/80 bg-card pl-1.5 pr-4 text-sm font-medium text-foreground elev-1">
+                <span className="grid size-7 place-items-center rounded-full bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100">
+                  <Users className="size-3.5" />
+                </span>
+                {t("experts.count", { count: n })}
+              </span>
             </div>
-            <h1 className="font-display mt-5 text-balance text-4xl leading-[1.12] sm:text-5xl">
-              {t("experts.title")}
-            </h1>
-            <p className="mt-5 max-w-xl text-pretty leading-relaxed text-muted-foreground">
-              {t("experts.subtitle")}
-            </p>
-          </div>
-          {experts.length ? (
-            <p className="shrink-0 text-sm text-muted-foreground">
-              {t("experts.count", { count: experts.length })}
-            </p>
-          ) : null}
-        </div>
-      </section>
+          ) : null
+        }
+      />
 
-      <div className="container-fluid py-16">
-        {experts.length ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="container-fluid pb-20 sm:pb-24">
+        {n ? (
+          <Stagger className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {experts.map((e) => (
-              <ExpertCard
-                key={e.id}
-                expert={e}
-                labels={{
-                  courses: t("experts.courses", { count: e.courseCount }),
-                  students: t("experts.students", { count: e.enrolledCount }),
-                  online: t("common.online"),
-                  offline: t("common.offline"),
-                }}
-              />
+              <StaggerItem key={e.id} className="h-full">
+                <ExpertCard
+                  expert={e}
+                  locale={locale}
+                  labels={{
+                    courses: t("experts.courses", { count: e.courseCount }),
+                    students: t("experts.students", { count: e.enrolledCount }),
+                    online: t("common.online"),
+                    offline: t("common.offline"),
+                    view: t("experts.viewProfile"),
+                  }}
+                />
+              </StaggerItem>
             ))}
-          </div>
+            {/* The directory ends in the way to become an expert, filling the
+                last row rather than leaving it ragged — the same invitation
+                the home page's experts section closes with. */}
+            <StaggerItem
+              className={cn("h-full", SM_SPAN[n % 2], LG_SPAN[n % 3], XL_SPAN[n % 4])}
+            >
+              <ExpertInviteCard
+                title={t("home.becomeExpertTitle")}
+                description={t("home.becomeExpertDesc")}
+                cta={t("home.becomeExpertCta")}
+              />
+            </StaggerItem>
+          </Stagger>
         ) : (
           <EmptyState
             title={t("experts.empty")}
             description={t("experts.emptyHint")}
             action={
-              <Link href={localeHref(locale, "/courses")}>
-                <Button variant="outline" className="gap-2">
-                  <Users className="size-4" />
-                  {t("home.browseCourses")}
-                </Button>
+              <Link
+                href={localeHref(locale, "/courses")}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                <BookOpen className="size-4" />
+                {t("home.browseCourses")}
               </Link>
             }
           />

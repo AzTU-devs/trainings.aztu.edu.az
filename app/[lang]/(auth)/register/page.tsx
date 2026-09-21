@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { UserPlus } from "lucide-react";
@@ -7,13 +6,16 @@ import { RegisterRoleTabs } from "@/features/auth/components/RegisterRoleTabs";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
-
-export const metadata: Metadata = {
-  title: "Create your account",
-  description: "Join EduPlatform and start learning today.",
-};
+import { AuthCard, AuthFooterLink } from "../_components/AuthCard";
 
 type Props = { params: Promise<{ lang: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { lang } = await params;
+  if (!isLocale(lang)) return {};
+  const t = await getT(lang);
+  return { title: t("auth.registerTitle"), description: t("auth.registerSubtitle") };
+}
 
 export default async function RegisterPage({ params }: Props) {
   const { lang } = await params;
@@ -21,22 +23,21 @@ export default async function RegisterPage({ params }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
+  // No Terms / Privacy note until those documents exist to link to (see the
+  // sign-in page).
   return (
-    <div className="space-y-8">
-      <header className="space-y-3 text-center">
-        <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <UserPlus className="size-5" />
-        </div>
-        <div className="space-y-1">
-          <h1 className="font-display text-3xl leading-tight">
-            {t("auth.registerTitle")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t("auth.registerSubtitle")}
-          </p>
-        </div>
-      </header>
-
+    <AuthCard
+      size="wide"
+      icon={<UserPlus />}
+      title={t("auth.registerTitle")}
+      subtitle={t("auth.registerSubtitle")}
+      footer={
+        <p>
+          {t("auth.hasAccount")}{" "}
+          <AuthFooterLink href={localeHref(locale, "/login")}>{t("common.signIn")}</AuthFooterLink>
+        </p>
+      }
+    >
       <RegisterRoleTabs
         locale={locale}
         active="student"
@@ -44,21 +45,9 @@ export default async function RegisterPage({ params }: Props) {
         tutorLabel={t("auth.tutorTab")}
       />
 
-      <RegisterForm />
-
-      <p className="text-center text-sm text-muted-foreground">
-        {t("auth.hasAccount")}{" "}
-        <Link
-          href={localeHref(locale, "/login")}
-          className="text-primary font-medium hover:underline"
-        >
-          {t("common.signIn")}
-        </Link>
-      </p>
-
-      <p className="text-balance text-center text-[11px] leading-relaxed text-muted-foreground">
-        By creating an account you agree to the AZTU EduPlatform Terms and Privacy Policy.
-      </p>
-    </div>
+      <div className="mt-7">
+        <RegisterForm />
+      </div>
+    </AuthCard>
   );
 }

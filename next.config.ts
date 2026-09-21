@@ -156,6 +156,11 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react"],
+    // The root layout is app/[lang]/layout.tsx (so <html lang> is rendered in
+    // the page's language), which leaves no layout above [lang] for the
+    // handful of URLs that match no route at all. app/global-not-found.tsx is
+    // the documented answer for exactly that setup; this flag enables it.
+    globalNotFound: true,
   },
   headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

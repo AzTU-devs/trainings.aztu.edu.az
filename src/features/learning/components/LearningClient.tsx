@@ -2,8 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/layout/Logo";
+import { LocaleLink } from "@/i18n/LocaleLink";
+import { cn } from "@/lib/utils/cn";
 import { VideoPlayer } from "./VideoPlayer";
 import { LessonSidebar } from "./LessonSidebar";
 import { useUpdateLessonProgress } from "@/features/enrollment/hooks";
@@ -128,81 +132,166 @@ export function LearningClient({
     ? Math.round((completedCount / totalLessons) * 100)
     : 0;
 
+  // Where the current lesson sits, for the labels above the player. Display
+  // only — navigation still goes through `nextLesson` above.
+  const lessonIndex = flatLessons.findIndex((l) => l.id === currentLessonId);
+  const moduleIndex = course.modules.findIndex((m) =>
+    m.lessons.some((l) => l.id === currentLessonId),
+  );
+  const currentModule = moduleIndex >= 0 ? course.modules[moduleIndex] : undefined;
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col md:flex-row">
-      <LessonSidebar
-        courseSlug={course.slug}
-        modules={course.modules}
-        currentLessonId={currentLessonId}
-        progress={progress}
-      />
-      <div className="flex flex-1 flex-col overflow-y-auto">
-        <div className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur">
-          <div className="flex items-center gap-4 px-6 py-3">
-            <div className="min-w-0 flex-1">
+    <div className="min-h-dvh pb-12">
+      {/* A focused shell instead of the site header: a way back to the
+          course, where you are in it, and how far through you are. */}
+      <header className="sticky top-3 z-40 mt-3 px-3 sm:px-5">
+        <div className="glass-bar mx-auto flex h-16 max-w-[90rem] items-center gap-2 rounded-full border border-border/80 pl-2 pr-2.5 elev-2 sm:gap-3">
+          <LocaleLink
+            href={`/courses/${course.slug}`}
+            aria-label={t("learn.backToCourse")}
+            title={t("learn.backToCourse")}
+            className="grid size-11 shrink-0 place-items-center rounded-full text-foreground transition-colors duration-200 hover:bg-accent"
+          >
+            <ArrowLeft className="size-5" />
+          </LocaleLink>
+          <LocaleLink
+            href="/"
+            aria-label="AzTU EduPlatform"
+            className="hidden shrink-0 rounded-full pr-1 md:block"
+          >
+            <Logo />
+          </LocaleLink>
+          <span aria-hidden className="mx-1 hidden h-8 w-px bg-border md:block" />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-semibold leading-snug sm:text-sm">
+              {course.title}
+            </div>
+            {lessonIndex >= 0 ? (
               <div className="truncate text-xs text-muted-foreground">
-                {course.title}
+                {t("learn.lessonOf", { current: lessonIndex + 1, total: totalLessons })}
               </div>
-              <h1 className="truncate text-base font-semibold">
-                {currentLesson?.title ?? t("learn.noLessonSelected")}
-              </h1>
-            </div>
-            <div className="hidden min-w-[180px] items-center gap-2 sm:flex">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full bg-primary transition-all"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-              <span className="text-xs font-medium tabular-nums text-muted-foreground">
-                {percent}%
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6 p-6">
-          <VideoPlayer
-            src={currentLesson?.videoUrl ?? null}
-            initialPositionSec={currentProgress?.positionSec ?? 0}
-            onTimeUpdate={onTimeUpdate}
-            onEnded={onEnded}
-          />
-
-          <div className="flex flex-wrap items-center gap-3">
-            {completed ? (
-              <Badge variant="success">{t("learn.completed")}</Badge>
-            ) : (
-              <Button
-                onClick={() => save("COMPLETED")}
-                loading={updateProgress.isPending}
-              >
-                {t("learn.markComplete")}
-              </Button>
-            )}
-            {nextLesson ? (
-              <Button
-                variant="outline"
-                onClick={() =>
-                  router.push(
-                    localeHref(locale, `/learn/${course.slug}/${nextLesson.id}`),
-                  )
-                }
-              >
-                {t("learn.nextLesson")} →
-              </Button>
             ) : null}
           </div>
-
-          {currentLesson?.description ? (
-            <div className="prose max-w-none text-sm">
-              <p className="whitespace-pre-line text-muted-foreground">
-                {currentLesson.description}
-              </p>
-            </div>
-          ) : null}
+          <ProgressRing percent={percent} label={t("learn.courseProgress")} />
         </div>
+      </header>
+
+      <div className="mx-auto grid max-w-[90rem] gap-5 px-3 pt-5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="min-w-0 space-y-5">
+          <div className="rounded-3xl border border-border/80 bg-card p-2 elev-1">
+            <VideoPlayer
+              src={currentLesson?.videoUrl ?? null}
+              initialPositionSec={currentProgress?.positionSec ?? 0}
+              onTimeUpdate={onTimeUpdate}
+              onEnded={onEnded}
+            />
+          </div>
+
+          <section className="rounded-3xl border border-border/80 bg-card p-5 elev-1 sm:p-7">
+            {currentModule ? (
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-gold-500" />
+                <span className="truncate">
+                  {t("learn.moduleLabel", { n: moduleIndex + 1 })} · {currentModule.title}
+                </span>
+              </div>
+            ) : null}
+            <h1 className="mt-3 font-display text-balance text-2xl leading-tight sm:text-3xl">
+              {currentLesson?.title ?? t("learn.noLessonSelected")}
+            </h1>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {completed ? (
+                <Badge variant="success" className="h-11 gap-2 px-5 text-sm">
+                  <CheckCircle2 aria-hidden className="size-4" />
+                  {t("learn.completed")}
+                </Badge>
+              ) : (
+                <Button
+                  onClick={() => save("COMPLETED")}
+                  loading={updateProgress.isPending}
+                >
+                  {updateProgress.isPending ? null : <Check aria-hidden />}
+                  {t("learn.markComplete")}
+                </Button>
+              )}
+              {nextLesson ? (
+                <Button
+                  variant={completed ? "default" : "outline"}
+                  className="group"
+                  onClick={() =>
+                    router.push(
+                      localeHref(locale, `/learn/${course.slug}/${nextLesson.id}`),
+                    )
+                  }
+                >
+                  {t("learn.nextLesson")}
+                  <ArrowRight
+                    aria-hidden
+                    className="transition-transform duration-200 group-hover:translate-x-0.5"
+                  />
+                </Button>
+              ) : null}
+            </div>
+
+            {currentLesson?.description ? (
+              <div className="mt-7 border-t border-border/80 pt-6">
+                <h2 className="text-sm font-semibold text-foreground">
+                  {t("learn.aboutLesson")}
+                </h2>
+                <p className="mt-2 max-w-3xl whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">
+                  {currentLesson.description}
+                </p>
+              </div>
+            ) : null}
+          </section>
+        </div>
+
+        <LessonSidebar
+          courseSlug={course.slug}
+          modules={course.modules}
+          currentLessonId={currentLessonId}
+          progress={progress}
+          completedCount={completedCount}
+          totalLessons={totalLessons}
+          percent={percent}
+        />
       </div>
     </div>
+  );
+}
+
+/** Course completion as a small ring — legible at a glance, even on a phone. */
+function ProgressRing({ percent, label }: { percent: number; label: string }) {
+  const r = 18;
+  const c = 2 * Math.PI * r;
+  const done = percent >= 100;
+  return (
+    <span
+      role="img"
+      aria-label={`${label}: ${percent}%`}
+      className="relative grid size-11 shrink-0 place-items-center"
+    >
+      <svg viewBox="0 0 44 44" className="absolute inset-0 size-full -rotate-90" aria-hidden>
+        <circle cx="22" cy="22" r={r} fill="none" strokeWidth="4" className="stroke-muted dark:stroke-white/10" />
+        <circle
+          cx="22"
+          cy="22"
+          r={r}
+          fill="none"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - Math.min(100, Math.max(0, percent)) / 100)}
+          className={cn(
+            "transition-[stroke-dashoffset] duration-500",
+            done ? "stroke-emerald-500" : "stroke-primary",
+          )}
+        />
+      </svg>
+      <span aria-hidden className="text-[10px] font-bold tabular-nums text-foreground">
+        {percent}%
+      </span>
+    </span>
   );
 }

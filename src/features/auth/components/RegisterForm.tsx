@@ -6,10 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { registerSchema, type RegisterInput } from "../schemas";
 import { useRegister } from "../hooks";
+import { FieldError } from "./FieldError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormError } from "@/components/common/FormError";
 import { useT, useLocale } from "@/i18n/client";
 import { localeHref } from "@/i18n/href";
 import type { ApiError } from "@/types/api";
@@ -54,54 +54,90 @@ export function RegisterForm() {
     });
   };
 
+  const { errors } = form.formState;
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="firstName">{t("auth.firstName")}</Label>
-          <Input id="firstName" {...form.register("firstName")} />
-          <FormError message={form.formState.errors.firstName?.message} />
+          <Input
+            id="firstName"
+            autoComplete="given-name"
+            aria-invalid={errors.firstName ? true : undefined}
+            className={invalidField}
+            {...form.register("firstName")}
+          />
+          <FieldError error={errors.firstName} />
         </div>
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="lastName">{t("auth.lastName")}</Label>
-          <Input id="lastName" {...form.register("lastName")} />
-          <FormError message={form.formState.errors.lastName?.message} />
+          <Input
+            id="lastName"
+            autoComplete="family-name"
+            aria-invalid={errors.lastName ? true : undefined}
+            className={invalidField}
+            {...form.register("lastName")}
+          />
+          <FieldError error={errors.lastName} />
         </div>
       </div>
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="email">{t("auth.email")}</Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
+          aria-invalid={errors.email ? true : undefined}
+          className={invalidField}
           {...form.register("email")}
         />
-        <FormError message={form.formState.errors.email?.message} />
+        <FieldError error={errors.email} />
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="password">{t("auth.password")}</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="new-password"
-          {...form.register("password")}
-        />
-        <FormError message={form.formState.errors.password?.message} />
-        <p className="text-xs text-muted-foreground">{t("auth.passwordHint")}</p>
+      {/* Password and its confirmation side by side, as on the expert
+          application, so both sign-up cards share one width and layout. */}
+      <div className="flex flex-col gap-2">
+        <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="password">{t("auth.password")}</Label>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              aria-invalid={errors.password ? true : undefined}
+              aria-describedby={errors.password ? "password-error" : "password-hint"}
+              className={invalidField}
+              {...form.register("password")}
+            />
+            <FieldError id="password-error" error={errors.password} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              aria-invalid={errors.confirmPassword ? true : undefined}
+              className={invalidField}
+              {...form.register("confirmPassword")}
+            />
+            <FieldError error={errors.confirmPassword} />
+          </div>
+        </div>
+        {/* The rule is stated once: the error replaces the hint while it shows. */}
+        {errors.password ? null : (
+          <p id="password-hint" className="text-xs leading-relaxed text-muted-foreground">
+            {t("auth.passwordHint")}
+          </p>
+        )}
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          {...form.register("confirmPassword")}
-        />
-        <FormError message={form.formState.errors.confirmPassword?.message} />
-      </div>
-      <Button type="submit" className="w-full" loading={register.isPending}>
+      <Button type="submit" size="lg" className="mt-2 w-full" loading={register.isPending}>
         {t("common.signUp")}
       </Button>
     </form>
   );
 }
+
+/** A field with an error gets a red edge, so the problem is visible at the input itself. */
+const invalidField =
+  "aria-[invalid=true]:border-destructive/60 aria-[invalid=true]:focus-visible:ring-destructive/15";

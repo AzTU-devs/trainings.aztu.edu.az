@@ -1,27 +1,43 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { loginSchema, type LoginInput } from "../schemas";
 import { useLogin, useLogout } from "../hooks";
+import { FieldError } from "./FieldError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormError } from "@/components/common/FormError";
 import { useT, useLocale } from "@/i18n/client";
 import { localeHref } from "@/i18n/href";
 import { env } from "@/lib/env";
 import { isPortalUser } from "@/lib/auth/roles";
 import type { ApiError } from "@/types/api";
 
+/**
+ * The post-login destination from ?next=, only if it is a path on this site.
+ *
+ * router.replace() hard-navigates to anything absolute, so an unchecked value
+ * turned the login page into an open redirect: a link to
+ * /az/login?next=https://evil.example (or //evil.example) sent the user off-site
+ * the moment they signed in, straight after typing their password into our page.
+ * A leading "//" or "/\\" is protocol-relative to a browser, hence refused too.
+ */
+function safeNext(value: string | null): string | null {
+  if (!value || !value.startsWith("/")) return null;
+  if (value.startsWith("//") || value.startsWith("/\\")) return null;
+  return value;
+}
+
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const t = useT();
   const locale = useLocale();
-  const next = params.get("next") ?? localeHref(locale, "/dashboard");
+  const next = safeNext(params.get("next")) ?? localeHref(locale, "/dashboard");
   const login = useLogin();
   const logout = useLogout();
 
@@ -54,31 +70,51 @@ export function LoginForm() {
       },
     });
 
+  const { errors } = form.formState;
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-1.5">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="email">{t("auth.email")}</Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
+          aria-invalid={errors.email ? true : undefined}
+          className={invalidField}
           {...form.register("email")}
         />
-        <FormError message={form.formState.errors.email?.message} />
+        <FieldError error={errors.email} />
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="password">{t("auth.password")}</Label>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="password">{t("auth.password")}</Label>
+          <Link
+            href={localeHref(locale, "/forgot-password")}
+            // The padding grows the tap target to 40px; the negative margin
+            // keeps the label row at its text height.
+            className="-my-2.5 inline-flex items-center py-2.5 text-[13px] font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t("auth.forgotLink")}
+          </Link>
+        </div>
         <Input
           id="password"
           type="password"
           autoComplete="current-password"
+          aria-invalid={errors.password ? true : undefined}
+          className={invalidField}
           {...form.register("password")}
         />
-        <FormError message={form.formState.errors.password?.message} />
+        <FieldError error={errors.password} />
       </div>
-      <Button type="submit" className="w-full" loading={login.isPending}>
+      <Button type="submit" size="lg" className="mt-2 w-full" loading={login.isPending}>
         {t("common.signIn")}
       </Button>
     </form>
   );
 }
+
+/** A field with an error gets a red edge, so the problem is visible at the input itself. */
+const invalidField =
+  "aria-[invalid=true]:border-destructive/60 aria-[invalid=true]:focus-visible:ring-destructive/15";

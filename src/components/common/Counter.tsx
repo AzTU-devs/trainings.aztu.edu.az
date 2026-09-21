@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { animate, useReducedMotion } from "motion/react";
+import { cn } from "@/lib/utils/cn";
 
 /**
  * Counts up to a number on mount. Accepts an optional prefix / suffix (e.g.
@@ -12,6 +13,8 @@ import { animate, useReducedMotion } from "motion/react";
  * Under reduced motion the final value is *derived* rather than pushed into
  * state from the effect — the effect simply never runs an animation — so the
  * component never triggers a cascading render just to skip the animation.
+ *
+ * Digits are tabular so the figure does not jitter sideways as it counts.
  */
 export function Counter({
   to,
@@ -44,7 +47,7 @@ export function Counter({
   const value = reduce ? to : animated;
 
   return (
-    <span className={className}>
+    <span className={cn("tabular-nums", className)}>
       {prefix}
       {value.toLocaleString("en-US", {
         minimumFractionDigits: decimals,

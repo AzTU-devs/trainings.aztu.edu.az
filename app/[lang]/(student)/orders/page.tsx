@@ -1,38 +1,29 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { ReceiptText } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { serverFetch } from "@/lib/api/server";
 import { endpoints } from "@/lib/api/endpoints";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
-import { formatPrice } from "@/lib/utils/format";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import type { Page } from "@/types/api";
-
-export const metadata: Metadata = { title: "Orders" };
-
-// Mirrors the API's OrderDto (payment/web/dto/OrderDto.java). Only the fields
-// this page renders are declared; the rest of the record (userId, subtotal,
-// tax, discount, paidAt, items) is not needed here. Note `total`/`placedAt` —
-// NOT `totalAmount`/`createdAt`, which the API has never sent.
-type Order = {
-  id: string;
-  orderNumber: string;
-  status: string;
-  // BigDecimal with no Jackson customization on the API side, so it arrives as
-  // a JSON number; formatPrice accepts either.
-  total: string | number;
-  currency: string;
-  placedAt: string;
-};
+import { AccountIntro } from "../_components/AccountIntro";
+import { OrderList, type Order } from "../_components/OrderList";
 
 type Props = { params: Promise<{ lang: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { lang } = await params;
+  if (!isLocale(lang)) return {};
+  const t = await getT(lang);
+  return { title: t("nav.orders") };
+}
 
 export default async function OrdersPage({ params }: Props) {
   const { lang } = await params;
   if (!isLocale(lang)) notFound();
-  const t = await getT(lang as Locale);
+  const locale = lang as Locale;
+  const t = await getT(locale);
 
   // GET /api/portal/orders/mine returns ApiResponse<PageResponse<OrderDto>>.
   // serverFetch's unwrap() strips only the ApiResponse envelope, so the page
@@ -50,38 +41,20 @@ export default async function OrdersPage({ params }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-3xl leading-tight">{t("nav.orders")}</h1>
+    <div className="space-y-8">
+      <AccountIntro
+        eyebrow={t("student.areaEyebrow")}
+        title={t("nav.orders")}
+        description={t("student.ordersSubtitle")}
+      />
       {orders.length === 0 ? (
         <EmptyState
+          icon={<ReceiptText strokeWidth={1.75} />}
           title={t("student.ordersEmpty")}
           description={t("student.ordersEmptyHint")}
         />
       ) : (
-        <div className="space-y-3">
-          {orders.map((o) => (
-            <Card key={o.id}>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="space-y-1">
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {o.orderNumber || o.id}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {o.placedAt
-                      ? new Date(o.placedAt).toLocaleString(lang)
-                      : "—"}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold">
-                    {formatPrice(o.total, o.currency)}
-                  </div>
-                  <Badge variant="secondary">{o.status}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <OrderList orders={orders} locale={locale} />
       )}
     </div>
   );

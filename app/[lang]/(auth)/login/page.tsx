@@ -1,20 +1,22 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { LogIn } from "lucide-react";
+import { ArrowUpRight, GraduationCap, LogIn } from "lucide-react";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
 import { env } from "@/lib/env";
-
-export const metadata: Metadata = {
-  title: "Sign in",
-  description: "Sign in to your EduPlatform account.",
-};
+import { AuthCard, AuthFooterLink } from "../_components/AuthCard";
 
 type Props = { params: Promise<{ lang: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { lang } = await params;
+  if (!isLocale(lang)) return {};
+  const t = await getT(lang);
+  return { title: t("common.signIn"), description: t("auth.loginSubtitle") };
+}
 
 export default async function LoginPage({ params }: Props) {
   const { lang } = await params;
@@ -22,55 +24,43 @@ export default async function LoginPage({ params }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
+  // No "by signing in you agree to the Terms and Privacy Policy" note: the
+  // platform has no such documents to link to yet, and people should not be
+  // asked to agree to something they cannot read. Restore it (as links) when
+  // they exist — the `auth.legalSignIn` key is kept for that.
   return (
-    <div className="space-y-8">
-      <header className="space-y-3 text-center">
-        <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <LogIn className="size-5" />
-        </div>
-        <div className="space-y-1">
-          <h1 className="font-display text-3xl leading-tight">
-            {t("auth.loginTitle")}
-          </h1>
-          <p className="text-sm text-muted-foreground">{t("auth.loginSubtitle")}</p>
-        </div>
-      </header>
-
+    <AuthCard
+      icon={<LogIn />}
+      title={t("auth.loginTitle")}
+      subtitle={t("auth.loginSubtitle")}
+      footer={
+        <p>
+          {t("auth.noAccount")}{" "}
+          <AuthFooterLink href={localeHref(locale, "/register")}>{t("common.signUp")}</AuthFooterLink>
+        </p>
+      }
+    >
       <Suspense fallback={<div className="h-64" />}>
         <LoginForm />
       </Suspense>
 
-      <div className="space-y-3 text-center text-sm">
-        <Link
-          href={localeHref(locale, "/forgot-password")}
-          className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-        >
-          {t("auth.forgotLink")}
-        </Link>
-        <p className="text-muted-foreground">
-          {t("auth.noAccount")}{" "}
-          <Link
-            href={localeHref(locale, "/register")}
-            className="text-primary font-medium hover:underline"
+      {/* Experts and admins work in the separate portal app. */}
+      <div className="mt-6 flex items-center gap-3.5 rounded-2xl bg-muted/70 p-4 dark:bg-accent/50">
+        <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-card text-navy-700 ring-1 ring-inset ring-border dark:text-navy-100">
+          <GraduationCap className="size-[18px]" aria-hidden />
+        </span>
+        <div className="min-w-0 text-sm">
+          <p className="text-muted-foreground">{t("auth.tutorLoginPrompt")}</p>
+          <a
+            href={env.NEXT_PUBLIC_PORTAL_URL}
+            // Padding makes a 40px tap target without changing the line height.
+            className="-my-2.5 inline-flex items-center gap-1 py-2.5 font-semibold text-primary underline-offset-4 hover:underline"
           >
-            {t("common.signUp")}
-          </Link>
-        </p>
+            {t("auth.tutorLoginCta")}
+            <ArrowUpRight className="size-4 shrink-0" aria-hidden />
+          </a>
+        </div>
       </div>
-
-      <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-center text-sm">
-        <p className="text-muted-foreground">{t("auth.tutorLoginPrompt")}</p>
-        <a
-          href={env.NEXT_PUBLIC_PORTAL_URL}
-          className="mt-1 inline-block font-medium text-primary hover:underline"
-        >
-          {t("auth.tutorLoginCta")} →
-        </a>
-      </div>
-
-      <p className="text-balance text-center text-[11px] leading-relaxed text-muted-foreground">
-        By signing in you agree to the AZTU EduPlatform Terms and Privacy Policy.
-      </p>
-    </div>
+    </AuthCard>
   );
 }

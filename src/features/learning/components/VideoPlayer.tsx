@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { VideoOff } from "lucide-react";
 import { useT } from "@/i18n/client";
 
 type Props = {
@@ -71,8 +72,16 @@ export function VideoPlayer({
 
   if (!src) {
     return (
-      <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
-        {t("learn.videoUnavailable")}
+      <div className="surface-deep relative flex aspect-video w-full flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl px-6 text-center">
+        <span
+          aria-hidden
+          className="grid size-14 place-items-center rounded-2xl bg-white/10 text-gold-200 ring-1 ring-inset ring-white/15"
+        >
+          <VideoOff className="size-6" strokeWidth={1.75} />
+        </span>
+        <p className="max-w-sm text-sm leading-relaxed text-white/75 sm:text-[15px]">
+          {t("learn.videoUnavailable")}
+        </p>
       </div>
     );
   }
@@ -84,7 +93,7 @@ export function VideoPlayer({
       preload="metadata"
       poster={poster ?? undefined}
       playsInline
-      className="aspect-video w-full rounded-xl bg-black"
+      className="block aspect-video w-full rounded-2xl bg-black"
       onTimeUpdate={(e) => {
         const el = e.currentTarget;
         onTimeUpdate?.(el.currentTime, el.duration);

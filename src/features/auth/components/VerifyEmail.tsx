@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { authApi } from "../api";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { useT, useLocale } from "@/i18n/client";
 import { localeHref } from "@/i18n/href";
+import { cn } from "@/lib/utils/cn";
 
 type Status = "verifying" | "success" | "error";
 
@@ -28,47 +29,83 @@ export function VerifyEmail({ token }: { token?: string }) {
 
   if (status === "verifying") {
     return (
-      <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-6 text-center">
-        <div className="mx-auto grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
-          <Loader2 className="size-5 animate-spin" />
-        </div>
-        <h2 className="text-sm font-semibold">{t("auth.verifyVerifyingTitle")}</h2>
-        <p className="text-sm text-muted-foreground">
-          {t("auth.verifyVerifyingBody")}
-        </p>
-      </div>
+      <StatusPanel
+        tone="primary"
+        icon={<Loader2 className="animate-spin" />}
+        title={t("auth.verifyVerifyingTitle")}
+      >
+        <p>{t("auth.verifyVerifyingBody")}</p>
+      </StatusPanel>
     );
   }
 
   if (status === "success") {
     return (
-      <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-6 text-center">
-        <div className="mx-auto grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
-          <CheckCircle2 className="size-5" />
-        </div>
-        <h2 className="text-sm font-semibold">{t("auth.verifySuccessTitle")}</h2>
-        <p className="text-sm text-muted-foreground">
-          {t("auth.verifySuccessBody")}
-        </p>
-        <Link href={localeHref(locale, "/dashboard")} className="block">
-          <Button className="w-full">{t("auth.verifyGoDashboard")}</Button>
+      <div className="space-y-6">
+        <StatusPanel tone="success" icon={<CheckCircle2 />} title={t("auth.verifySuccessTitle")}>
+          <p>{t("auth.verifySuccessBody")}</p>
+        </StatusPanel>
+        <Link
+          href={localeHref(locale, "/dashboard")}
+          className={cn(buttonVariants({ size: "lg" }), "w-full")}
+        >
+          {t("auth.verifyGoDashboard")}
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-6 text-center">
-      <div className="mx-auto grid size-10 place-items-center rounded-full bg-destructive/10 text-destructive">
-        <AlertTriangle className="size-5" />
-      </div>
-      <h2 className="text-sm font-semibold">{t("auth.verifyErrorTitle")}</h2>
-      <p className="text-sm text-muted-foreground">{t("auth.verifyErrorBody")}</p>
-      <Link href={localeHref(locale, "/login")} className="block">
-        <Button variant="outline" className="w-full">
-          {t("auth.backToLogin")}
-        </Button>
+    <div className="space-y-6">
+      <StatusPanel tone="danger" icon={<AlertTriangle />} title={t("auth.verifyErrorTitle")}>
+        <p>{t("auth.verifyErrorBody")}</p>
+      </StatusPanel>
+      <Link
+        href={localeHref(locale, "/login")}
+        className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full")}
+      >
+        {t("auth.backToLogin")}
       </Link>
+    </div>
+  );
+}
+
+/**
+ * The outcome of a step (link sent, password changed, token rejected) shown
+ * in place of the form: a tinted icon, a title and one line of explanation.
+ */
+function StatusPanel({
+  tone,
+  icon,
+  title,
+  children,
+}: {
+  tone: "primary" | "success" | "danger";
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      role="status"
+      className="flex items-start gap-4 rounded-2xl border border-border/80 bg-muted/50 p-5"
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "grid size-11 shrink-0 place-items-center rounded-2xl [&_svg]:size-5",
+          tone === "primary" &&
+            "bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100",
+          tone === "success" && "bg-success/10 text-success",
+          tone === "danger" && "bg-destructive/10 text-destructive",
+        )}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0 space-y-1 pt-0.5">
+        <h2 className="font-display text-base leading-snug">{title}</h2>
+        <div className="text-sm leading-relaxed text-muted-foreground">{children}</div>
+      </div>
     </div>
   );
 }
