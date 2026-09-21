@@ -12,6 +12,9 @@ const PROTECTED_PREFIXES = [
   "/profile",
   "/settings",
   "/learn",
+  // The expert's own profile page. Without it the page itself bounced a signed-out
+  // visitor to /login with no ?next=, so they landed on the dashboard afterwards.
+  "/tutor",
 ];
 
 const ACCESS_COOKIE = "ep_at";
@@ -201,6 +204,9 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // sitemap.xml and robots.txt are served from the site root (app/sitemap.ts,
+    // app/robots.ts). Left in the matcher they were redirected into a locale,
+    // /en/sitemap.xml, which does not exist — so crawlers got a 404 for both.
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
