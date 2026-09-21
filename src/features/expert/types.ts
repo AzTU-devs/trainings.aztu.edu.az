@@ -27,6 +27,26 @@ export type ExpertProfile = {
   ratingAvg: string;
   ratingCount: number;
   expertiseCategoryIds: string[];
+  avatarMediaId?: string | null;
+  /**
+   * Media path (`/api/public/media/{id}/content`); resolve with `mediaSrc()`.
+   * The API serves it anonymously only while the expert is APPROVED.
+   */
+  avatarUrl?: string | null;
+  /** e.g. "Associate Professor", "Dosent". */
+  academicTitle?: string | null;
+  department?: string | null;
+  /** Free text, one qualification per line. */
+  education?: string | null;
+  /** Free text, one certification per line. */
+  certifications?: string | null;
+  /** Free text, e.g. "Azerbaijani, English, Russian". */
+  languages?: string | null;
+  googleScholarUrl?: string | null;
+  researchGateUrl?: string | null;
+  /** The bare iD, `0000-0000-0000-000X`, not a URL. */
+  orcid?: string | null;
+  githubUrl?: string | null;
 };
 
 /**
@@ -44,6 +64,14 @@ export type ExpertSummary = {
   /** Distinct subject areas, derived from course titles' course types. */
   online: boolean;
   offline: boolean;
+  /**
+   * Copied from the expert's public profile when it loads. The catalogue the
+   * directory is built from carries none of these, so each may be absent.
+   */
+  avatarUrl?: string | null;
+  academicTitle?: string | null;
+  department?: string | null;
+  headline?: string | null;
 };
 
 export const fullExpertName = (

@@ -1,6 +1,7 @@
 import "server-only";
 import { courseServerApi } from "@/features/course/api.server";
 import type { CourseSummary } from "@/features/course/types";
+import { expertServerApi } from "./api.server";
 import type { ExpertSummary } from "./types";
 
 /**
@@ -20,6 +21,12 @@ import type { ExpertSummary } from "./types";
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 10; // 1,000 courses — past that the directory needs an endpoint.
+/**
+ * Profile fetches in flight at once while filling in avatars. Each is cached
+ * for 300s per expert, so this only bites on a cold cache, where firing one
+ * request per expert at the same moment would hit the API in a burst.
+ */
+const PROFILE_CONCURRENCY = 6;
 
 /** Every published course, up to the page cap. */
 async function allPublishedCourses(): Promise<CourseSummary[]> {
@@ -93,10 +100,44 @@ function aggregate(courses: CourseSummary[]): ExpertSummary[] {
     );
 }
 
+/**
+ * Adds the avatar and affiliation from each expert's public profile, which the
+ * catalogue does not carry. The fetch is the same cached `byId` the profile
+ * page uses, so the directory and the page share cache entries. A profile that
+ * fails to load (a non-APPROVED expert 404s) leaves its entry as the
+ * catalogue built it, and the card falls back to initials.
+ */
+async function withProfiles(experts: ExpertSummary[]): Promise<ExpertSummary[]> {
+  const out = [...experts];
+  let next = 0;
+
+  async function worker() {
+    // Safe without a lock: `next++` runs synchronously between awaits.
+    while (next < out.length) {
+      const i = next++;
+      const profile = await expertServerApi.byId(out[i].id).catch(() => null);
+      if (profile && profile.approvalStatus === "APPROVED") {
+        out[i] = {
+          ...out[i],
+          avatarUrl: profile.avatarUrl ?? null,
+          academicTitle: profile.academicTitle ?? null,
+          department: profile.department ?? null,
+          headline: profile.headline ?? null,
+        };
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(PROFILE_CONCURRENCY, out.length) }, worker),
+  );
+  return out;
+}
+
 /** Every expert with at least one published course. Empty on API failure. */
 export async function listExperts(): Promise<ExpertSummary[]> {
   const courses = await allPublishedCourses().catch(() => null);
-  return courses ? aggregate(courses) : [];
+  return courses ? withProfiles(aggregate(courses)) : [];
 }
 
 /** The published courses of one expert. Empty on API failure. */

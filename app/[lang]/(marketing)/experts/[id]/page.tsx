@@ -22,9 +22,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   try {
     const expert = await expertServerApi.byId(id);
+    const affiliation = [expert.academicTitle, expert.department]
+      .filter(Boolean)
+      .join(", ");
     return {
       title: fullExpertName(expert),
-      description: expert.headline ?? expert.bio?.slice(0, 160) ?? undefined,
+      description:
+        expert.headline ||
+        affiliation ||
+        expert.bio?.slice(0, 160) ||
+        undefined,
     };
   } catch {
     return { title: "Expert" };
@@ -89,6 +96,15 @@ export default async function PublicExpertPage({ params }: Props) {
                 about: t("experts.about"),
                 website: t("experts.website"),
                 linkedin: t("experts.linkedin"),
+              }}
+              details={{
+                education: t("experts.education"),
+                certifications: t("experts.certifications"),
+                languages: t("experts.languages"),
+                googleScholar: t("experts.googleScholar"),
+                researchGate: t("experts.researchGate"),
+                orcid: t("experts.orcid"),
+                github: t("experts.github"),
               }}
             />
           </div>

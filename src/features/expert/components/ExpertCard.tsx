@@ -1,7 +1,8 @@
 import { Star, Users, BookOpen } from "lucide-react";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { formatCompact } from "@/lib/utils/format";
-import { initialsOf, type ExpertSummary } from "../types";
+import type { ExpertSummary } from "../types";
+import { ExpertAvatar } from "./ExpertAvatar";
 
 export type ExpertCardLabels = {
   courses: string;
@@ -22,6 +23,10 @@ export function ExpertCard({
     expert.online ? labels.online : null,
     expert.offline ? labels.offline : null,
   ].filter(Boolean);
+  const affiliation = [expert.academicTitle, expert.department]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <LocaleLink
@@ -29,22 +34,39 @@ export function ExpertCard({
       prefetch
       className="group flex h-full flex-col rounded-2xl border border-border bg-card p-7 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-primary/25 hover:elev-3"
     >
-      <span
-        aria-hidden
-        className="grid size-16 place-items-center rounded-full bg-gradient-to-br from-navy-500 to-navy-900 font-display text-lg text-white ring-1 ring-inset ring-white/15 transition-transform duration-300 group-hover:scale-105"
-      >
-        {initialsOf(expert.displayName)}
-      </span>
+      {/* pb keeps a gap above the footer rule on the tallest card in a row,
+          where mt-auto has no spare height to give; the profile fields make
+          card heights vary. */}
+      <div className="pb-5">
+        <ExpertAvatar
+          name={expert.displayName}
+          avatarUrl={expert.avatarUrl}
+          sizes="64px"
+          className="size-16 text-lg transition-transform duration-300 group-hover:scale-105"
+        />
 
-      <h3 className="font-display mt-6 text-lg leading-snug transition-colors group-hover:text-primary">
-        {expert.displayName}
-      </h3>
+        <h3 className="font-display mt-6 text-lg leading-snug transition-colors group-hover:text-primary">
+          {expert.displayName}
+        </h3>
 
-      {modes.length ? (
-        <p className="mt-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">
-          {modes.join(" · ")}
-        </p>
-      ) : null}
+        {affiliation ? (
+          <p className="mt-1.5 line-clamp-2 text-sm leading-snug text-foreground/80">
+            {affiliation}
+          </p>
+        ) : null}
+
+        {expert.headline ? (
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+            {expert.headline}
+          </p>
+        ) : null}
+
+        {modes.length ? (
+          <p className="mt-3 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+            {modes.join(" · ")}
+          </p>
+        ) : null}
+      </div>
 
       <div className="mt-auto space-y-3 border-t border-border pt-5 text-xs text-muted-foreground">
         <div className="flex items-center justify-between">

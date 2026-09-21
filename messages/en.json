@@ -369,6 +369,13 @@
     "about": "About",
     "website": "Website",
     "linkedin": "LinkedIn",
+    "education": "Education",
+    "certifications": "Certifications",
+    "languages": "Languages",
+    "googleScholar": "Google Scholar",
+    "researchGate": "ResearchGate",
+    "orcid": "ORCID",
+    "github": "GitHub",
     "myProfile": "My expert profile"
   }
 }
