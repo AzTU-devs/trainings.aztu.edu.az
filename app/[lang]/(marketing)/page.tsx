@@ -26,7 +26,9 @@ import { localeHref } from "@/i18n/href";
 import { formatCompact, formatPrice, formatRating } from "@/lib/utils/format";
 import type { CourseSummary } from "@/features/course/types";
 
-export const revalidate = 300;
+// One minute, not five. The landing page shows the category tiles and featured
+// courses, and five minutes of staleness made adding either look broken.
+export const revalidate = 60;
 
 type Props = { params: Promise<{ lang: string }> };
 

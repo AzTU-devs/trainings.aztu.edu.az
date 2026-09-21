@@ -8,7 +8,11 @@ import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
 
-export const revalidate = 600;
+// Rendered per request. The page-level window dominates the fetch cache, so
+// caching it for ten minutes kept newly added categories off the site for that
+// long however fresh the data underneath was. The only work per request is one
+// small category query — see categoryServerApi.list.
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Categories",
