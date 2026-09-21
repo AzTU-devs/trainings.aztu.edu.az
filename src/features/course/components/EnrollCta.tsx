@@ -19,6 +19,8 @@ export function EnrollCta({ course }: { course: Course }) {
   const t = useT();
   const locale = useLocale();
 
+  const hasLessons = course.modules.some((m) => m.lessons.length > 0);
+
   const enrollFree = useMutation({
     mutationFn: () =>
       request({
@@ -27,7 +29,16 @@ export function EnrollCta({ course }: { course: Course }) {
       }),
     onSuccess: () => {
       toast.success(t("courseDetail.enrolled"));
-      router.push(localeHref(locale, `/learn/${course.slug}`));
+      // Only open the player when there is something to play. A course published
+      // before its lessons exist is normal, and sending the student to /learn just
+      // to be bounced back reads as the enrolment having failed. Staying put shows
+      // them the success toast against the course they just joined; refresh() picks
+      // up the server-rendered state now that they are enrolled.
+      if (hasLessons) {
+        router.push(localeHref(locale, `/learn/${course.slug}`));
+      } else {
+        router.refresh();
+      }
     },
     onError: (err) => {
       const e = err as unknown as ApiError;

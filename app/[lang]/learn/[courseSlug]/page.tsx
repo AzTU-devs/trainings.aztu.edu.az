@@ -14,7 +14,17 @@ export default async function LearnCourseRoot({ params }: Props) {
   const firstLesson = course.modules
     .flatMap((m) => m.lessons)
     .find((l) => l.id);
-  if (!firstLesson) notFound();
+
+  // A published course with no lessons yet is an ordinary state — the tutor
+  // publishes, then fills it in — and enrolling lands here immediately. This used
+  // to be notFound(), which dead-ended the student on the root 404 page: that page
+  // renders outside app/[lang]/layout.tsx, so it has no session and no header, and
+  // being enrolled looked like being signed out. Send them back to the course
+  // instead, where their enrolment is visible and the curriculum appears as soon
+  // as there is one.
+  if (!firstLesson) {
+    redirect(localeHref(locale, `/courses/${courseSlug}`));
+  }
 
   redirect(localeHref(locale, `/learn/${courseSlug}/${firstLesson.id}`));
 }
