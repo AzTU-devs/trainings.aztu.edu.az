@@ -1,0 +1,423 @@
+/* ==========================================================================
+   Course certificate (CertificateTemplate.tsx)
+
+   The sheet is a container: `--mm` is one millimetre of an A4 landscape page
+   (297 mm wide), taken as a share of the container's width, and every size
+   below is a multiple of it. The composition therefore never reflows — a
+   phone shows the same certificate as a desktop, smaller.
+
+   `--mm` must only be *used* inside the sheet: cqw resolves against the
+   nearest container ancestor of the element that uses it, and for .cert
+   itself that would be some other box.
+
+   A paper artifact keeps its colours in dark mode, so these are fixed values,
+   not the site's theme tokens (which flip). The drawn layer uses the same
+   fixed colours through the classes at the end.
+   ========================================================================== */
+
+.cert {
+  --c-paper: #fbf7ec;
+  --c-paper-edge: #efe4ca;
+  --c-navy: #0a2d5c;
+  --c-ribbon: #0b3068;
+  --c-ink: #13233f;
+  --c-ink-2: #45506a;
+  --c-ink-3: #69718a;
+  --c-gold: #b48a2e;
+  --c-gold-ink: #8a6718;
+  --c-gold-light: #e2c679;
+  --c-stamp: #b3342a;
+  --mm: calc(100cqw / 297);
+  --serif: var(--font-cert-serif), "Cormorant Garamond", Georgia, "Times New Roman", serif;
+
+  container-type: inline-size;
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  color: var(--c-ink);
+  color-scheme: light;
+}
+
+.cert-sheet {
+  position: relative;
+  aspect-ratio: 297 / 210;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: calc(var(--mm) * 1.4);
+  background:
+    radial-gradient(120% 95% at 42% 38%, #fffdf6 0%, var(--c-paper) 48%, var(--c-paper-edge) 100%);
+  box-shadow: 0 0 0 calc(var(--mm) * 0.25) rgb(90 68 24 / 0.16);
+  font-family: var(--f-sans);
+  line-height: 1.2;
+  text-align: center;
+}
+/* The serif's default figures are old-style; a document's dates and numbers
+   read better on the line. Set on every element because the `font` shorthand
+   below resets it. */
+.cert .cert-sheet * { font-variant-numeric: lining-nums; }
+
+/* Soft lift for a certificate shown as an object on the page. Deeper in dark
+   mode, where a light sheet on a navy canvas needs more to sit down. */
+.cert.cert-lift .cert-sheet {
+  box-shadow:
+    0 0 0 calc(var(--mm) * 0.25) rgb(90 68 24 / 0.16),
+    0 calc(var(--mm) * 1) calc(var(--mm) * 2) rgb(15 29 51 / 0.08),
+    0 calc(var(--mm) * 10) calc(var(--mm) * 22) calc(var(--mm) * -6) rgb(15 29 51 / 0.32);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cert.cert-lift .cert-sheet {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.06),
+      0 calc(var(--mm) * 12) calc(var(--mm) * 26) calc(var(--mm) * -6) rgb(0 0 0 / 0.7);
+  }
+}
+:root[data-theme="dark"] .cert.cert-lift .cert-sheet {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    0 calc(var(--mm) * 12) calc(var(--mm) * 26) calc(var(--mm) * -6) rgb(0 0 0 / 0.7);
+}
+
+.cert-art > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* ---- the text column: left of the ribbon, centred on the rosette ----
+   No z-index: it paints over the drawn layer by coming after it, and without
+   a stacking context of its own the stamp inside can ink into the paper
+   (mix-blend-mode reaches up to the sheet's isolated group). */
+.cert-col {
+  position: absolute;
+  left: calc(var(--mm) * 20);
+  width: calc(var(--mm) * 196);
+  top: calc(var(--mm) * 17);
+  bottom: calc(var(--mm) * 15.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cert-brand {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--mm) * 2.4);
+}
+.cert-shield {
+  height: calc(var(--mm) * 10.5);
+  width: auto;
+}
+.cert-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+.cert-logo small {
+  font: 700 calc(var(--mm) * 2.1) / 1 var(--f-sans);
+  letter-spacing: 0.24em;
+  color: var(--c-gold-ink);
+}
+.cert-logo b {
+  margin-top: calc(var(--mm) * 0.9);
+  font: 800 calc(var(--mm) * 5.4) / 1 var(--f-display);
+  letter-spacing: -0.02em;
+  color: var(--c-navy);
+}
+.cert-uni {
+  margin-top: calc(var(--mm) * 3.2);
+  font: 600 calc(var(--mm) * 2.55) / 1.2 var(--f-sans);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--c-ink-2);
+  padding-left: 0.26em; /* balances the trailing letter-spacing */
+}
+
+.cert-title {
+  margin-top: calc(var(--mm) * 9);
+  font: 600 calc(var(--mm) * 20) / 0.86 var(--serif);
+  letter-spacing: 0.12em;
+  padding-left: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-navy);
+}
+.cert-sub {
+  margin-top: calc(var(--mm) * 4.2);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--mm) * 3.4);
+  font: 600 calc(var(--mm) * 2.75) / 1.2 var(--f-sans);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--c-gold-ink);
+}
+.cert-sub-rule {
+  width: calc(var(--mm) * 16);
+  height: calc(var(--mm) * 0.4);
+  background: linear-gradient(90deg, transparent, var(--c-gold));
+}
+.cert-sub-rule:last-child {
+  background: linear-gradient(270deg, transparent, var(--c-gold));
+  margin-left: -0.28em; /* the trailing letter-spacing already adds a gap */
+}
+
+.cert-name {
+  margin-top: calc(var(--mm) * 12);
+  font: italic 500 calc(var(--mm) * 15.5) / 1.08 var(--serif);
+  letter-spacing: 0.005em;
+  color: var(--c-navy);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-inline: 0.12em; /* the italic's overhang */
+}
+.cert-name[data-size="m"] { font-size: calc(var(--mm) * 12.5); }
+.cert-name[data-size="s"] { font-size: calc(var(--mm) * 10); }
+.cert-name.is-placeholder { color: #53627f; }
+.cert-name-rule {
+  display: block;
+  width: calc(var(--mm) * 128);
+  height: calc(var(--mm) * 0.3);
+  margin-top: calc(var(--mm) * 1.2);
+  background: linear-gradient(90deg, transparent, var(--c-gold) 18%, var(--c-gold) 82%, transparent);
+}
+.cert-done {
+  margin-top: calc(var(--mm) * 4.6);
+  font: italic 500 calc(var(--mm) * 4.8) / 1.2 var(--serif);
+  color: var(--c-ink-2);
+}
+.cert-course {
+  margin-top: calc(var(--mm) * 2.4);
+  max-width: calc(var(--mm) * 176);
+  font: 700 calc(var(--mm) * 9.2) / 1.06 var(--serif);
+  letter-spacing: -0.005em;
+  color: var(--c-ink);
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cert-course[data-size="m"] { font-size: calc(var(--mm) * 8.2); }
+.cert-course[data-size="s"] { font-size: calc(var(--mm) * 7.4); }
+
+.cert-facts {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+}
+/* The smallest words on the sheet are sized to stay legible on a desktop
+   screen (about 7px and up), not to a printed page's proportions. */
+.cert-facts > div { padding: 0 calc(var(--mm) * 5.5); }
+.cert-facts > div + div { border-left: calc(var(--mm) * 0.25) solid rgb(180 138 46 / 0.55); }
+.cert-facts dt {
+  font: 600 calc(var(--mm) * 3) / 1.2 var(--f-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-gold-ink);
+}
+.cert-facts dd {
+  margin-top: calc(var(--mm) * 1.2);
+  font: 600 calc(var(--mm) * 4.4) / 1.2 var(--f-sans);
+  color: var(--c-ink);
+  white-space: nowrap;
+}
+
+/* instructor | number | training centre */
+.cert-signs {
+  margin-top: calc(var(--mm) * 10);
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: calc(var(--mm) * 56) 1fr calc(var(--mm) * 56);
+  align-items: end;
+  gap: calc(var(--mm) * 3);
+  padding: 0 calc(var(--mm) * 5);
+}
+.cert-sign-line {
+  display: block;
+  height: calc(var(--mm) * 0.28);
+  margin-bottom: calc(var(--mm) * 1.8);
+  background: rgb(10 45 92 / 0.55);
+}
+.cert-sign-who {
+  font: 600 calc(var(--mm) * 4.2) / 1.2 var(--f-sans);
+  color: var(--c-ink);
+}
+.cert-sign-role {
+  margin-top: calc(var(--mm) * 0.9);
+  font: 600 calc(var(--mm) * 2.8) / 1.2 var(--f-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-ink-3);
+}
+
+/* ---- the number: between the signatures, labelled, set horizontally in
+   the dark ink so it is as easy to find and read as the facts above ---- */
+.cert-id {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--mm) * 1.2);
+  min-width: 0;
+}
+.cert-id-label {
+  font: 600 calc(var(--mm) * 2.8) / 1.2 var(--f-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-gold-ink);
+  padding-left: 0.2em; /* balances the trailing letter-spacing */
+}
+.cert-id-num {
+  font: 600 calc(var(--mm) * 3.3) / 1.2 var(--f-mono);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--c-ink);
+}
+
+/* ---- "NÜMUNƏ" / "SAMPLE": a rubber stamp, inked into the paper ----
+   The slot takes whatever height the title leaves above the facts and
+   centres the stamp in it; a long title shrinks the slot rather than run
+   under the stamp, and the stamp never pushes the facts off the sheet
+   (min-height 0: when the slot is short it overflows it evenly instead). */
+.cert-stamp-slot {
+  flex: 1 1 0;
+  min-height: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cert-stamp {
+  flex: none;
+  transform: rotate(-10deg);
+  padding: calc(var(--mm) * 1.2);
+  border: calc(var(--mm) * 0.7) solid var(--c-stamp);
+  border-radius: calc(var(--mm) * 2.6);
+  color: var(--c-stamp);
+  opacity: 0.8;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.cert-stamp > span {
+  display: block;
+  padding: calc(var(--mm) * 1.3) calc(var(--mm) * 6.5) calc(var(--mm) * 1.1);
+  border: calc(var(--mm) * 0.3) solid var(--c-stamp);
+  border-radius: calc(var(--mm) * 1.6);
+  font: 800 calc(var(--mm) * 9) / 1 var(--f-display);
+  letter-spacing: 0.2em;
+  padding-right: calc(var(--mm) * 5); /* optical: the last letter's spacing */
+  text-transform: uppercase;
+}
+
+/* ---- drawn layer (./art.ts) ---- */
+.cert-art .cert-grain { opacity: 0.32; mix-blend-mode: multiply; }
+.cert-art .cert-wm { fill: none; stroke: var(--c-gold); stroke-width: 0.16; opacity: 0.34; }
+.cert-art .cert-wm-line { fill: none; stroke: var(--c-gold); stroke-width: 0.22; opacity: 0.4; }
+.cert-art .cert-frame-navy { fill: none; stroke: var(--c-navy); stroke-width: 0.55; }
+.cert-art .cert-frame-gold { fill: none; stroke: var(--c-gold); stroke-width: 0.9; }
+.cert-art .cert-gold-fill { fill: var(--c-gold); }
+.cert-art .cert-ribbon { fill: var(--c-ribbon); }
+.cert-art .cert-rib-wave { fill: none; stroke: var(--c-gold-light); stroke-width: 0.28; opacity: 0.5; }
+.cert-art .cert-rib-fine { fill: none; stroke: var(--c-gold-light); stroke-width: 0.16; opacity: 0.32; }
+.cert-art .cert-rib-edge { fill: none; stroke: var(--c-gold); stroke-width: 0.55; }
+.cert-art .cert-rib-edge2 { fill: none; stroke: var(--c-gold-light); stroke-width: 0.18; opacity: 0.7; }
+.cert-art .cert-tail-shade { fill: rgb(60 40 5 / 0.25); }
+.cert-art .cert-seal-halo { fill: rgb(5 20 45 / 0.35); }
+.cert-art .cert-seal-ring { fill: none; stroke: #7c5c18; stroke-width: 0.32; }
+.cert-art .cert-seal-ring.thin { stroke-width: 0.16; }
+.cert-art .cert-seal-text { font: 700 2.75px var(--f-sans); fill: #5e4510; }
+.cert-art .cert-seal-guil { fill: none; stroke: #7c5c18; stroke-width: 0.14; opacity: 0.85; }
+.cert-art .cert-seal-core { fill: var(--c-ribbon); }
+.cert-art .cert-seal-core-ring { fill: none; stroke: var(--c-gold-light); stroke-width: 0.3; }
+
+/* ==========================================================================
+   Stage (CertificateStage.tsx): the sheet as an object on a colour field.
+   These follow the site's theme — only the sheet itself is fixed paper.
+   ========================================================================== */
+/* The sheet starts at the stage's left edge and the field a little inside
+   it, so the paper lies across the field's edge instead of sitting boxed in. */
+.cert-stage {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(28px, 7%, 72px) clamp(16px, 6%, 64px) clamp(28px, 7%, 72px) 0;
+}
+.cert-stage-field {
+  position: absolute;
+  inset: 0 0 0 clamp(28px, 10%, 104px);
+  z-index: -2;
+  overflow: hidden;
+  border-radius: clamp(28px, 4vw, 40px);
+  background: var(--k-100);
+}
+/* the drafting-paper grid the course hero and the big category tile use */
+.cert-stage-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.9;
+  background-image:
+    linear-gradient(to right, var(--k-200) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--k-200) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 70% 80% at 80% 20%, #000 20%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 80% 20%, #000 20%, transparent 72%);
+}
+.cert-stage-pile { position: relative; }
+.cert-stage-under {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: linear-gradient(160deg, #fbf6e8, #eee3c8);
+  box-shadow: 0 0 0 1px rgb(90 68 24 / 0.12), 0 18px 40px -22px rgb(15 29 51 / 0.45);
+  transform: rotate(2.4deg) translate(1.4%, 2.2%);
+}
+.cert-stage-sheet { transition: transform 0.6s var(--ease-out); }
+.cert-stage.is-tilted .cert-stage-sheet { transform: rotate(-2.2deg); }
+.cert-stage.is-tilted:hover .cert-stage-sheet { transform: rotate(-1.2deg) translateY(-4px); }
+@media (max-width: 639px) {
+  .cert-stage.is-tilted .cert-stage-sheet { transform: rotate(-1.4deg); }
+  .cert-stage-under { transform: rotate(1.8deg) translate(1%, 2.4%); }
+}
+
+/* ---- the details as plain text, for a sheet shown too small to read ----
+   The stage box is a container, so this follows the space the certificate
+   actually gets (a phone, a narrow column), not the viewport: below a 640px
+   stage the sheet's labels fall under ~6px and its values under ~9px. */
+.cert-stage-box { container: cert-stage / inline-size; }
+.cert-read { display: none; }
+@container cert-stage (max-width: 639.98px) {
+  .cert-read { display: block; }
+}
+.cert-read {
+  position: relative;
+  margin-top: 14px;
+  padding: 16px 20px 20px;
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-sm);
+}
+.cert-read-h {
+  font: 600 13px/1.2 var(--f-sans);
+  color: var(--ink-2);
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--line);
+}
+.cert-read dl {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+}
+.cert-read dl > div { min-width: 0; }
+.cert-read dl > .is-wide { grid-column: 1 / -1; }
+.cert-read dt { font: 500 12.5px/1.2 var(--f-sans); color: var(--ink-3); }
+.cert-read dd {
+  margin-top: 4px;
+  font: 600 15px/1.35 var(--f-sans);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.cert-read dd.is-mono { font: 500 14px/1.35 var(--f-mono); letter-spacing: 0.02em; }

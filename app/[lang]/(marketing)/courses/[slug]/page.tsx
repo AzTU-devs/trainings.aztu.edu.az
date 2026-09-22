@@ -30,6 +30,9 @@ import { CourseCard, CourseCover } from "@/features/course/components/CourseCard
 import { CourseTabs } from "@/features/course/components/CourseTabs";
 import { EnrollCta } from "@/features/course/components/EnrollCta";
 import { SampleEnrolCta } from "@/features/course/components/SampleEnrolCta";
+import { CertificateStage } from "@/features/certificate/CertificateStage";
+import { certificateDate, courseCertificate } from "@/features/certificate/course";
+import { bakuDateISO } from "@/features/certificate/date";
 import { ReviewsSection } from "@/features/review/components/ReviewsSection";
 import { categoryOfExpert, getCatalogIndex } from "@/features/course/catalog-index.server";
 import { courseLabels } from "@/features/course/labels";
@@ -212,6 +215,7 @@ export default async function CourseDetailPage({ params }: Props) {
     { id: "curriculum", label: t("course2.tabCurriculum"), count: lessonCount || null },
     ...(off ? [{ id: "location", label: t("course2.tabLocation") }] : []),
     ...(lead ? [{ id: "expert", label: t("course2.tabExpert") }] : []),
+    ...(sample ? [{ id: "certificate", label: t("certificate.tab") }] : []),
     { id: "reviews", label: t("course2.tabReviews"), count: course.ratingCount || null },
   ];
 
@@ -571,6 +575,34 @@ export default async function CourseDetailPage({ params }: Props) {
                     ))}
                   </div>
                 ) : null}
+              </section>
+            ) : null}
+
+            {/* Certificate: sample courses only — the platform does not issue
+                certificates yet, so a real course promises none. */}
+            {sample ? (
+              <section id="certificate" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="cert-t">
+                <h2 id="cert-t" className="d-md">
+                  {t("certificate.courseTitle")}
+                </h2>
+                <p className="mt-2 max-w-[40rem] text-[15.5px] text-ink-2">{t("certificate.courseLine")}</p>
+                <CertificateStage
+                  className="mt-7"
+                  k={k}
+                  {...courseCertificate({
+                    t,
+                    locale,
+                    today: bakuDateISO(),
+                    // An in-person course that has not ended yet is dated its last day.
+                    dateISO: certificateDate(bakuDateISO(), off?.endDate),
+                    courseId: course.id,
+                    title: course.title,
+                    categoryName: catName,
+                    expertName: lead?.displayName ?? course.tutorDisplayName,
+                    totalHours: off?.totalHours,
+                    seconds: totalSeconds,
+                  })}
+                />
               </section>
             ) : null}
 

@@ -60,6 +60,7 @@ export function Footer() {
                 <li><LocaleLink className="fl" href="/courses">{t("ui.allCourses")}</LocaleLink></li>
                 <li><LocaleLink className="fl" href="/categories">{t("ui.navCategories")}</LocaleLink></li>
                 <li><LocaleLink className="fl" href="/experts">{t("ui.navExperts")}</LocaleLink></li>
+                <li><LocaleLink className="fl" href="/rooms">{t("ui.navRooms")}</LocaleLink></li>
               </ul>
             </div>
             <div>

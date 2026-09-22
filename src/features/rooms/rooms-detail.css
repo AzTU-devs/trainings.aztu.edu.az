@@ -1,0 +1,277 @@
+/* ==========================================================================
+   Room detail page — app/[lang]/(marketing)/rooms/[slug]/page.tsx
+
+   The page itself reuses the course page's classes (.c-hero-row, .facts,
+   .ptabs, .enrol, .inc, .actionbar…). This file adds only what a room needs
+   on top: the amenity tiles, the equipment and rule lists, the busy calendar
+   (RoomCalendar.tsx) and the reserve dialog (ReserveDialog.tsx).
+
+   Colours are the theme tokens and the hue engine's k-* roles, so every rule
+   below follows dark mode and the room's hue without a second definition.
+   Prefixes: .rd- page, .rc- calendar, .rsv- dialog.
+   ========================================================================== */
+
+/* ---------- page ---------- */
+.rd-amen { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 136px), 1fr)); gap: 8px; }
+@media (min-width: 640px) { .rd-amen { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; } }
+.rd-amen li { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 9px 10px 9px 9px; border-radius: 18px;
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--k-200); font: 600 14.5px/1.25 var(--f-sans); color: var(--ink); }
+.rd-amen .ic { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; flex: none; background: var(--k-100); color: var(--k-700); }
+.rd-amen .ic svg.i { width: 20px; height: 20px; }
+@media (max-width: 639px) { .rd-amen li { font-size: 13.5px; } .rd-amen .ic { width: 38px; height: 38px; border-radius: 12px; } }
+
+.rd-list { border-radius: 24px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
+.rd-list li { display: flex; align-items: flex-start; gap: 14px; padding: 15px 18px; font-size: 15.5px; line-height: 1.5; color: var(--ink-2); }
+.rd-list li + li { border-top: 1px solid var(--line); }
+.rd-list .num { font: 600 12.5px/1 var(--f-mono); color: var(--k-700); width: 34px; height: 34px; border-radius: 11px; background: var(--k-100);
+  display: grid; place-items: center; flex: none; margin-top: -4px; }
+.rd-list .dot { width: 34px; height: 24px; display: grid; place-items: center; flex: none; color: var(--k-700); }
+.rd-list .dot svg.i { width: 18px; height: 18px; }
+@media (min-width: 768px) {
+  .rd-list.cols { display: grid; grid-template-columns: 1fr 1fr; }
+  .rd-list.cols li + li { border-top: 0; }
+  .rd-list.cols li:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .rd-list.cols li:nth-child(even) { border-left: 1px solid var(--line); }
+  /* an odd last item spans both columns, so the row above keeps its divider */
+  .rd-list.cols li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+/* six facts: three per row until the content column is wide enough for six */
+.rd-facts .fact { padding-inline: 16px; }
+.rd-facts .nw { white-space: nowrap; }
+@media (min-width: 768px) and (max-width: 1359px) {
+  .rd-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rd-facts .fact:nth-child(3n+1) { border-left: 0; }
+  .rd-facts .fact:nth-child(n+4) { border-top: 1px solid var(--line); }
+}
+
+.rd-next { font: 800 40px/1 var(--f-display); letter-spacing: -.035em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rd-next small { font-size: 22px; font-weight: 700; color: var(--ink-3); letter-spacing: -.02em; }
+
+/* status pill (also the day panel's); used with .k-navy, the calendar's busy scale */
+.rc-status { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 11px; border-radius: 999px; white-space: nowrap;
+  font: 600 12.5px/1 var(--f-sans); background: var(--surface-2); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line); }
+.rc-status > i { width: 7px; height: 7px; border-radius: 99px; background: currentColor; flex: none; }
+.rc-status.s-FREE { background: color-mix(in oklch, var(--ok) 11%, var(--surface)); color: var(--ok); box-shadow: none; }
+.rc-status.s-PARTIAL { background: var(--k-50); color: var(--k-700); box-shadow: inset 0 0 0 1px var(--k-200); }
+.rc-status.s-BUSY { background: var(--k-100); color: var(--k-900); box-shadow: none; }
+.rc-status.s-FULL { background: var(--k-200); color: var(--k-900); box-shadow: none; }
+.rc-status.s-FULL > i, .rc-status.s-BUSY > i { background: var(--k-700); }
+
+/* ---------- calendar ---------- */
+.rc { container-type: inline-size; }
+/* minmax(0, 1fr), not the implicit auto column: an auto column grows to the
+   header's min-content and pushed the panels past a 320px screen. */
+.rc-in { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 700px) { .rc-in { grid-template-columns: minmax(0, 1.06fr) minmax(0, 1fr); align-items: start; } }
+
+.rc-month, .rc-dayp { background: var(--surface); border-radius: 28px; box-shadow: 0 0 0 1px var(--line); padding: 16px; }
+@container (min-width: 440px) { .rc-month, .rc-dayp { padding: 22px; } }
+/* The month panel is its own container: its cells size by the panel, which
+   is half the calendar beside the timeline and all of it on phones. */
+.rc-month { container-type: inline-size; }
+.rc-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; margin-bottom: 12px; }
+.rc-head h3 { white-space: nowrap; }
+
+.rc-grid { display: grid; gap: 4px; }
+.rc-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.rc-wd > div { text-align: center; font: 600 11.5px/1 var(--f-sans); color: var(--ink-3); padding: 4px 0 6px; }
+.rc-wd > .we { font-weight: 500; }
+
+.rc-day { position: relative; width: 100%; min-height: 48px; aspect-ratio: 1 / 1.04; border-radius: 13px; display: flex; flex-direction: column;
+  justify-content: space-between; align-items: flex-start; padding: 7px 7px 8px; background: var(--surface); color: var(--ink); text-align: left;
+  box-shadow: inset 0 0 0 1px var(--line); cursor: pointer; transition: background .15s, box-shadow .15s, color .15s, transform .2s var(--ease-out); }
+.rc-day:hover { box-shadow: inset 0 0 0 1.5px var(--k-500); }
+.rc-day:active { transform: scale(.96); }
+.rc-day .n { font: 650 14px/1 var(--f-sans); font-variant-numeric: tabular-nums; }
+.rc-day .bar { display: flex; gap: 2px; width: 100%; max-width: 30px; }
+.rc-day .bar i, .rc-sw i { flex: 1; height: 4px; border-radius: 2px; background: var(--line-2); }
+.rc-day.l1 { background: var(--k-50); }
+.rc-day.l2 { background: var(--k-50); }
+.rc-day.l3 { background: var(--k-100); }
+.rc-day.l4 { background: var(--k-200); color: var(--k-900); box-shadow: none; }
+.rc-day.l1 .bar i:nth-child(-n+1), .rc-day.l2 .bar i:nth-child(-n+2), .rc-day.l3 .bar i:nth-child(-n+3),
+.rc-sw.l1 i:nth-child(-n+1), .rc-sw.l2 i:nth-child(-n+2), .rc-sw.l3 i:nth-child(-n+3) { background: var(--k-500); }
+.rc-day.l4 .bar i, .rc-sw.l4 i { background: var(--k-700); }
+.rc-day.closed, .rc-sw.closed { background: repeating-linear-gradient(135deg, var(--paper-2) 0 5px, var(--surface-2) 5px 10px); color: var(--ink-3); box-shadow: inset 0 0 0 1px var(--line); }
+.rc-day .cl { font: 600 10.5px/1 var(--f-sans); letter-spacing: .01em; color: var(--ink-3); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+/* A past day drops its hue rather than its opacity: the number keeps the
+   meta-text contrast (ink-3, 5:1) and the focus ring stays at full strength.
+   Re-pointing the k-* roles greys the level fill and the bars in one go. */
+.rc-day.past:not(.sel) { --k-50: var(--surface); --k-100: var(--surface); --k-200: var(--surface);
+  --k-500: color-mix(in oklch, var(--ink-3) 55%, transparent); --k-700: var(--ink-3); --k-900: var(--ink-3);
+  color: var(--ink-3); box-shadow: inset 0 0 0 1px var(--line); }
+.rc-day.past:not(.sel):hover { box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+.rc-day.today { box-shadow: inset 0 0 0 2px var(--navy); }
+.rc-day.today .n { font-weight: 800; }
+.rc-day.sel { background: var(--navy); color: var(--on-navy); box-shadow: 0 8px 20px -10px color-mix(in oklch, var(--navy) 80%, transparent); }
+.rc-day.sel .bar i { background: color-mix(in oklch, var(--on-navy) 30%, transparent); }
+.rc-day.sel.l1 .bar i:nth-child(-n+1), .rc-day.sel.l2 .bar i:nth-child(-n+2), .rc-day.sel.l3 .bar i:nth-child(-n+3), .rc-day.sel.l4 .bar i { background: var(--on-navy); }
+.rc-day.sel .cl { color: color-mix(in oklch, var(--on-navy) 80%, transparent); }
+.rc-day.today.sel { box-shadow: inset 0 0 0 2px var(--navy), inset 0 0 0 4px var(--on-navy); }
+.rc-day .mine, .rc-sw.mine { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 99px; background: var(--gold); box-shadow: 0 0 0 2px var(--surface); }
+.rc-day:focus-visible { outline-offset: 2px; }
+/* (the month panel's content box: 348px is a 380px calendar less its padding) */
+@container (max-width: 348px) { .rc-day { padding: 6px 5px 7px; border-radius: 11px; min-height: 44px; } .rc-day .n { font-size: 13px; } }
+/* Too narrow for "Closed" at a readable size: the hatch and the cell's
+   aria-label carry it (the legend names the hatch). */
+@container (max-width: 360px) { .rc-day .cl { display: none; } }
+
+.rc-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); }
+.rc-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.rc-sw { display: inline-flex; gap: 2px; width: 26px; flex: none; }
+.rc-stats-t { margin-top: 16px; font: 600 12.5px/1.3 var(--f-sans); color: var(--ink-2); }
+.rc-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 8px; border-radius: 18px; background: var(--k-50);
+  box-shadow: inset 0 0 0 1px var(--k-200); }
+.rc-stats > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; min-width: 0; }
+.rc-stats dd { order: -1; }
+.rc-stats > div + div { border-left: 1px solid var(--k-200); }
+.rc-stats dt { font-size: 12px; line-height: 1.25; color: var(--k-700); }
+.rc-stats dd { margin: 0; font: 800 24px/1 var(--f-display); letter-spacing: -.03em; color: var(--k-900); font-variant-numeric: tabular-nums; }
+@container (min-width: 700px) { .rc-month { position: sticky; top: 132px; } }
+.rc-sw.closed { width: 14px; height: 14px; border-radius: 4px; }
+.rc-sw.mine { position: static; width: 9px; height: 9px; box-shadow: none; }
+
+/* day panel + timeline */
+.rc-dayp { --hh: 44px; scroll-margin-top: 132px; }
+.rc-dhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rc-pastnote { margin-top: 12px; font-size: 13px; color: var(--ink-3); }
+.rc-closed { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding: 18px; border-radius: 20px;
+  background: repeating-linear-gradient(135deg, var(--paper-2) 0 6px, var(--surface-2) 6px 12px); }
+
+.rc-tl { position: relative; height: calc(var(--hh) * var(--rows)); margin: 22px 0 10px; }
+.rc-hours span { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 8px; transform: translateY(-50%);
+  font: 500 11px/1 var(--f-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.rc-hours span::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.rc-hours span.hide { color: transparent; }
+.rc-bg, .rc-col { position: absolute; top: 0; bottom: 0; left: 46px; right: 0; }
+/* The "now" line runs under the blocks (their text stays readable) and
+   shows through the free gaps and in the hour gutter. */
+.rc-col { list-style: none; margin: 0; padding: 0; z-index: 2; }
+.rc-bg .off { position: absolute; left: 0; right: 0; border-radius: 10px;
+  background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklch, var(--ink) 7%, transparent) 6px 7px); }
+
+.rc-blk { position: absolute; display: flex; flex-direction: column; gap: 3px; padding: 6px 10px 6px 13px; border-radius: 11px; overflow: hidden;
+  background: var(--k-100); color: var(--k-900); box-shadow: inset 3px 0 0 var(--k-500), inset 0 0 0 1px color-mix(in oklch, var(--k-500) 22%, transparent); }
+.rc-blk .tm { order: -1; flex: none; font: 500 11px/1.2 var(--f-mono); color: var(--k-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.rc-blk .tt { font: 650 13px/1.25 var(--f-sans); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rc-blk.short { flex-direction: row; align-items: center; gap: 8px; padding-block: 0; }
+.rc-blk.short .tt { -webkit-line-clamp: 1; font-size: 12px; }
+.rc-blk.maint { background: repeating-linear-gradient(135deg, var(--surface-2) 0 6px, var(--paper-2) 6px 12px); color: var(--ink-2);
+  box-shadow: inset 3px 0 0 var(--ink-3), inset 0 0 0 1px var(--line-2); }
+.rc-blk.maint .tm { color: var(--ink-3); }
+.rc-blk.mine { background: var(--gold-tint); color: var(--ink); box-shadow: inset 3px 0 0 var(--gold); outline: 1.5px dashed var(--gold); outline-offset: -1.5px; }
+.rc-blk.mine .tm { color: var(--gold-ink); }
+
+.rc-gapli { position: absolute; left: 0; right: 0; }
+.rc-gap { width: 100%; height: 100%; display: flex; align-items: flex-start; gap: 6px; padding: 7px 10px; border-radius: 11px; text-align: left;
+  border: 1.5px dashed color-mix(in oklch, var(--ok) 50%, var(--line-2)); color: var(--ok); background: color-mix(in oklch, var(--ok) 5%, transparent);
+  font: 600 12.5px/1.2 var(--f-sans); font-variant-numeric: tabular-nums; cursor: pointer; transition: background .15s, border-color .15s; }
+.rc-gap:hover { background: color-mix(in oklch, var(--ok) 12%, var(--surface)); border-color: var(--ok); }
+.rc-gap svg.i { width: 15px; height: 15px; stroke-width: 2.2; }
+.rc-gap.short { align-items: center; padding-block: 0; }
+.rc-gap.gone { position: absolute; left: 0; right: 0; width: auto; height: auto; cursor: default; color: var(--ink-3); border-color: var(--line-2); background: none; font-weight: 500; }
+.rc-gap span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* the timeline's key: busy kinds, the visitor's requests, free time */
+.rc-key { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; line-height: 1.3; color: var(--ink-2); }
+.rc-key li { display: inline-flex; align-items: center; gap: 6px; }
+.rc-ksw { width: 16px; height: 12px; border-radius: 4px; flex: none; background: var(--k-100);
+  box-shadow: inset 3px 0 0 var(--k-500), inset 0 0 0 1px color-mix(in oklch, var(--k-500) 22%, transparent); }
+.rc-ksw.maint { background: repeating-linear-gradient(135deg, var(--surface-2) 0 3px, var(--paper-2) 3px 6px); box-shadow: inset 3px 0 0 var(--ink-3), inset 0 0 0 1px var(--line-2); }
+.rc-ksw.mine { background: var(--gold-tint); box-shadow: inset 3px 0 0 var(--gold); outline: 1.5px dashed var(--gold); outline-offset: -1.5px; }
+.rc-ksw.free { background: color-mix(in oklch, var(--ok) 5%, transparent); box-shadow: none; border: 1.5px dashed color-mix(in oklch, var(--ok) 50%, var(--line-2)); }
+
+.rc-now { position: absolute; left: 0; right: 0; height: 0; z-index: 1; pointer-events: none; }
+.rc-now::after { content: ""; position: absolute; left: 46px; right: 0; top: -1px; border-top: 2px solid var(--destructive); }
+.rc-now span { position: absolute; left: 0; top: 0; transform: translateY(-50%); padding: 3px 5px; border-radius: 6px; background: var(--destructive);
+  color: var(--destructive-foreground); font: 600 10.5px/1 var(--f-mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ---------- reserve dialog ----------
+   A bottom sheet on phones, a centred card from 640px. The header and the
+   footer (summary + action) stay put; only the form scrolls. */
+.rsv { position: fixed; inset: 0; z-index: 95; display: flex; align-items: flex-end; justify-content: center; }
+.rsv-scrim { position: absolute; inset: 0; background: var(--scrim); animation: rsv-fade .25s var(--ease-out); }
+.rsv-panel { position: relative; width: 100%; max-width: 680px; max-height: 94dvh; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--paper); border-radius: 28px 28px 0 0; box-shadow: var(--shadow-lg); animation: rsv-up .38s var(--ease-out); }
+@media (min-width: 640px) {
+  .rsv { align-items: center; padding: 24px; }
+  .rsv-panel { border-radius: 32px; max-height: min(900px, calc(100dvh - 48px)); animation-name: rsv-pop; }
+}
+@keyframes rsv-fade { from { opacity: 0; } }
+@keyframes rsv-up { from { transform: translateY(48px); opacity: 0; } }
+@keyframes rsv-pop { from { transform: translateY(14px) scale(.985); opacity: 0; } }
+
+.rsv-head { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 8px 20px 16px; border-bottom: 1px solid var(--line); }
+@media (min-width: 640px) { .rsv-head { padding: 24px 28px 18px; } }
+.rsv-room { display: flex; align-items: center; gap: 10px; min-width: 0; font: 500 13.5px/1.2 var(--f-sans); color: var(--ink-2); }
+.rsv-form { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.rsv-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 20px 26px; }
+@media (min-width: 640px) { .rsv-body { padding: 22px 28px 30px; } }
+
+.rsv-sec { border: 0; margin: 26px 0 0; padding: 0; min-width: 0; }
+.rsv-sec legend { padding: 0; margin-bottom: 12px; font: 700 16px/1.3 var(--f-display); letter-spacing: -.012em; color: var(--ink); }
+.rsv-grid { display: grid; gap: 14px; }
+.rsv-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rsv-grid-3 .rsv-date { grid-column: span 2; }
+@media (min-width: 640px) {
+  .rsv-grid-3 { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .rsv-grid-3 .rsv-date { grid-column: auto; }
+  .rsv-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rsv-grid-att { grid-template-columns: 170px minmax(0, 1fr); }
+}
+.rsv-ctl { display: flex; flex-direction: column; gap: 6px; }
+.rsv-label { font: 600 13px/1.25 var(--f-sans); color: var(--ink-2); }
+.rsv-label small { font-size: 12.5px; font-weight: 400; color: var(--ink-3); }
+.rsv-sub { font: 600 12.5px/1.2 var(--f-sans); color: var(--ink-3); }
+
+.rsv-input { width: 100%; height: 48px; padding: 0 14px; border: 0; border-radius: 14px; outline: none; background: var(--surface); color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line-2); font: 500 15.5px/1.2 var(--f-sans); font-variant-numeric: tabular-nums; transition: box-shadow .15s; }
+.rsv-input:hover { box-shadow: inset 0 0 0 1px var(--ink-3); }
+.rsv-input:focus { box-shadow: inset 0 0 0 2px var(--focus); }
+.rsv-input[aria-invalid="true"] { box-shadow: inset 0 0 0 1.5px var(--destructive); }
+.rsv-input[aria-invalid="true"]:focus { box-shadow: inset 0 0 0 2px var(--destructive); }
+.rsv-input::placeholder { color: var(--ink-3); font-weight: 400; }
+.rsv-select { appearance: none; -webkit-appearance: none; padding-right: 38px; cursor: pointer;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%237d879b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 13px center; }
+.rsv-textarea { height: auto; min-height: 92px; padding: 12px 14px; line-height: 1.5; resize: vertical; }
+.rsv-input[type="date"] { min-width: 0; }
+.rsv-input[type="number"] { -moz-appearance: textfield; }
+.rsv-hint { font-size: 12.5px; line-height: 1.4; color: var(--ink-3); }
+.rsv-err { display: flex; align-items: flex-start; gap: 7px; font: 500 13.5px/1.45 var(--f-sans); color: var(--destructive); }
+.rsv-err svg.i { width: 16px; height: 16px; margin-top: 2px; }
+
+.rsv-free { height: 34px; padding: 0 13px; border-radius: 999px; font: 600 13px/1 var(--f-sans); font-variant-numeric: tabular-nums; cursor: pointer;
+  color: var(--ok); background: color-mix(in oklch, var(--ok) 6%, var(--surface)); box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--ok) 42%, transparent);
+  transition: background .15s, color .15s, box-shadow .15s; }
+.rsv-free:hover { box-shadow: inset 0 0 0 1.5px var(--ok); }
+.rsv-free.on { background: var(--ok); color: var(--surface); box-shadow: none; }
+
+.rsv-opt { position: relative; display: inline-flex; }
+.rsv-opt input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.rsv-opt span { display: inline-flex; align-items: center; height: 40px; padding: 0 15px; border-radius: 999px; background: var(--surface); white-space: nowrap;
+  box-shadow: inset 0 0 0 1px var(--line-2); font: 500 14px/1 var(--f-sans); color: var(--ink-2); transition: background .15s, box-shadow .15s, color .15s; }
+.rsv-opt:hover span { box-shadow: inset 0 0 0 1px var(--ink-3); color: var(--ink); }
+.rsv-opt input:checked + span { background: var(--navy-tint); box-shadow: inset 0 0 0 1.5px var(--navy); color: var(--ink); font-weight: 600; }
+.rsv-opt input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.rsv-foot { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); }
+@media (min-width: 640px) { .rsv-foot { flex-wrap: nowrap; padding: 16px 28px; } }
+.rsv-when { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 100%; font-size: 14px; line-height: 1.35; color: var(--ink); }
+.rsv-when:empty { display: none; }
+.rsv-when svg.i { width: 20px; height: 20px; color: var(--k-700); }
+.rsv-foot .btn { flex: 1 1 auto; }
+.rsv-foot .btn:last-child { margin-left: auto; }
+.rsv-foot.pair { flex-wrap: nowrap; }
+@media (max-width: 639px) { .rsv-foot.pair .btn { flex: 1 1 0; min-width: 0; padding: 0 12px; font-size: 14.5px; } }
+@media (min-width: 640px) { .rsv-when { flex: 1 1 auto; } .rsv-foot .btn { flex: none; } }
+
+.rsv-okmark { width: 56px; height: 56px; border-radius: 19px; display: grid; place-items: center; flex: none; background: var(--k-100); color: var(--k-700); }
+.rsv-okmark svg.i { width: 26px; height: 26px; }
+.rsv-sum { border-radius: 22px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); padding: 2px 18px; }
+.rsv-sum > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; padding: 12px 0; font-size: 14.5px; line-height: 1.45; }
+.rsv-sum > div + div { border-top: 1px dashed var(--line); }
+.rsv-sum dt { color: var(--ink-3); }
+.rsv-sum dd { margin: 0; min-width: 0; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+@media (max-width: 479px) { .rsv-sum > div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }

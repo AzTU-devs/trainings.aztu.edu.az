@@ -1,0 +1,154 @@
+/* ==========================================================================
+   "Our classrooms": the room card (components/RoomCard.tsx) and the /rooms
+   list page.
+
+   Kept in the components layer, like globals.css, so Tailwind utilities on
+   the same elements still win. Colours come only from the theme tokens and
+   the hue engine (--k-*), so dark mode needs no second set of rules except
+   where a surface must step up.
+   ========================================================================== */
+
+@layer components {
+
+/* ---------- room card ---------- */
+.rm-card { position: relative; display: flex; flex-direction: column; gap: 16px; }
+.rm-card .cover { aspect-ratio: 16/10; border-radius: 22px; transition: box-shadow .35s, transform .45s var(--ease-out); }
+.rm-card:hover .cover { box-shadow: var(--shadow-md); transform: translateY(-4px); }
+/* the stretched link is the card: show its focus ring around the whole card */
+.rm-card .stretched:focus-visible { outline: none; }
+.rm-card:has(.stretched:focus-visible) { outline: 3px solid var(--focus); outline-offset: 6px; border-radius: 24px; }
+
+.rm-card .body { display: flex; min-width: 0; flex-direction: column; gap: 8px; padding-inline: 4px; }
+.rm-card .title { font-family: var(--f-display); font-weight: 700; font-size: 18.5px; line-height: 1.26; letter-spacing: -0.014em;
+  color: var(--ink); text-wrap: pretty; transition: color .2s; }
+.rm-card:hover .title { color: color-mix(in oklch, var(--ink) 62%, var(--k-700)); }
+.rm-card .place { display: flex; align-items: flex-start; gap: 6px; font-size: 13.5px; line-height: 1.4; color: var(--ink-2); }
+.rm-card .place svg.i { width: 15px; height: 15px; margin-top: 2px; color: var(--ink-3); }
+
+.rm-card .facts-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; }
+.rm-card .meta { column-gap: 12px; font-size: 13.5px; }
+.rm-card .meta .seats-m { color: var(--ink); font-weight: 600; }
+/* above the card's stretched link (z-index 4), so each tile's title tooltip
+   shows on hover; the tiles are small, the rest of the card still links */
+.rm-card .amen { position: relative; z-index: 5; display: flex; gap: 4px; flex: none; cursor: default; }
+.rm-card .amen li { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--k-50); box-shadow: inset 0 0 0 1px var(--k-200); color: var(--k-700); }
+.rm-card .amen svg.i { width: 16px; height: 16px; }
+.rm-card .amen .more { font: 600 11.5px/1 var(--f-mono); letter-spacing: -.02em; }
+.rm-card .amen .m-narrow { display: none; }
+/* the kind chip stops short of the drawing's label in the top-right corner */
+.rm-card .cover:not(.photo) .ov.kind { max-width: 64%; }
+.rm-card .ov.kind .pill { max-width: 100%; }
+
+/* A narrow card (three columns at 1024px, a 320px phone, the rail on a room
+   page): smaller amenity tiles, one fewer of them, so seats, area and icons
+   keep one row. And the kind chip wins the cover's top edge: the drawing's
+   "B3 · 105" label goes (the place line under the title says it too) and the
+   chip may use the whole width, so "Mühəndislik laboratoriyası" is never cut
+   to "Mühəndislik laborato…". Wider cards fit both: the longest chip (198px)
+   ends well before the label, which starts at 71% of the cover. */
+.rm-card { container-type: inline-size; }
+@container (max-width: 340px) {
+  .rm-card .meta { column-gap: 10px; font-size: 13px; }
+  .rm-card .amen li { width: 27px; height: 27px; border-radius: 9px; }
+  .rm-card .amen svg.i { width: 15px; height: 15px; }
+  .rm-card .amen li:nth-child(4):not(.more), .rm-card .amen .m-wide { display: none; }
+  .rm-card .amen .m-narrow { display: grid; }
+  .rm-today { padding-inline: 12px; }
+  .rm-today .state { font-size: 13px; }
+  .rm-card .cover .art .lbl { display: none; }
+  .rm-card .cover:not(.photo) .ov.kind { max-width: calc(100% - 24px); }
+}
+
+/* today strip: a timeline of the opening hours */
+.rm-today { margin-top: 6px; padding: 12px 14px 10px; border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.rm-today .top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.rm-today .state { display: flex; align-items: baseline; gap: 8px; min-width: 0; font: 600 13.5px/1.35 var(--f-sans); color: var(--ink); }
+.rm-today .dot { width: 8px; height: 8px; border-radius: 99px; flex: none; background: var(--ok); transform: translateY(-1px);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ok) 18%, transparent); }
+.rm-today .state.later .dot { background: var(--gold); box-shadow: 0 0 0 3px color-mix(in oklch, var(--gold) 22%, transparent); }
+.rm-today .state.none .dot { background: var(--ink-3); box-shadow: none; }
+.rm-today .aside { flex: none; font: 500 12px/1.3 var(--f-mono); color: var(--ink-3); white-space: nowrap; }
+
+.rm-day { position: relative; margin-top: 10px; }
+.rm-day .track { position: relative; height: 8px; border-radius: 99px; overflow: hidden; background: var(--k-100); }
+.rm-day .b { position: absolute; top: 0; bottom: 0; background: var(--k-500); }
+/* the part of the day that is over: hatched, so busy and free still read */
+.rm-day .past { position: absolute; left: 0; top: 0; bottom: 0;
+  background: repeating-linear-gradient(135deg, color-mix(in oklch, var(--surface) 62%, transparent) 0 2px, transparent 2px 5px); }
+.rm-day .now { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; border-radius: 3px; background: var(--gold);
+  box-shadow: 0 0 0 2px var(--surface); }
+.rm-day.closed .track { background: repeating-linear-gradient(135deg, var(--line-2) 0 2px, transparent 2px 6px); box-shadow: inset 0 0 0 1px var(--line); }
+.rm-today .scale { display: flex; justify-content: space-between; margin-top: 6px; font: 500 11px/1 var(--f-mono); color: var(--ink-3); }
+
+/* ---------- list page ---------- */
+/* The figures card sizes by its own width, not the viewport's: from 1024px it
+   gets only half the head, so four in a row fit only once the card is wide
+   enough for the longest label ("Seats in total") on one line. Labels never
+   wrap, so the cells keep one height. */
+.rm-stats-box { container-type: inline-size; }
+.rm-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--surface); border-radius: 28px;
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-md); overflow: hidden; }
+.rm-stats > div { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px; min-width: 0; }
+.rm-stats > div:nth-child(odd) { border-right: 1px solid var(--line); }
+.rm-stats > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+.rm-stats dt { order: 2; display: flex; align-items: center; gap: 7px; font: 500 13px/1.25 var(--f-sans); color: var(--ink-3); white-space: nowrap; }
+.rm-stats dt svg.i { width: 15px; height: 15px; flex: none; }
+.rm-stats dd { order: 1; font: 800 clamp(1.75rem, 1.4rem + 1vw, 2.25rem)/1 var(--f-display); letter-spacing: -.035em; color: var(--ink); }
+@container (max-width: 359px) {
+  .rm-stats > div { padding: 16px 14px; }
+}
+@container (min-width: 600px) {
+  .rm-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .rm-stats > div:nth-child(odd) { border-right: 0; }
+  .rm-stats > div:nth-child(n+3) { border-top: 0; }
+  .rm-stats > div + div { border-left: 1px solid var(--line); }
+}
+
+/* kind rail: .cat-mini with an icon instead of a swatch drawing */
+.cat-mini .sw.ico { display: grid; place-items: center; color: var(--k-700); }
+.cat-mini .sw.ico svg.i { position: static; width: 22px; height: 22px; }
+/* The rail is links, so the chosen kind is aria-current, not aria-pressed;
+   same look as globals.css gives the catalogue's .cat-mini[aria-pressed]. */
+.cat-mini[aria-current="true"] { background: var(--k-100); box-shadow: inset 0 0 0 2px var(--k-500); }
+.cat-mini[aria-current="true"] b { color: var(--k-900); }
+.cat-mini[aria-current="true"] small { color: var(--k-700); }
+.cat-mini[aria-current="true"] .sw.ico { background: var(--k-0); }
+
+/* results dim while the filters' new list renders (RoomFilters sets data-pending) */
+.rm-grid { transition: opacity .2s; }
+.rm-list:has([data-pending]) .rm-grid { opacity: .55; }
+
+/* how booking works */
+.rm-how { position: relative; isolation: isolate; overflow: hidden; border-radius: 36px; background: var(--paper-2); }
+.rm-steps { display: grid; gap: 14px; }
+.rm-steps li { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 16px; align-items: start;
+  padding: 18px 20px; border-radius: 22px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+.rm-steps .n { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--k-100); color: var(--k-900);
+  font: 600 14px/1 var(--f-mono); }
+.rm-steps li:last-child .n { background: var(--navy); color: var(--on-navy); }
+/* a dashed drafting line linking each step's tile to the next one's */
+.rm-steps li:not(:last-child)::after { content: ""; position: absolute; left: 45px; top: 78px; bottom: -26px; border-left: 1.5px dashed var(--line-2); z-index: 1; }
+.rm-steps li + li { z-index: 0; }
+.rm-steps h3 { font: 700 17px/1.3 var(--f-display); letter-spacing: -.012em; }
+.rm-steps p { margin-top: 4px; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
+/* Phones: smaller tiles and icons, so the text column is not squeezed to a
+   few words a line by four layers of padding. */
+@media (max-width: 639px) {
+  .rm-steps li { grid-template-columns: 40px minmax(0, 1fr); gap: 12px; padding: 16px; border-radius: 20px; }
+  .rm-steps .n { width: 40px; height: 40px; border-radius: 13px; }
+  .rm-steps .n svg.i { width: 18px; height: 18px; }
+  .rm-steps li:not(:last-child)::after { left: 35px; top: 64px; bottom: -24px; }
+}
+/* Small phones: the icon sits beside the number and title only, and the text
+   takes the tile's whole width (the drafting line would cross it, so it goes). */
+@media (max-width: 399px) {
+  .rm-steps li { align-items: center; row-gap: 0; }
+  .rm-steps li > div { display: contents; }
+  .rm-steps .n { grid-row: 1 / span 2; }
+  .rm-steps li > div > * { grid-column: 2; }
+  .rm-steps li > div > p:last-child { grid-column: 1 / -1; margin-top: 10px; }
+  .rm-steps li:not(:last-child)::after { display: none; }
+}
+
+} /* end @layer components */

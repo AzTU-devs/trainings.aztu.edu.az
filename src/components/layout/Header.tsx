@@ -155,11 +155,16 @@ export function Header() {
       >
         <div className="wrap relative">
           <div className="bar flex items-center gap-1">
-            <span className="mr-3 lg:mr-7">
+            <span className="mr-3 xl:mr-7">
               <Brand />
             </span>
 
-            <nav aria-label={t("ui.mainNav")} className="hidden items-center gap-0.5 lg:flex">
+            {/* Four items plus the account cluster only just fit at lg, so the
+                links run a little tighter until xl. */}
+            <nav
+              aria-label={t("ui.mainNav")}
+              className="hidden items-center gap-0.5 lg:flex lg:[&>.nav-link]:px-3 xl:[&>.nav-link]:px-3.5"
+            >
               <LocaleLink
                 className={navCls(path.startsWith("/courses"))}
                 aria-current={path.startsWith("/courses") ? "page" : undefined}
@@ -186,17 +191,30 @@ export function Header() {
               >
                 {t("ui.navExperts")}
               </LocaleLink>
+              <LocaleLink
+                className={navCls(path.startsWith("/rooms"))}
+                aria-current={path.startsWith("/rooms") ? "page" : undefined}
+                href="/rooms"
+              >
+                {t("ui.navRooms")}
+              </LocaleLink>
             </nav>
 
             <div className="ml-auto flex items-center gap-1.5">
+              {/* Between lg and xl the four nav items leave no room for the
+                  search field, so it collapses to its icon there. */}
               <LocaleLink
                 href="/courses"
-                className="search-trigger hidden md:inline-flex md:w-[200px] xl:w-[250px]"
+                className="search-trigger hidden md:inline-flex md:w-[200px] lg:hidden xl:inline-flex xl:w-[250px]"
               >
                 <Search className="i" aria-hidden />
                 <span>{t("ui.searchCourses")}</span>
               </LocaleLink>
-              <LocaleLink href="/courses" className="btn-icon md:hidden" aria-label={t("ui.searchCourses")}>
+              <LocaleLink
+                href="/courses"
+                className="btn-icon md:hidden lg:inline-grid xl:hidden"
+                aria-label={t("ui.searchCourses")}
+              >
                 <Search className="i" aria-hidden />
               </LocaleLink>
 
@@ -352,6 +370,7 @@ export function Header() {
 
       <MobileMenu
         id={menuId}
+        path={path}
         open={menuOpen}
         onOpenChange={setMenuOpen}
         categories={cats.data?.items ?? []}
@@ -377,6 +396,7 @@ function UserLink({ href, icon, children }: { href: string; icon: React.ReactNod
 
 function MobileMenu({
   id,
+  path,
   open,
   onOpenChange,
   categories,
@@ -385,6 +405,8 @@ function MobileMenu({
   onLocale,
 }: {
   id: string;
+  /** The current path without its locale, for marking the current section. */
+  path: string;
   open: boolean;
   /** The state setter itself: stable, so the effect below runs only on open/close. */
   onOpenChange: (open: boolean) => void;
@@ -432,12 +454,27 @@ function MobileMenu({
           </button>
         </div>
         <nav className="flex flex-col px-5 py-4" aria-label={t("ui.mobileNav")}>
-          <LocaleLink href="/courses" onClick={onClose} className="py-2.5 font-display text-[28px] font-bold tracking-tight">
-            {t("ui.navCourses")}
-          </LocaleLink>
-          <LocaleLink href="/experts" onClick={onClose} className="py-2.5 font-display text-[28px] font-bold tracking-tight">
-            {t("ui.navExperts")}
-          </LocaleLink>
+          {(
+            [
+              ["/courses", t("ui.navCourses")],
+              ["/experts", t("ui.navExperts")],
+              ["/rooms", t("ui.navRooms")],
+            ] as const
+          ).map(([href, label]) => {
+            const current = path.startsWith(href);
+            return (
+              <LocaleLink
+                key={href}
+                href={href}
+                onClick={onClose}
+                aria-current={current ? "page" : undefined}
+                className="flex items-center gap-3 py-2.5 font-display text-[28px] font-bold tracking-tight"
+              >
+                {label}
+                {current ? <span className="size-2 rounded-full bg-gold" aria-hidden /> : null}
+              </LocaleLink>
+            );
+          })}
           {signedIn ? (
             <LocaleLink href="/dashboard" onClick={onClose} className="py-2.5 font-display text-[28px] font-bold tracking-tight">
               {t("ui.dashboard")}

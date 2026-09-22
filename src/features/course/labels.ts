@@ -35,8 +35,10 @@ export function courseLabels(t: TFunction, locale: string, now: number = Date.no
     viewCourse: t("ui.viewCourse"),
     duration(seconds: number | null | undefined): string | null {
       if (!seconds || seconds <= 0) return null;
-      const h = Math.floor(seconds / 3600);
-      const m = Math.round((seconds % 3600) / 60);
+      // Round to whole minutes first, so 2h 59m 40s reads "3 h", not "2 h 60 min".
+      const total = Math.round(seconds / 60);
+      const h = Math.floor(total / 60);
+      const m = total % 60;
       if (h && m) return t("ui.durationHm", { h, m });
       if (h) return t("ui.durationH", { h });
       return t("ui.durationM", { m: Math.max(m, 1) });

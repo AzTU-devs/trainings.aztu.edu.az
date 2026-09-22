@@ -1,7 +1,11 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowRight, CheckCircle2, Clock, Hourglass, Layers, Mail, MapPin, MonitorPlay, Plus, Search, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookOpenCheck, CheckCircle2, Clock, Hash, Hourglass, Layers, Mail, MapPin, MonitorPlay, PenLine, Plus, Search, Sparkles, UserRound, Users } from "lucide-react";
 import { listCourses, listExpertsSource } from "@/features/showcase/source.server";
+import { SHOWCASE } from "@/features/showcase/flag";
+import { CertificateStage } from "@/features/certificate/CertificateStage";
+import { courseCertificate } from "@/features/certificate/course";
+import { bakuDateISO } from "@/features/certificate/date";
 import { categoryOf, categoryOfExpert, getCatalogIndex, type CatalogIndex } from "@/features/course/catalog-index.server";
 import { courseLabels } from "@/features/course/labels";
 import { CourseCard, CourseCover, WideCourseCard } from "@/features/course/components/CourseCard";
@@ -75,6 +79,24 @@ export default async function HomePage({ params }: Props) {
     return cat ? { name: categoryLabel(cat, t, locale), style: categoryStyle(cat) } : null;
   };
   const lead = courses[0];
+
+  // The certificate section fills the template in with one sample course and
+  // renders only while the site shows sample content (SHOWCASE), which is where
+  // that course exists. The platform does not issue certificates yet, so the
+  // copy says they are coming soon and the sheet is stamped "Sample".
+  const certCourse = SHOWCASE ? (courses.find((c) => c.slug === CERT_SAMPLE_SLUG) ?? lead) : undefined;
+  const certificate = certCourse
+    ? courseCertificate({
+        t,
+        locale,
+        today: bakuDateISO(),
+        courseId: certCourse.id,
+        title: certCourse.title,
+        categoryName: catFor(certCourse)?.name,
+        expertName: certCourse.tutorDisplayName,
+        seconds: certCourse.totalDurationSec,
+      })
+    : null;
 
   return (
     <>
@@ -359,6 +381,45 @@ export default async function HomePage({ params }: Props) {
         </div>
       </section>
 
+      {/* ============ 5b. CERTIFICATE: what finishing a course leaves you with ============ */}
+      {certificate ? (
+        // No bottom padding: the experts section below opens with its own, on
+        // the same canvas.
+        <section className="section overflow-x-clip !pb-0" id="certificate" aria-labelledby="cert-title">
+          <div className="wrap grid items-center gap-x-8 gap-y-12 lg:grid-cols-12">
+            <div className="lg:col-span-5">
+              <h2 id="cert-title" className="d-lg">
+                {t("certificate.homeTitle")}
+              </h2>
+              <p className="lead mt-5 max-w-[30rem]">{t("certificate.homeLead")}</p>
+              <ul className="mt-8 grid gap-3.5">
+                {(
+                  [
+                    [UserRound, t("certificate.homePoint1")],
+                    [BookOpenCheck, t("certificate.homePoint2")],
+                    [Hash, t("certificate.homePoint3")],
+                    [PenLine, t("certificate.homePoint4")],
+                  ] as const
+                ).map(([Icon, text]) => (
+                  <li key={text} className="flex items-center gap-4 text-[16px] font-medium">
+                    <span className="k-gold grid size-11 shrink-0 place-items-center rounded-[14px] bg-[var(--k-100)] text-[var(--k-700)]">
+                      <Icon className="i" aria-hidden />
+                    </span>
+                    {text}
+                  </li>
+                ))}
+              </ul>
+              <LocaleLink href="/courses" className="link mt-9">
+                {t("certificate.homeCta")} <ArrowRight className="i" aria-hidden />
+              </LocaleLink>
+            </div>
+            <div className="min-w-0 lg:col-span-7">
+              <CertificateStage tilt {...certificate} />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {/* ============ 6. EXPERTS: sticky intro + arch portraits ============ */}
       {experts.length ? (
         <ExpertsSection experts={experts} index={index} t={t} locale={locale} />
@@ -431,6 +492,9 @@ export default async function HomePage({ params }: Props) {
     </>
   );
 }
+
+/** The sample course the home page's certificate is filled in with. */
+const CERT_SAMPLE_SLUG = "python-ile-melumat-analizi";
 
 function Step({ n, title, text, children }: { n: string; title: string; text: string; children: React.ReactNode }) {
   return (

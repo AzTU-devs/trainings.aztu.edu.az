@@ -7,7 +7,7 @@ import { env } from "@/lib/env";
 export const revalidate = 3600;
 
 // Public, indexable marketing routes (the authenticated student area is noindex).
-const STATIC_PATHS = ["", "/courses", "/categories", "/login", "/register"];
+const STATIC_PATHS = ["", "/courses", "/categories", "/rooms", "/login", "/register"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
@@ -45,6 +45,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } catch {
     /* catalog unavailable — keep the static entries only */
   }
+
+  // No room detail pages: today every room is a sample and its page is
+  // noindex (like the sample courses', which are not listed either), and a
+  // sitemap entry for a noindex page is only a "submitted URL marked noindex"
+  // warning. /rooms itself is listed above; add the rooms here once they come
+  // from a real public source.
 
   // Category landing (deep links into the catalog filter).
   try {
