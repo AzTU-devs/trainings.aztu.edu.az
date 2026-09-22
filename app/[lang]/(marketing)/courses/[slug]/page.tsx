@@ -1,46 +1,40 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowRight,
-  Award,
-  BookOpen,
-  CalendarDays,
-  ChartNoAxesColumnIncreasing,
-  Check,
-  Clock,
-  Globe,
-  MapPin,
-  MonitorPlay,
-  Star,
-  Timer,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { CurriculumAccordion } from "@/features/course/components/CurriculumAccordion";
-import { EnrollCta } from "@/features/course/components/EnrollCta";
+import type { EnrollTarget } from "@/features/course/components/EnrollCta";
 import { ReviewsSection } from "@/features/review/components/ReviewsSection";
-import { ExpertAvatar } from "@/features/expert/components/ExpertAvatar";
-import { Breadcrumbs } from "@/components/common/Breadcrumbs";
+import { CourseTitlePage, type CourseTutor } from "@/features/course/components/detail/CourseTitlePage";
+import type { SpecFact } from "@/features/course/components/detail/SpecStrip";
+import {
+  AboutCourse,
+  CourseArticle,
+  OutcomesList,
+  RequirementsList,
+  sectionNumber,
+  type AboutFact,
+  type CourseSection,
+} from "@/features/course/components/detail/CourseSections";
+import { CourseExperts } from "@/features/course/components/detail/CourseExperts";
+import { EnrolCard, type EnrolCardData } from "@/features/course/components/detail/EnrolCard";
+import { EnrolBar } from "@/features/course/components/detail/EnrolBar";
+import { CourseToc } from "@/features/course/components/detail/CourseToc";
+import { CourseRunningHead } from "@/features/course/components/detail/CourseRunningHead";
+import { RelatedCourses } from "@/features/course/components/detail/RelatedCourses";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { courseServerApi } from "@/features/course/api.server";
 import { expertServerApi } from "@/features/expert/api.server";
+import { categoryServerApi } from "@/features/category/api.server";
+import { getCategoryIndex } from "@/features/course/catalog.server";
+import { FORMAT_KEY, LEVEL_KEY, formatDuration, lessonKindCounts } from "@/features/course/format";
+import { primaryCategoryId, toCategoryRef, type CategoryRef } from "@/features/category/style";
 import { mediaSrc } from "@/features/course/media";
-import {
-  formatCompact,
-  formatPrice,
-  formatRating,
-} from "@/lib/utils/format";
-import { cn } from "@/lib/utils/cn";
+import { formatDateRange, formatNumber, formatPrice } from "@/lib/utils/format";
 import { getT } from "@/i18n/server";
 import type { TFunction } from "@/i18n/format";
 import { defaultLocale, isLocale, type Locale } from "@/i18n/config";
-import { localeHref } from "@/i18n/href";
 import type { ApiError } from "@/types/api";
-import type { Course, CourseLevel } from "@/features/course/types";
+import type { Course } from "@/features/course/types";
+import type { Category } from "@/features/category/types";
 import type { ExpertProfile } from "@/features/expert/types";
 
 type Props = { params: Promise<{ slug: string; lang: string }> };
@@ -58,18 +52,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         type: "website",
       },
     };
-  } catch {
+  } catch (err) {
     const t = await getT(isLocale(lang) ? lang : defaultLocale);
+    // A missing course renders the 404 body, so the tab says so too (the same
+    // words as the not-found page's kicker) and search engines skip the URL.
+    // Any other failure keeps the generic course title.
+    if ((err as ApiError).status === 404) {
+      return { title: t("errors.notFoundKicker"), robots: { index: false } };
+    }
     return { title: t("courseDetail.fallbackTitle") };
   }
 }
-
-const LEVEL_KEYS: Record<CourseLevel, string> = {
-  BEGINNER: "common.beginner",
-  INTERMEDIATE: "common.intermediate",
-  ADVANCED: "common.advanced",
-  ALL: "common.allLevels",
-};
 
 /** One person on the teaching roster. */
 type RosterEntry = { tutorId: string; displayName: string; authorized?: boolean };
@@ -100,18 +93,16 @@ function rosterOf(course: Course): RosterEntry[] {
   );
 }
 
-/** "3 saat 20 dəq" / "3h 20m" — formatDuration's units are English-only. */
-function durationText(seconds: number, t: TFunction) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h && m) return t("courseDetail.durationHM", { h, m });
-  if (h) return t("courseDetail.durationH", { h });
-  return t("courseDetail.durationM", { m: Math.max(m, 1) });
-}
-
-/** "Azərbaycan dili" / "Azerbaijani" from an ISO code such as "az". */
+/**
+ * "Azərbaycan dili" / "Azerbaijani" from an ISO code such as "az": the
+ * dictionary's `languages.<code>` first, so both locales read the same on
+ * every server; Intl only for a code the dictionary does not know.
+ */
 function languageText(code: string | null | undefined, locale: Locale, t: TFunction) {
   if (!code) return null;
+  const key = `languages.${code.toLowerCase()}`;
+  const known = t(key);
+  if (known && known !== key) return t("courseDetail.languageName", { name: known });
   let name = code.toUpperCase();
   try {
     const shown = new Intl.DisplayNames([locale], { type: "language" }).of(code);
@@ -137,16 +128,19 @@ function itemsOf(text: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-type Fact = { icon: LucideIcon; label: string; value: string };
+/**
+ * The server's clock, read once per render (never in a client component): the
+ * related cards' "Yeni" badges compare against it.
+ */
+function renderTime() {
+  return Date.now();
+}
 
-const STICKY_TIERS = [
-  [720, "lg:[@media(min-height:45rem)]:sticky"],
-  [800, "lg:[@media(min-height:50rem)]:sticky"],
-  [880, "lg:[@media(min-height:55rem)]:sticky"],
-  [960, "lg:[@media(min-height:60rem)]:sticky"],
-  [1040, "lg:[@media(min-height:65rem)]:sticky"],
-  [1120, "lg:[@media(min-height:70rem)]:sticky"],
-] as const;
+/** A decimal from the API ("6", "1.5", 6) as a number; 0 when missing or malformed. */
+function num(v: string | number | null | undefined) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
 
 export default async function CourseDetailPage({ params }: Props) {
   const { slug, lang } = await params;
@@ -176,16 +170,56 @@ export default async function CourseDetailPage({ params }: Props) {
   // The public profile adds the portrait and title to each expert card. It is
   // an enhancement only: an expert who is not (or no longer) approved answers
   // 404, and the card then falls back to the name the course already carries.
+  // The categories (cached like the course, 300 s, so this page stays static
+  // for as long as it did) colour the poster and the category trail; failing
+  // to load them only costs the colour, never the page.
   const roster = rosterOf(course);
-  const profiles = await Promise.allSettled(
-    roster.map((entry) => expertServerApi.byId(entry.tutorId)),
-  );
-  const tutors = roster.map((entry, i) => {
+  const [profiles, categories] = await Promise.all([
+    Promise.allSettled(roster.map((entry) => expertServerApi.byId(entry.tutorId))),
+    categoryServerApi.listCached(300).catch((): Category[] => []),
+  ]);
+
+  // D11: the primary category is the member category with the lowest
+  // sortOrder, the same rule every list uses, so the poster matches everywhere.
+  const byId = new Map(categories.map((c) => [c.id, c] as const));
+  const refOf = (c: Category | null | undefined): CategoryRef | null =>
+    c ? toCategoryRef(c, t, locale) : null;
+  const primaryId = primaryCategoryId(course.categoryIds ?? [], byId);
+  const category = refOf(primaryId ? byId.get(primaryId) : null);
+
+  const tutors: CourseTutor[] = roster.map((entry, i) => {
     const settled = profiles[i];
     const profile: ExpertProfile | null =
       settled.status === "fulfilled" ? settled.value : null;
-    return { ...entry, profile };
+    // An expert's initials take the colour of their own field, as on their
+    // profile; the course's field when they have none on record.
+    const own = primaryCategoryId(profile?.expertiseCategoryIds ?? [], byId);
+    return { ...entry, profile, category: own ? refOf(byId.get(own)) : category };
   });
+  const expertise = Object.fromEntries(
+    tutors.map((tutor) => [
+      tutor.tutorId,
+      (tutor.profile?.expertiseCategoryIds ?? [])
+        .map((id) => byId.get(id))
+        .filter((c): c is Category => Boolean(c && c.active !== false))
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((c) => toCategoryRef(c, t, locale)),
+    ]),
+  );
+
+  // Related courses come from the same category index the lists use (at this
+  // page's 300 s), so each related poster has its own primary category's colours.
+  // Members coloured as this field come first (a stable sort, so each group
+  // keeps the API's newest-first order): the section is headed by the field,
+  // and a poster in another field's colours only fills a place left over.
+  const index = category ? await getCategoryIndex(categories, { revalidate: 300 }) : null;
+  const related = (index?.entries.find((e) => e.category.id === category?.id)?.courses ?? [])
+    .filter((c) => c.id !== course.id)
+    .map((c) => ({ course: c, primary: index?.primaryOf(c.id) ?? null }))
+    .sort((a, b) => Number(b.primary?.id === category?.id) - Number(a.primary?.id === category?.id))
+    .slice(0, 3)
+    .map(({ course: c, primary }) => ({ course: c, category: refOf(primary) }));
+  const now = renderTime();
 
   // The detail response carries the thumbnail's media id only (the catalogue
   // entry carries the path), so build the same anonymous media path here.
@@ -194,471 +228,289 @@ export default async function CourseDetailPage({ params }: Props) {
       ? `/api/public/media/${course.thumbnailMediaId}/content`
       : null,
   );
-  const initials = course.title
-    .split(/\s+/)
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
+  const online = course.courseType === "ONLINE";
+  const offline = course.offlineDetails;
   const priceLabel = course.free
     ? t("common.free")
     : formatPrice(course.price, course.currency, locale);
-  const levelLabel = t(LEVEL_KEYS[course.level] ?? "common.allLevels");
-  const language = languageText(course.language, locale, t);
-  const numberFmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
-  const offline = course.offlineDetails;
+  const formatLabel = t(online ? "ui.onlineCourse" : "ui.offlineCourse");
+  const lessonsText = t("courseDetail.lessons", { count: lessonCount });
+  const modulesText = t("courseDetail.modules", { count: course.modules.length });
+  const kinds = lessonKindCounts(course.modules);
 
-  // What the enrolment card lists. Zero lessons or zero length means "not
-  // published yet", not "an empty course", so those facts are left out rather
-  // than shown as 0.
-  const lengthSeconds = offline
-    ? Number(offline.totalHours) * 3600 || 0
-    : totalSeconds;
-  const facts: Fact[] = [];
-  if (lessonCount > 0) {
-    facts.push({
-      icon: BookOpen,
-      label: t("courseDetail.factLessons"),
-      value: t("courseDetail.lessons", { count: lessonCount }),
-    });
-  }
-  if (lengthSeconds > 0) {
-    facts.push({
-      icon: Clock,
-      label: t("courseDetail.factDuration"),
-      value: durationText(lengthSeconds, t),
-    });
-  }
-  facts.push({
-    icon: ChartNoAxesColumnIncreasing,
-    label: t("courseDetail.factLevel"),
-    value: levelLabel,
-  });
-  if (language) {
-    facts.push({ icon: Globe, label: t("courseDetail.factLanguage"), value: language });
-  }
-  if (course.onlineDetails?.hasCertificate) {
-    facts.push({
-      icon: Award,
-      label: t("courseDetail.factCertificate"),
-      value: t("courseDetail.certificate"),
-    });
-  }
-  if (offline) {
-    const place = [offline.city, offline.addressLine]
-      .map((p) => p?.trim())
-      .filter(Boolean)
-      .join(", ");
-    if (place) {
-      facts.push({ icon: MapPin, label: t("courseDetail.factLocation"), value: place });
-    }
-    // Date-only strings parse as UTC midnight; format in UTC so the day cannot
-    // shift with the server's time zone. An unparseable date is skipped, since
-    // formatting an invalid Date throws.
-    const start = offline.startDate ? new Date(offline.startDate) : null;
-    const endDate = offline.endDate ? new Date(offline.endDate) : null;
-    const end = endDate && !Number.isNaN(endDate.getTime()) && start && endDate >= start
-      ? endDate
+  // What every call to action needs, and nothing more (see EnrollTarget).
+  const target: EnrollTarget = {
+    id: course.id,
+    slug: course.slug,
+    free: course.free,
+    price: course.price,
+    currency: course.currency,
+    hasLessons: course.modules.some((m) => m.lessons.length > 0),
+  };
+
+  // In-person facts. Zero or missing values mean "not set yet", not "none", so
+  // they are left out rather than shown as 0. Date-only strings are read in
+  // UTC by formatDateRange, so the day cannot shift with the server's zone.
+  const weekly = num(offline?.weeklyHours);
+  const totalHours = num(offline?.totalHours);
+  const hoursText = (h: number) => formatNumber(h, locale, 1);
+  // The spec strip prints the range without years and names the year in its
+  // sub-line; a course that runs into the next year names both ("2026–2027"),
+  // so "16 noy – 22 yan" cannot read as ending in the January before it starts.
+  const startYear = offline?.startDate ? offline.startDate.slice(0, 4) : "";
+  const endYear = offline?.endDate ? offline.endDate.slice(0, 4) : "";
+  const spansYears = startYear !== "" && endYear !== "" && startYear !== endYear;
+  const yearText = spansYears ? `${startYear}–${endYear}` : startYear;
+  const place = [offline?.addressLine, offline?.city]
+    .map((p) => p?.trim())
+    .filter(Boolean)
+    .join(", ");
+  const seatLimit = offline?.studentLimit ?? 0;
+  const seatsTaken = offline?.enrolledCount ?? 0;
+  const seatsLeft = Math.max(0, seatLimit - seatsTaken);
+  const seatsStatus =
+    seatLimit > 0
+      ? seatsLeft > 0
+        ? t("courseDetail.seatsLeft", { n: formatNumber(seatsLeft, locale), count: seatsLeft })
+        : t("courseDetail.seatsFull")
       : null;
-    if (start && !Number.isNaN(start.getTime())) {
-      const fmt = new Intl.DateTimeFormat(locale, {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        timeZone: "UTC",
-      });
-      facts.push({
-        icon: CalendarDays,
-        label: t("courseDetail.factDates"),
-        value: end ? fmt.formatRange(start, end) : fmt.format(start),
-      });
-    }
-    const weekly = Number(offline.weeklyHours);
-    if (weekly > 0) {
-      facts.push({
-        icon: Timer,
-        label: t("courseDetail.factWeekly"),
-        value: t("courseDetail.weeklyHours", { hours: numberFmt.format(weekly) }),
-      });
-    }
-    if (offline.studentLimit) {
-      facts.push({
-        icon: Users,
-        label: t("courseDetail.factSeats"),
-        value: t("courseDetail.seats", {
-          enrolled: offline.enrolledCount,
-          limit: offline.studentLimit,
-        }),
-      });
-    }
+
+  // The spec strip: only the facts this course has.
+  const language = languageText(course.language, locale, t);
+  const facts: SpecFact[] = [
+    {
+      id: "format",
+      label: t("courseDetail.factFormat"),
+      value: t(FORMAT_KEY[course.courseType]),
+      sub: online ? t("courseDetail.specSelfPaced") : offline?.city?.trim() || null,
+    },
+    { id: "level", label: t("courseDetail.factLevel"), value: t(LEVEL_KEY[course.level] ?? "common.allLevels") },
+  ];
+  if (lessonCount > 0) {
+    facts.push({ id: "lessons", label: t("courseDetail.factLessons"), value: lessonsText, sub: modulesText });
   }
+  if (online && totalSeconds > 0) {
+    facts.push({
+      id: "length",
+      label: t("courseDetail.factDuration"),
+      value: formatDuration(totalSeconds, t, "long"),
+      sub: t("courseDetail.specVideoMaterials"),
+    });
+  } else if (!online && offline?.startDate) {
+    facts.push({
+      id: "dates",
+      label: t("courseDetail.factDates"),
+      value: formatDateRange(offline.startDate, offline.endDate, locale, { month: "short", year: false }),
+      sub: weekly > 0
+        ? t("courseDetail.specYearWeekly", { year: yearText, hours: hoursText(weekly) })
+        : yearText,
+    });
+  } else if (!online && totalHours > 0) {
+    facts.push({
+      id: "length",
+      label: t("courseDetail.factDuration"),
+      value: formatDuration(totalHours * 3600, t, "long"),
+      sub: weekly > 0 ? t("courseDetail.weeklyHours", { hours: hoursText(weekly) }) : null,
+    });
+  }
+  if (language) facts.push({ id: "language", label: t("courseDetail.factLanguage"), value: language });
+  facts.push({
+    id: "price",
+    label: t("courseDetail.factPrice"),
+    value: priceLabel,
+    sub: course.free ? t("courseDetail.specNoPayment") : null,
+  });
 
-  // The sidebar sticks only on screens tall enough to hold all of it: a sticky
-  // block taller than the viewport keeps its lower part (the experts) out of
-  // reach until the page ends. What it holds fixes its height closely enough
-  // (px, measured at desktop widths), so pick the matching min-height tier.
-  // The classes are spelled out because Tailwind only generates classes it can
-  // find in the source.
-  const sidebarPx =
-    96 + 24 + // sticky offset and breathing room below
-    (course.free ? 160 : 252) + // price and the call to action (+ paid hint)
-    (facts.length ? 75 + facts.length * 46 : 0) +
-    (tutors.length ? 20 + 99 + tutors.length * 120 : 0);
-  const stickyClass = STICKY_TIERS.find(([px]) => sidebarPx <= px)?.[1];
+  // The enrol card: price, seats, the call to action and what is included.
+  // No preview lessons (visitors cannot open them) and no certificate (none
+  // is issued yet) — only facts that hold for this course.
+  const includes: EnrolCardData["includes"] = [
+    lessonCount > 0
+      ? {
+          icon: "layers",
+          text:
+            `${modulesText}, ${lessonsText}` +
+            (online && totalSeconds > 0 ? ` · ${formatDuration(totalSeconds, t, "long")}` : ""),
+        }
+      : { icon: "layers", text: t("courseDetail.inclNoLessons") },
+  ];
+  if (offline) {
+    // Where and when, one hairline row each (the prototype's card): the long
+    // date range, the street address with the city, and the weekly load. The
+    // card is what a visitor reads before committing to an in-person course,
+    // so it carries the practical facts itself. A row shows only when its
+    // value is set; on a short screen the table of contents under the card
+    // gives way first, so the extra rows cost the rail nothing.
+    const range = formatDateRange(offline.startDate, offline.endDate, locale);
+    if (range) includes.push({ icon: "calendar", text: range });
+    if (place) includes.push({ icon: "pin", text: place, clamp: true });
+    if (weekly > 0) {
+      includes.push({ icon: "clock", text: t("courseDetail.weeklyHours", { hours: hoursText(weekly) }) });
+    }
+  } else {
+    includes.push({ icon: "sync", text: t("courseDetail.inclProgress") });
+    includes.push({ icon: "device", text: t("courseDetail.inclAnyDevice") });
+  }
+  const enrolCard: EnrolCardData = {
+    target,
+    priceLabel,
+    formatLabel,
+    note: course.free ? t("courseDetail.freeNote") : null,
+    seats:
+      seatLimit > 0 && seatsStatus
+        ? {
+            label: t("courseDetail.factSeats"),
+            taken: t("courseDetail.seatsTaken", {
+              enrolled: formatNumber(seatsTaken, locale),
+              limit: formatNumber(seatLimit, locale),
+            }),
+            meterLabel: t("courseDetail.seatsMeter", {
+              enrolled: formatNumber(seatsTaken, locale),
+              limit: formatNumber(seatLimit, locale),
+            }),
+            pct: Math.min(100, Math.round((seatsTaken / seatLimit) * 100)),
+            status: seatsStatus,
+          }
+        : null,
+    kinds,
+    includes,
+  };
 
+  // The article's sections, in reading order. An empty one is dropped, so the
+  // numbers (and the table of contents) stay consecutive.
   const outcomes = itemsOf(course.learningOutcomes);
   const requirements = itemsOf(course.requirements);
-  const moduleCount = course.modules.length;
-  const curriculumSummary = lessonCount
-    ? [
-        t("courseDetail.modules", { count: moduleCount }),
-        t("courseDetail.lessons", { count: lessonCount }),
-        totalSeconds > 0 ? durationText(totalSeconds, t) : null,
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : null;
+  const aboutFacts: AboutFact[] = [];
+  if (offline) {
+    const range = formatDateRange(offline.startDate, offline.endDate, locale);
+    if (range) aboutFacts.push({ icon: "calendar", label: t("courseDetail.factDates"), value: range });
+    if (weekly > 0) {
+      aboutFacts.push({
+        icon: "clock",
+        label: t("courseDetail.factWeekly"),
+        value: totalHours > 0
+          ? t("courseDetail.weeklyTotal", { w: hoursText(weekly), total: hoursText(totalHours) })
+          : t("courseDetail.weeklyHours", { hours: hoursText(weekly) }),
+      });
+    }
+    if (place) aboutFacts.push({ icon: "pin", label: t("courseDetail.factLocation"), value: place });
+  }
+
+  const sections: CourseSection[] = [];
+  if (outcomes.length) {
+    sections.push({ id: "learn", title: t("courseDetail.whatYouLearn"), body: <OutcomesList items={outcomes} /> });
+  }
+  if (course.description?.trim() || aboutFacts.length) {
+    sections.push({
+      id: "about",
+      title: t("courseDetail.aboutCourse"),
+      body: <AboutCourse description={course.description} category={category} facts={aboutFacts} />,
+    });
+  }
+  sections.push({
+    id: "curriculum",
+    title: t("courseDetail.curriculum"),
+    body: (
+      <div className="mt-8">
+        <CurriculumAccordion
+          modules={course.modules}
+          kinds={kinds}
+          totalSeconds={online ? totalSeconds : 0}
+          emptyMessage={t("courseDetail.curriculumEmpty")}
+          emptyHint={t("courseDetail.curriculumEmptyHint")}
+        />
+      </div>
+    ),
+  });
+  if (requirements.length) {
+    sections.push({ id: "req", title: t("courseDetail.requirements"), body: <RequirementsList items={requirements} /> });
+  }
+  if (tutors.length) {
+    sections.push({
+      id: "expert",
+      title: tutors.length > 1 ? t("courseDetail.createdByMany") : t("courseDetail.createdBy"),
+      body: <CourseExperts tutors={tutors} locale={locale} expertise={expertise} />,
+    });
+  }
+  sections.push({
+    id: "reviews",
+    title: t("review.title"),
+    body: (
+      <ReviewsSection courseId={course.id} ratingAvg={course.ratingAvg} ratingCount={course.ratingCount} />
+    ),
+  });
+  const toc = sections.map((s, i) => ({ id: s.id, title: s.title, number: sectionNumber(i) }));
+
+  // The quiet second button under the title: the curriculum when it has
+  // lessons, otherwise the description (when there is one).
+  const hasAbout = sections.some((s) => s.id === "about");
+  const secondary =
+    lessonCount > 0 || !hasAbout
+      ? { href: "#curriculum", label: t("courseDetail.seeCurriculum") }
+      : { href: "#about", label: t("courseDetail.aboutCourse") };
+
+  const barMeta =
+    seatsStatus ??
+    (lessonCount > 0
+      ? [lessonsText, formatDuration(online ? totalSeconds : totalHours * 3600, t, "short")]
+          .filter(Boolean)
+          .join(" · ")
+      : formatLabel);
+  const runMeta = [priceLabel, lessonCount > 0 ? lessonsText : null].filter(Boolean).join(" · ");
 
   return (
     <>
-      {/* ---- Course header: a contained deep-navy panel ------------------ */}
-      <section className="container-fluid pt-5 sm:pt-8">
-        <Breadcrumbs
-          className="mb-4 px-1 sm:mb-5"
-          items={[
-            { label: t("common.home"), href: localeHref(locale, "/") },
-            { label: t("nav.courses"), href: localeHref(locale, "/courses") },
-            { label: course.title },
-          ]}
-        />
-        <div className="surface-deep relative overflow-hidden rounded-4xl elev-3">
-          <div className="grid gap-8 p-5 sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-14 lg:p-14 xl:grid-cols-[minmax(0,1fr)_minmax(0,27rem)]">
-            <div className="min-w-0 px-1 pb-2 sm:px-0 sm:pb-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="onDeep" className="h-8 gap-1.5 px-3 text-xs">
-                  {course.courseType === "ONLINE" ? (
-                    <MonitorPlay aria-hidden className="size-3.5" />
-                  ) : (
-                    <MapPin aria-hidden className="size-3.5" />
-                  )}
-                  {course.courseType === "ONLINE"
-                    ? t("common.online")
-                    : t("common.offline")}
-                </Badge>
-                <Badge variant="onDeep" className="h-8 gap-1.5 px-3 text-xs">
-                  <ChartNoAxesColumnIncreasing aria-hidden className="size-3.5" />
-                  {levelLabel}
-                </Badge>
-                <Badge
-                  className={cn(
-                    "h-8 px-3 text-xs",
-                    course.free
-                      ? "border-transparent bg-gold-500 text-navy-950"
-                      : "border-white/20 bg-white/10 text-white",
-                  )}
-                >
-                  {priceLabel}
-                </Badge>
-              </div>
+      <CourseTitlePage
+        course={course}
+        category={category}
+        tutors={tutors}
+        locale={locale}
+        photoUrl={cover}
+        facts={facts}
+        target={target}
+        secondary={secondary}
+      />
 
-              <h1 className="mt-5 font-display text-balance text-[2rem] leading-[1.08] text-white sm:mt-6 sm:text-5xl">
-                {course.title}
-              </h1>
-              {course.subtitle ? (
-                <p className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-white/75 sm:mt-5 sm:text-lg">
-                  {course.subtitle}
-                </p>
-              ) : null}
+      {/* Below 1024px the card follows the title page; from 1024px it sits in the rail. */}
+      <div className="wrap mt-10 lg:hidden">
+        <EnrolCard data={enrolCard} className="mx-auto max-w-xl" />
+      </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2.5 text-sm text-white/75">
-                {course.ratingCount > 0 ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Star aria-hidden className="size-4 fill-gold-400 text-gold-400" />
-                    <span className="font-semibold text-white">
-                      {formatRating(course.ratingAvg, locale)}
-                    </span>
-                    <span>
-                      (
-                      {t("courseDetail.ratings", {
-                        count: course.ratingCount,
-                        shown: formatCompact(course.ratingCount, locale),
-                      })}
-                      )
-                    </span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Star aria-hidden className="size-4 text-gold-300" />
-                    {t("courseDetail.noRatings")}
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1.5">
-                  <Users aria-hidden className="size-4 text-white/60" />
-                  {t("courseDetail.participants", {
-                    count: course.enrolledCount,
-                    shown: formatCompact(course.enrolledCount, locale),
-                  })}
-                </span>
-                {language ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Globe aria-hidden className="size-4 text-white/60" />
-                    {language}
-                  </span>
-                ) : null}
-              </div>
-
-              {tutors.length ? (
-                <div className="mt-7 flex items-center gap-3 border-t border-white/10 pt-6">
-                  <div className="flex -space-x-2.5">
-                    {tutors.slice(0, 3).map((tutor) => (
-                      <span
-                        key={tutor.tutorId}
-                        className="rounded-full ring-2 ring-[#01234a]"
-                      >
-                        <ExpertAvatar
-                          name={tutor.displayName}
-                          avatarUrl={tutor.profile?.avatarUrl}
-                          sizes="40px"
-                          className="size-10 text-sm"
-                        />
-                      </span>
-                    ))}
-                  </div>
-                  <div className="min-w-0 text-sm">
-                    <div className="text-xs text-white/60">
-                      {tutors.length > 1
-                        ? t("courseDetail.createdByMany")
-                        : t("courseDetail.createdBy")}
-                    </div>
-                    <div className="mt-0.5 flex flex-wrap gap-x-1 font-semibold text-white">
-                      {tutors.map((tutor, i) => (
-                        <span key={tutor.tutorId}>
-                          <Link
-                            href={localeHref(locale, `/experts/${tutor.tutorId}`)}
-                            className="underline-offset-4 transition-colors hover:text-gold-200 hover:underline"
-                          >
-                            {tutor.displayName}
-                          </Link>
-                          {i < tutors.length - 1 ? "," : null}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            {/* The course media. Decorative: the title sits right beside it. */}
-            <div className="order-first rounded-3xl bg-white/[0.06] p-2 ring-1 ring-inset ring-white/15 lg:order-none">
-              <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br from-navy-400 via-navy-600 to-navy-900 sm:aspect-[16/10]">
-                {cover ? (
-                  // `unoptimized` for the same reason as CourseCard: the
-                  // optimizer would fetch the API's public hostname from inside
-                  // this server, which cannot reach it in production.
-                  <Image
-                    src={cover}
-                    alt=""
-                    fill
-                    unoptimized
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 432px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <>
-                    <span
-                      aria-hidden
-                      className="absolute -right-10 -top-16 size-56 rounded-full bg-[radial-gradient(circle,rgba(224,194,102,0.45)_0%,transparent_65%)] blur-2xl"
-                    />
-                    <span
-                      aria-hidden
-                      className="absolute -bottom-24 -left-16 size-64 rounded-full border border-white/10"
-                    />
-                    <span
-                      aria-hidden
-                      className="absolute -bottom-10 -left-4 size-40 rounded-full border border-white/10"
-                    />
-                    <span
-                      aria-hidden
-                      className="absolute inset-0 grid place-items-center font-display text-6xl tracking-tight text-white/30 sm:text-7xl"
-                    >
-                      {initials}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
+      <div className="wrap">
+        <div className="g12">
+          <div className="col-span-4 min-w-0 md:col-span-8 lg:col-span-7">
+            <CourseArticle sections={sections} />
           </div>
-        </div>
-      </section>
-
-      {/* ---- Body: content column + enrolment sidebar --------------------- */}
-      <div className="container-fluid mt-6 flex flex-col gap-6 pb-20 sm:mt-8 lg:mt-10 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        {/* On phones the enrolment card has to follow the header directly,
-            while the experts card waits until after the content. `contents`
-            dissolves this wrapper there so `order` can interleave its children
-            with the main column; from lg up it is the sticky sidebar. */}
-        <div
-          className={cn(
-            "contents lg:col-start-2 lg:row-start-1 lg:top-24 lg:flex lg:flex-col lg:gap-5",
-            stickyClass,
-          )}
-        >
-          <section
-            aria-labelledby="course-price"
-            className="order-1 rounded-3xl border border-border/80 bg-card elev-2 lg:order-none"
+          <aside
+            aria-label={t("courseDetail.enrolAside")}
+            className="hidden pt-20 lg:col-span-4 lg:col-start-9 lg:block"
           >
-            <div className="p-6 sm:p-7">
-              <div
-                id="course-price"
-                className="font-display text-4xl leading-none tracking-tight"
-              >
-                {priceLabel}
-              </div>
-              <div className="mt-5">
-                <EnrollCta course={course} />
-              </div>
+            {/* Sticks at every height: on a short screen the table of contents
+                gives way first, then the rail scrolls within itself. The
+                padding keeps the card's shadow from being clipped. */}
+            <div className="sticky top-[calc(var(--hdr)+28px)] -mx-8 -mt-2 flex max-h-[calc(100dvh-var(--hdr)-40px)] flex-col overflow-y-auto overscroll-contain px-8 pt-2 pb-8 [scrollbar-width:thin]">
+              <EnrolCard data={enrolCard} className="shrink-0" />
+              <CourseToc
+                items={toc}
+                label={t("courseDetail.onThisPage")}
+                className="mt-8 min-h-24 shrink overflow-y-auto"
+              />
             </div>
-            {facts.length ? (
-              <div className="border-t border-border px-6 pb-6 pt-5 sm:px-7 sm:pb-7">
-                <h2 className="text-sm font-semibold">{t("courseDetail.includes")}</h2>
-                <ul className="mt-4 space-y-2.5">
-                  {facts.map((fact) => (
-                    <li key={fact.label} className="flex items-center gap-3.5">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-2xl bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100">
-                        <fact.icon aria-hidden className="size-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-xs text-muted-foreground">{fact.label}</div>
-                        <div className="text-sm font-semibold leading-snug">{fact.value}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </section>
-
-          {tutors.length ? (
-            <aside
-              aria-labelledby="course-experts"
-              className="order-3 rounded-3xl border border-border/80 bg-card p-6 elev-1 sm:p-7 lg:order-none"
-            >
-              <h2 id="course-experts" className="font-display text-lg leading-snug">
-                {tutors.length > 1
-                  ? t("courseDetail.aboutExperts")
-                  : t("courseDetail.aboutExpert")}
-              </h2>
-              <ul className="mt-4 divide-y divide-border">
-                {tutors.map((tutor) => {
-                  const p = tutor.profile;
-                  const affiliation = [p?.academicTitle, p?.department]
-                    .map((part) => part?.trim())
-                    .filter(Boolean)
-                    .join(" · ");
-                  const href = localeHref(locale, `/experts/${tutor.tutorId}`);
-                  return (
-                    <li key={tutor.tutorId} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
-                      <ExpertAvatar
-                        name={tutor.displayName}
-                        avatarUrl={p?.avatarUrl}
-                        sizes="52px"
-                        className="size-13 text-base"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-display text-base leading-snug">
-                          <Link href={href} className="transition-colors hover:text-primary">
-                            {tutor.displayName}
-                          </Link>
-                        </h3>
-                        {affiliation ? (
-                          <p className="mt-0.5 text-sm leading-snug text-foreground/80">
-                            {affiliation}
-                          </p>
-                        ) : null}
-                        {p?.headline ? (
-                          <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                            {p.headline}
-                          </p>
-                        ) : null}
-                        {p?.yearsExperience ? (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {t("experts.years", { count: p.yearsExperience })}
-                          </p>
-                        ) : null}
-                        <Link
-                          href={href}
-                          className="group mt-2.5 flex w-fit items-center gap-1.5 text-sm font-semibold text-primary"
-                        >
-                          {t("courseDetail.viewProfile")}
-                          <ArrowRight
-                            aria-hidden
-                            className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
-                          />
-                        </Link>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </aside>
-          ) : null}
-        </div>
-
-        <div className="order-2 min-w-0 space-y-6 lg:order-none lg:col-start-1 lg:row-start-1">
-          {outcomes.length ? (
-            <SectionCard title={t("courseDetail.whatYouLearn")}>
-              <ul className="grid gap-x-8 gap-y-3.5 sm:grid-cols-2">
-                {outcomes.map((item, i) => (
-                  <li key={i} className="flex gap-3 text-[15px] leading-relaxed">
-                    <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300">
-                      <Check aria-hidden className="size-3.5" strokeWidth={2.5} />
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </SectionCard>
-          ) : null}
-
-          {course.description ? (
-            <SectionCard title={t("courseDetail.description")}>
-              <p className="whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">
-                {course.description}
-              </p>
-            </SectionCard>
-          ) : null}
-
-          <SectionCard title={t("courseDetail.curriculum")} meta={curriculumSummary}>
-            <CurriculumAccordion
-              modules={course.modules}
-              emptyMessage={t("courseDetail.curriculumEmpty")}
-              emptyHint={t("courseDetail.curriculumEmptyHint")}
-            />
-          </SectionCard>
-
-          {requirements.length ? (
-            <SectionCard title={t("courseDetail.requirements")}>
-              <ul className="space-y-2.5">
-                {requirements.map((item, i) => (
-                  <li key={i} className="flex gap-3 text-[15px] leading-relaxed text-muted-foreground">
-                    <span aria-hidden className="mt-[0.6rem] size-1.5 shrink-0 rounded-full bg-gold-500" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </SectionCard>
-          ) : null}
-
-          <ReviewsSection
-            courseId={course.id}
-            ratingAvg={course.ratingAvg}
-            ratingCount={course.ratingCount}
-          />
+          </aside>
         </div>
       </div>
+
+      <RelatedCourses category={category} items={related} locale={locale} now={now} />
+
+      <CourseRunningHead
+        cat={category ? { key: category.key, hue: category.hue } : null}
+        categoryName={category?.name ?? null}
+        title={course.title}
+        meta={runMeta}
+        target={target}
+      />
+      <EnrolBar target={target} priceLabel={priceLabel} meta={barMeta} />
 
       <JsonLd
         data={{
@@ -685,26 +537,5 @@ export default async function CourseDetailPage({ params }: Props) {
         }}
       />
     </>
-  );
-}
-
-/** A white content card in the main column, headed by its section title. */
-function SectionCard({
-  title,
-  meta,
-  children,
-}: {
-  title: string;
-  meta?: string | null;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-3xl border border-border/80 bg-card p-6 elev-1 sm:p-8">
-      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 sm:mb-6">
-        <h2 className="font-display text-xl leading-snug sm:text-2xl">{title}</h2>
-        {meta ? <p className="text-sm text-muted-foreground">{meta}</p> : null}
-      </div>
-      {children}
-    </section>
   );
 }

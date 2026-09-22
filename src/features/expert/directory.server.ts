@@ -123,6 +123,8 @@ async function withProfiles(experts: ExpertSummary[]): Promise<ExpertSummary[]> 
           academicTitle: profile.academicTitle ?? null,
           department: profile.department ?? null,
           headline: profile.headline ?? null,
+          yearsExperience: profile.yearsExperience ?? null,
+          expertiseCategoryIds: profile.expertiseCategoryIds ?? [],
         };
       }
     }

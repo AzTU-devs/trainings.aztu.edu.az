@@ -1,59 +1,53 @@
-import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 
-const NAVY = "/brand/aztu-mark.png";
-const WHITE = "/brand/aztu-mark-white.png";
+/**
+ * The AzTU shield as inline vector (the university's mark, traced), so it
+ * takes `currentColor`: navy on paper, warm ink at night, paper or gold on the
+ * navy spread — with no image request and no flash between schemes.
+ *
+ * Decorative (`aria-hidden`) unless `title` is given.
+ */
+export function Shield({ className, title }: { className?: string; title?: string }) {
+  return (
+    <svg
+      viewBox="0 0 276 512"
+      className={cn("shrink-0", className)}
+      role={title ? "img" : undefined}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
+      focusable="false"
+    >
+      <path fill="currentColor" d="M0 0 138 47 276 0v112H0Z" />
+      <path
+        fill="currentColor"
+        d="M0 195h97v158c0 9 3 14 10 19l31 24 31-24c7-5 10-10 10-19V195h97v201c0 38-15 62-47 80L138 512 57 476C15 458 0 434 0 396Z"
+      />
+    </svg>
+  );
+}
 
 /**
- * The AzTU shield.
- *
- * Both files are the university's own mark, trimmed to the glyph and put on
- * transparency — one navy for light surfaces, one white for the navy canvas.
- * The supplied source art is dark-on-white with an opaque background, which is
- * why it cannot simply be dropped onto a dark surface as-is.
- *
- * `tone="auto"` swaps on the colour scheme by rendering both and hiding one,
- * so no JavaScript is involved and there is no flash on first paint.
+ * The shield in a box the caller sizes (`size-*`); it letterboxes inside, so
+ * it keeps its proportions at any size. Kept for existing callers; new code
+ * uses `Shield` or `Logo`.
  */
 export function AztuMark({
   className,
   tone = "auto",
 }: {
   className?: string;
-  /** `onDeep` forces the white mark, for the navy canvas. */
+  /** `onDeep` is for the navy spread. */
   tone?: "auto" | "onDeep";
 }) {
-  // Callers size the box (they all pass `size-*`); the mark letterboxes inside
-  // it via object-contain, so the shield keeps its proportions at any size.
-  const box = cn("relative inline-block size-9 shrink-0", className);
-
-  if (tone === "onDeep") {
-    return (
-      <span className={box}>
-        <Image src={WHITE} alt="AzTU" fill sizes="64px" className="object-contain" priority />
-      </span>
-    );
-  }
-
   return (
-    <span className={box}>
-      <Image
-        src={NAVY}
-        alt="AzTU"
-        fill
-        sizes="64px"
-        className="object-contain dark:hidden"
-        priority
-      />
-      <Image
-        src={WHITE}
-        alt=""
-        aria-hidden
-        fill
-        sizes="64px"
-        className="hidden object-contain dark:block"
-        priority
-      />
+    <span
+      className={cn(
+        "inline-grid size-9 shrink-0 place-items-center",
+        tone === "onDeep" ? "text-spread-ink" : "text-shield",
+        className,
+      )}
+    >
+      <Shield className="h-full w-auto" title="AzTU" />
     </span>
   );
 }

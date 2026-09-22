@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { KeyRound } from "lucide-react";
 import { ResetPasswordForm } from "@/features/auth/components/ResetPasswordForm";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -30,7 +29,7 @@ export default async function ResetPasswordPage({ params, searchParams }: Props)
 
   return (
     <AuthCard
-      icon={<KeyRound />}
+      kicker={t("auth.kickerRecovery")}
       title={t("auth.resetTitle")}
       subtitle={t("auth.resetSubtitle")}
       footer={

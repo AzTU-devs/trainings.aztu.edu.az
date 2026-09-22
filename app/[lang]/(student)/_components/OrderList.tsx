@@ -1,7 +1,10 @@
-import { ReceiptText } from "lucide-react";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Check } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Tag } from "@/components/ui/badge";
 import { getT } from "@/i18n/server";
 import type { Locale } from "@/i18n/config";
+import { bakuDate, bakuTime, formatPrice } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/cn";
 
 // Mirrors the API's OrderDto (payment/web/dto/OrderDto.java). Only the fields
 // this page renders are declared; the rest of the record (userId, subtotal,
@@ -12,88 +15,81 @@ export type Order = {
   orderNumber: string;
   status: string;
   // BigDecimal with no Jackson customization on the API side, so it arrives as
-  // a JSON number; price() below accepts either.
+  // a JSON number; formatPrice accepts either.
   total: string | number;
   currency: string;
   placedAt: string;
 };
 
 /** OrderStatus on the API: PENDING, PAID, FAILED, REFUNDED, CANCELLED. */
-const STATUS: Record<string, { key: string; variant: BadgeProps["variant"]; className?: string }> = {
+const STATUS: Record<string, { key: string; variant: "mono" | "gold"; icon?: LucideIcon; className?: string }> = {
   PENDING: { key: "student.orderStatusPending", variant: "gold" },
-  PAID: { key: "student.orderStatusPaid", variant: "success" },
-  FAILED: {
-    key: "student.orderStatusFailed",
-    variant: "outline",
-    className: "border-transparent bg-destructive/10 text-destructive",
-  },
-  REFUNDED: { key: "student.orderStatusRefunded", variant: "secondary" },
-  CANCELLED: { key: "student.orderStatusCancelled", variant: "secondary" },
+  PAID: { key: "student.orderStatusPaid", variant: "mono", icon: Check, className: "text-success" },
+  FAILED: { key: "student.orderStatusFailed", variant: "mono", className: "border-danger text-danger" },
+  REFUNDED: { key: "student.orderStatusRefunded", variant: "mono", className: "text-ink-3" },
+  CANCELLED: { key: "student.orderStatusCancelled", variant: "mono", className: "text-ink-3" },
 };
 
 /*
- * Amounts and dates are formatted in the page's language, not the server's
- * default, and times in Baku time — the university's clock.
+ * Dates and times in Baku time (the university's clock), built from the same
+ * month tables as the rest of the site (the shared bakuDate/bakuTime).
+ * Amounts use formatPrice, in the page's language.
  */
-function price(amount: string | number, currency: string, locale: string) {
-  const n = typeof amount === "string" ? Number(amount) : amount;
-  if (Number.isNaN(n)) return "";
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency,
-      maximumFractionDigits: n % 1 === 0 ? 0 : 2,
-    }).format(n);
-  } catch {
-    // An unknown currency code — show the number with the code beside it.
-    return `${new Intl.NumberFormat(locale).format(n)} ${currency}`;
-  }
+function placed(iso: string, locale: Locale) {
+  const date = bakuDate(iso, locale);
+  return date ? `${date}, ${bakuTime(iso)}` : "—";
 }
 
-function placed(iso: string, locale: string) {
-  const d = new Date(iso);
-  if (!iso || Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Baku",
-  }).format(d);
-}
-
+/**
+ * The order history as a hairline ledger: order number (mono), date, amount
+ * and status. The column heads are visual only; each row says its own values
+ * in reading order, and on phones the columns fold into two lines.
+ */
 export async function OrderList({ orders, locale }: { orders: Order[]; locale: Locale }) {
   const t = await getT(locale);
+  const cols = "sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.9fr)]";
 
   return (
-    <ul className="divide-y divide-border/70 overflow-hidden rounded-3xl border border-border/80 bg-card elev-1">
-      {orders.map((o) => {
-        const status = STATUS[o.status];
-        return (
-          <li key={o.id} className="flex items-center gap-4 px-5 py-4 sm:px-6">
-            <span
-              aria-hidden
-              className="hidden size-11 shrink-0 place-items-center rounded-2xl bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100 sm:grid"
+    <div>
+      <div
+        aria-hidden="true"
+        className={cn("t-kicker hidden gap-x-5 border-t border-line-strong py-3 text-ink-3 sm:grid", cols)}
+      >
+        <span>{t("student.orderIndexNumber")}</span>
+        <span>{t("student.orderIndexDate")}</span>
+        <span className="text-right">{t("student.orderIndexTotal")}</span>
+        <span className="text-right">{t("student.indexStatus")}</span>
+      </div>
+      <ul className="border-y border-line-strong sm:border-t-line">
+        {orders.map((o) => {
+          const status = STATUS[o.status];
+          return (
+            <li
+              key={o.id}
+              className={cn(
+                "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-5 gap-y-1.5 border-t border-line py-4 first:border-t-0",
+                cols,
+              )}
             >
-              <ReceiptText className="size-5" />
-            </span>
-            <div className="min-w-0 flex-1 space-y-1">
-              <p className="text-[15px] font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">
-                {t("student.orderNumber", { number: o.orderNumber || o.id })}
+              <p className="min-w-0 font-mono text-sm text-ink [overflow-wrap:anywhere]">
+                <span className="sr-only">{t("student.orderIndexNumber")}: </span>
+                {o.orderNumber || o.id}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="t-meta col-start-1 row-start-2 sm:col-start-auto sm:row-start-auto sm:text-[15px] sm:text-ink-2">
                 {o.placedAt ? placed(o.placedAt, locale) : "—"}
               </p>
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-1.5 text-right">
-              <span className="font-display text-lg leading-none tabular-nums">
-                {price(o.total, o.currency, locale)}
-              </span>
-              <Badge variant={status?.variant ?? "secondary"} className={status?.className}>
-                {status ? t(status.key) : o.status}
-              </Badge>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+              <p className="col-start-2 row-start-1 text-right font-semibold tabular-nums text-ink sm:col-start-auto sm:row-start-auto">
+                {formatPrice(o.total, o.currency, locale)}
+              </p>
+              <div className="col-start-2 row-start-2 text-right sm:col-start-auto sm:row-start-auto">
+                <Tag variant={status?.variant ?? "mono"} icon={status?.icon} className={status?.className}>
+                  {status ? t(status.key) : o.status}
+                </Tag>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

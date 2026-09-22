@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { UserPlus } from "lucide-react";
 import { RegisterForm } from "@/features/auth/components/RegisterForm";
 import { RegisterRoleTabs } from "@/features/auth/components/RegisterRoleTabs";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
-import { AuthCard, AuthFooterLink } from "../_components/AuthCard";
+import { AuthCard, AuthLinks } from "../_components/AuthCard";
 
 type Props = { params: Promise<{ lang: string }> };
 
@@ -27,25 +26,30 @@ export default async function RegisterPage({ params }: Props) {
   // sign-in page).
   return (
     <AuthCard
-      size="wide"
-      icon={<UserPlus />}
+      kicker={t("auth.kickerRegister")}
       title={t("auth.registerTitle")}
       subtitle={t("auth.registerSubtitle")}
       footer={
-        <p>
-          {t("auth.hasAccount")}{" "}
-          <AuthFooterLink href={localeHref(locale, "/login")}>{t("common.signIn")}</AuthFooterLink>
-        </p>
+        <AuthLinks
+          items={[
+            {
+              label: t("auth.hasAccount"),
+              href: localeHref(locale, "/login"),
+              cta: t("common.signIn"),
+            },
+          ]}
+        />
       }
     >
       <RegisterRoleTabs
         locale={locale}
         active="student"
+        label={t("auth.roleLabel")}
         studentLabel={t("auth.studentTab")}
         tutorLabel={t("auth.tutorTab")}
       />
 
-      <div className="mt-7">
+      <div className="mt-8">
         <RegisterForm />
       </div>
     </AuthCard>

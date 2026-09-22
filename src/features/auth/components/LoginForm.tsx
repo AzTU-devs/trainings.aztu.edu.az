@@ -1,21 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { ArrowRight } from "lucide-react";
 import { loginSchema, type LoginInput } from "../schemas";
 import { useLogin, useLogout } from "../hooks";
-import { FieldError } from "./FieldError";
+import { FieldError, FormAlert, PasswordInput, readAuthError } from "./FieldError";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT, useLocale } from "@/i18n/client";
 import { localeHref } from "@/i18n/href";
 import { env } from "@/lib/env";
 import { isPortalUser } from "@/lib/auth/roles";
-import type { ApiError } from "@/types/api";
 
 /**
  * The post-login destination from ?next=, only if it is a path on this site.
@@ -40,13 +42,17 @@ export function LoginForm() {
   const next = safeNext(params.get("next")) ?? localeHref(locale, "/dashboard");
   const login = useLogin();
   const logout = useLogout();
+  // The form-level error. It is cleared on each submit, so a retry that fails
+  // the same way inserts the alert afresh and is announced again.
+  const [failure, setFailure] = useState<string | null>(null);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  const onSubmit = (values: LoginInput) =>
+  const onSubmit = (values: LoginInput) => {
+    setFailure(null);
     login.mutate(values, {
       onSuccess: (data) => {
         // Tutors / admins belong to the portal app, not the public site.
@@ -60,61 +66,58 @@ export function LoginForm() {
         router.replace(next);
       },
       onError: (error) => {
-        const err = error as unknown as ApiError;
-        if (err.errors) {
-          for (const fe of err.errors) {
-            form.setError(fe.field as keyof LoginInput, { message: fe.message });
-          }
+        const { message, fields } = readAuthError(error, t, {
+          byCode: { INVALID_CREDENTIALS: "auth.invalidCredentials" },
+          byStatus: { 401: "auth.invalidCredentials" },
+          fallback: "auth.loginFailed",
+        });
+        for (const fe of fields) {
+          form.setError(fe.field as keyof LoginInput, { type: "server", message: fe.message });
         }
-        toast.error(err.message ?? t("auth.loginFailed"));
+        setFailure(message);
       },
     });
+  };
 
   const { errors } = form.formState;
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="email">{t("auth.email")}</Label>
+    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
+      <Field id="email" label={t("auth.email")}>
         <Input
           id="email"
           type="email"
           autoComplete="email"
           aria-invalid={errors.email ? true : undefined}
-          className={invalidField}
           {...form.register("email")}
         />
         <FieldError error={errors.email} />
-      </div>
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-3">
+      </Field>
+      <div className="grid gap-2">
+        <div className="flex items-baseline justify-between gap-3">
           <Label htmlFor="password">{t("auth.password")}</Label>
           <Link
             href={localeHref(locale, "/forgot-password")}
             // The padding grows the tap target to 40px; the negative margin
             // keeps the label row at its text height.
-            className="-my-2.5 inline-flex items-center py-2.5 text-[13px] font-medium text-primary underline-offset-4 hover:underline"
+            className="link -my-2.5 py-2.5 text-sm text-ink-2"
           >
             {t("auth.forgotLink")}
           </Link>
         </div>
-        <Input
+        <PasswordInput
           id="password"
-          type="password"
           autoComplete="current-password"
           aria-invalid={errors.password ? true : undefined}
-          className={invalidField}
           {...form.register("password")}
         />
         <FieldError error={errors.password} />
       </div>
-      <Button type="submit" size="lg" className="mt-2 w-full" loading={login.isPending}>
+      <FormAlert message={failure} />
+      <Button type="submit" className="mt-2 w-full" loading={login.isPending}>
         {t("common.signIn")}
+        <ArrowRight data-go aria-hidden="true" strokeWidth={1.75} />
       </Button>
     </form>
   );
 }
-
-/** A field with an error gets a red edge, so the problem is visible at the input itself. */
-const invalidField =
-  "aria-[invalid=true]:border-destructive/60 aria-[invalid=true]:focus-visible:ring-destructive/15";

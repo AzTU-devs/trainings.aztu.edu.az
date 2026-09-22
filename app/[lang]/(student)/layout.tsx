@@ -27,19 +27,21 @@ export default async function StudentLayout({ children, params }: Props) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <a
-        href="#main"
-        className="sr-only z-[60] rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground elev-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
-      >
+      <a href="#main" className="skip-link">
         {t("nav.skipToContent")}
       </a>
       <Header />
-      {/* The same container as the floating header, so the sidebar card lines
-          up under the logo and the content under the search field. Below md
-          the sidebar becomes a pill strip stacked above the content. */}
-      <div className="container-fluid flex flex-1 flex-col gap-6 pb-16 pt-6 md:flex-row md:gap-8 md:pt-8 lg:gap-10">
+      {/* The account area sits on the same 12-column grid as the public
+          pages: the section index in columns 1–3 (a scrolling strip of pills
+          above the content below 1024), the page itself from column 5 — the
+          empty fourth column is the gutter that keeps it reading like a page
+          rather than a control panel. */}
+      <div className="wrap g12 w-full flex-1 content-start gap-y-8 pb-20 pt-5 lg:pb-28 lg:pt-10">
         <StudentSidebar />
-        <main id="main" className="min-w-0 flex-1">
+        <main
+          id="main"
+          className="col-span-4 min-w-0 md:col-span-8 lg:col-span-9 lg:col-start-4 xl:col-span-8 xl:col-start-5"
+        >
           {children}
         </main>
       </div>

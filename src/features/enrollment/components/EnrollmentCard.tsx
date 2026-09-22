@@ -1,42 +1,18 @@
 "use client";
 
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { Tag } from "@/components/ui/badge";
+import { Kicker } from "@/components/editorial/Kicker";
+import { CourseCover } from "@/components/cover/CourseCover";
+import { catAttrs, type CategoryRef } from "@/features/category/style";
+import { FORMAT_KEY } from "@/features/course/format";
+import type { CourseType } from "@/features/course/types";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { useLocale, useT } from "@/i18n/client";
+import { bakuDate } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { Enrollment, EnrollmentStatus } from "../types";
-
-/*
- * An enrolment carries no thumbnail, so the card draws the same kind of cover
- * the catalogue uses for a course without one: a navy gradient picked from a
- * fixed family by hashing the course id, with the title's initials on top.
- * The same course therefore gets the same cover on every visit.
- */
-const COVERS = [
-  "from-navy-500 via-navy-700 to-navy-950",
-  "from-navy-600 via-navy-800 to-[#0b2545]",
-  "from-[#1f6d8c] via-navy-700 to-navy-950",
-  "from-navy-400 via-navy-700 to-navy-950",
-  "from-[#2a5f7a] via-navy-800 to-navy-950",
-  "from-navy-500 via-[#123f73] to-navy-900",
-] as const;
-
-function coverFor(seed: string) {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
-  return COVERS[Math.abs(h) % COVERS.length];
-}
-
-function initialsOf(text: string) {
-  return text
-    .split(/\s+/)
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 const STATUS_KEYS: Record<EnrollmentStatus, string> = {
   ACTIVE: "student.statusActive",
@@ -46,49 +22,47 @@ const STATUS_KEYS: Record<EnrollmentStatus, string> = {
   REFUNDED: "student.statusRefunded",
 };
 
-/*
- * Dates are written out by hand for Azerbaijani rather than through Intl. The
- * card renders on the server (Node, full ICU data) and again in the browser,
- * and some browsers ship without Azerbaijani date data: they print
- * "2026 M09 20" where Node prints "20 sen 2026", and the two renders
- * disagree. Day.month.year is how dates are usually written in Azerbaijan and
- * reads the same everywhere; every engine carries English, so that keeps Intl.
- * Both are pinned to Baku time (UTC+4 all year) so neither side of midnight
- * can shift the day.
+/**
+ * What the catalogue knows about an enrolled course. An enrolment carries only
+ * the course id and title, so the page looks the course up in the published
+ * catalogue (see DashboardView's `loadEnrolledCourses`) to draw the same
+ * poster the course has everywhere else. Every field may be missing — an
+ * unpublished course falls back to the navy "brand" poster seeded by its id.
  */
-const BAKU_OFFSET_MS = 4 * 60 * 60 * 1000;
+export type EnrolledCourseMeta = {
+  slug?: string | null;
+  category?: CategoryRef | null;
+  photoUrl?: string | null;
+  courseType?: CourseType | null;
+};
 
-function shortDate(iso: string | null | undefined, locale: string) {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  if (locale === "en") {
-    return new Intl.DateTimeFormat("en", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      timeZone: "Asia/Baku",
-    }).format(d);
-  }
-  const baku = new Date(d.getTime() + BAKU_OFFSET_MS);
-  const dd = String(baku.getUTCDate()).padStart(2, "0");
-  const mm = String(baku.getUTCMonth() + 1).padStart(2, "0");
-  return `${dd}.${mm}.${baku.getUTCFullYear()}`;
-}
+/*
+ * Dates come from bakuDate (month tables, Baku calendar), never Intl: the card
+ * renders on the server and again in the browser, and browsers without
+ * Azerbaijani date data would print something else — a hydration mismatch.
+ * Baku, not UTC, so a course opened just after midnight is dated that day.
+ */
 
-/** Frosted pill laid over the cover. */
-const GLASS =
-  "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold backdrop-blur-md";
-
+/**
+ * One enrolment. `row` (default) is an index row for "Kurslarım" and the
+ * dashboard list: number, 72px poster, title, progress meter, status and an
+ * arrow. `featured` is the dashboard's "Davam edin" cover story. Either way
+ * the whole thing is one link into the player.
+ */
 export function EnrollmentCard({
   enrollment,
   courseSlug,
   featured = false,
+  course,
+  number,
 }: {
   enrollment: Enrollment;
   courseSlug?: string;
-  /** The wide "pick up where you left off" card at the top of the dashboard. */
+  /** The wide "pick up where you left off" block at the top of the dashboard. */
   featured?: boolean;
+  course?: EnrolledCourseMeta;
+  /** Row number, already padded ("01"). */
+  number?: string;
 }) {
   const t = useT();
   const locale = useLocale();
@@ -96,141 +70,149 @@ export function EnrollmentCard({
   const percent = Math.min(100, Math.max(0, Math.round(enrollment.progressPercent ?? 0)));
   const completed = enrollment.status === "COMPLETED";
   const statusLabel = t(STATUS_KEYS[enrollment.status] ?? "student.statusActive");
-  const lastOpened = shortDate(enrollment.lastAccessedAt, locale);
-  const enrolledOn = shortDate(enrollment.enrolledAt, locale);
+  const lastOpened = bakuDate(enrollment.lastAccessedAt, locale);
+  const enrolledOn = bakuDate(enrollment.enrolledAt, locale);
   const meta = lastOpened
     ? t("student.lastOpened", { date: lastOpened })
     : enrolledOn
       ? t("student.enrolledOn", { date: enrolledOn })
       : null;
-  const cta = completed
-    ? t("student.review")
-    : percent > 0
-      ? t("student.continue")
-      : t("student.start");
+  const cta = completed ? t("student.review") : percent > 0 ? t("student.continue") : t("student.start");
+  const category = course?.category ?? null;
+  const percentLabel = t("student.percent", { n: percent });
+
+  // In progress is the ordinary state — the meter already says it — so only
+  // the other states get a tag: completed (gold, with a check), awaiting
+  // payment, cancelled, refunded.
+  const status = enrollment.status === "ACTIVE" ? null : (
+    <Tag
+      variant={completed ? "gold" : "mono"}
+      icon={completed ? Check : undefined}
+      className={cn(!completed && "text-ink-3")}
+    >
+      {statusLabel}
+    </Tag>
+  );
+
+  // The bar is decoration: the same figure is printed beside it, and the full
+  // sentence ("50% complete") is there for screen readers. The track is the
+  // prototype's warm paper-2, so a 0% row reads as empty rather than as a
+  // filled grey bar; on night paper paper-2 all but vanishes (a 4% bar would
+  // be a gold dot floating in nothing), so the dark edition uses the soft
+  // hairline instead. A hovered row is itself paper-2, hence the hairline there.
+  const meter = (
+    <div className="flex items-center gap-3">
+      <span aria-hidden="true" className="w-11 shrink-0 font-mono text-xs tabular-nums text-ink-2">
+        {percentLabel}
+      </span>
+      <span aria-hidden="true" className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-paper-2 group-hover:bg-line dark:bg-line">
+        <span className="block h-full rounded-full bg-gold" style={{ width: `${percent}%` }} />
+      </span>
+      <span className="sr-only">{t("student.progress", { percent })}</span>
+    </div>
+  );
+
+  if (featured) {
+    return (
+      <LocaleLink
+        href={`/learn/${slug}`}
+        className="group grid gap-x-(--gutter) gap-y-6 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]"
+      >
+        <CourseCover
+          courseId={enrollment.courseId}
+          category={category}
+          photoUrl={course?.photoUrl}
+          ratio="16 / 10"
+          labels={
+            course?.courseType
+              ? { left: category?.short ?? "AzTU EduPlatform", right: t(FORMAT_KEY[course.courseType]) }
+              : null
+          }
+          sizes="(max-width: 768px) 100vw, 520px"
+          priority
+        />
+        <div {...catAttrs(category)} className="flex min-w-0 flex-col">
+          {category ? (
+            <Kicker tone="cat">{category.name}</Kicker>
+          ) : (
+            <Kicker tone="gold">{t("student.resumeEyebrow")}</Kicker>
+          )}
+          <h3 className="t-title-l mt-3 decoration-gold decoration-2 underline-offset-[0.14em] group-hover:underline">
+            {enrollment.courseTitle}
+          </h3>
+          {meta ? <p className="t-meta mt-3">{meta}</p> : null}
+          {/* Pinned to the bottom of the cover when the text is short; the
+              padding keeps a gap above the rule when a long title makes the
+              text column the taller one. */}
+          <div className="mt-8 md:mt-auto md:pt-6">
+            <div className="flex items-center justify-between gap-3 border-t border-line pt-4">
+              <Kicker as="span" tone="ink-3">
+                {t("student.indexProgress")}
+              </Kicker>
+              {status}
+            </div>
+            {/* The feature says it in full ("50% tamamlanıb"); rows use the short figure. */}
+            <p className="mt-3 font-mono text-xs tabular-nums text-ink-2">{t("student.progress", { percent })}</p>
+            <span aria-hidden="true" className="mt-2 block h-1.5 overflow-hidden rounded-full bg-paper-2 dark:bg-line">
+              <span className="block h-full rounded-full bg-gold" style={{ width: `${percent}%` }} />
+            </span>
+            <span
+              className={cn(buttonVariants({ size: "lg" }), "pointer-events-none mt-6 w-full sm:w-auto")}
+            >
+              {cta}
+              <ArrowRight aria-hidden="true" data-go />
+            </span>
+          </div>
+        </div>
+      </LocaleLink>
+    );
+  }
 
   return (
     <LocaleLink
       href={`/learn/${slug}`}
       className={cn(
-        "@container group flex h-full flex-col rounded-3xl border border-border/80 bg-card p-2 elev-1 transition duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:elev-3 motion-reduce:transition-none motion-reduce:hover:translate-y-0",
-        featured && "sm:grid sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:gap-2",
+        "group grid grid-cols-[64px_minmax(0,1fr)_20px] items-center gap-x-4 gap-y-3 py-4 transition-colors duration-(--dur-1) hover:bg-paper-2/60",
+        "sm:grid-cols-[28px_72px_minmax(0,1fr)_minmax(150px,200px)_20px] sm:gap-x-5 sm:py-5",
       )}
     >
-      <div
-        className={cn(
-          "relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-gradient-to-br",
-          featured && "sm:aspect-auto sm:h-full sm:min-h-56",
-          coverFor(enrollment.courseId),
-        )}
-      >
-        <CoverArt initials={initialsOf(enrollment.courseTitle)} />
-        <div className="absolute left-2.5 top-2.5">
-          <span
-            className={cn(
-              GLASS,
-              completed
-                ? "bg-white/90 text-emerald-700 ring-1 ring-inset ring-white/60 dark:bg-navy-950/70 dark:text-emerald-300 dark:ring-white/15"
-                : "bg-black/30 text-white ring-1 ring-inset ring-white/20",
-            )}
-          >
-            {completed ? (
-              <CheckCircle2 aria-hidden className="size-3.5" />
-            ) : (
-              <span aria-hidden className="size-1.5 rounded-full bg-gold-300" />
-            )}
-            {statusLabel}
-          </span>
-        </div>
-      </div>
-
-      <div className={cn("flex flex-1 flex-col px-3 pb-3 pt-4", featured && "sm:px-5 sm:py-5")}>
-        {featured ? (
-          <span className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-            <span aria-hidden className="size-1.5 rounded-full bg-gold-500" />
-            {t("student.resumeEyebrow")}
-          </span>
+      {number ? (
+        <span aria-hidden="true" className="hidden font-mono text-xs text-ink-3 sm:block">
+          {number}
+        </span>
+      ) : (
+        <span aria-hidden="true" className="hidden sm:block" />
+      )}
+      <CourseCover
+        courseId={enrollment.courseId}
+        category={category}
+        photoUrl={course?.photoUrl}
+        variant="thumb"
+        ratio="1 / 1"
+        sizes="72px"
+      />
+      <div {...catAttrs(category)} className="min-w-0">
+        {category ? (
+          <Kicker as="span" tone="cat" className="mb-1.5 block truncate">
+            {category.name}
+          </Kicker>
         ) : null}
-        <h3
-          className={cn(
-            "line-clamp-2 font-display leading-snug text-foreground transition-colors group-hover:text-primary",
-            featured ? "text-xl sm:text-2xl" : "text-lg",
-          )}
-        >
+        <h3 className="t-card text-[1.0625rem] decoration-gold decoration-2 underline-offset-[0.16em] group-hover:underline sm:text-[1.125rem]">
           {enrollment.courseTitle}
         </h3>
-        {meta ? <p className="mt-1.5 text-[13px] text-muted-foreground">{meta}</p> : null}
-
-        <div className="mt-auto pt-5">
-          <div className="flex items-baseline justify-between gap-3 text-[13px]">
-            <span className="font-medium text-foreground">
-              {t("student.progress", { percent })}
-            </span>
-          </div>
-          <div
-            aria-hidden
-            className={cn(
-              "mt-2 w-full overflow-hidden rounded-full bg-muted dark:bg-white/[0.08]",
-              featured ? "h-2.5" : "h-2",
-            )}
-          >
-            <div
-              className={cn(
-                "h-full rounded-full transition-[width] duration-500",
-                completed ? "bg-emerald-500" : "bg-primary",
-              )}
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-
-          <div className="mt-4 flex items-center justify-end border-t border-border/80 pt-3.5">
-            <span
-              className={cn(
-                buttonVariants({ variant: featured ? "default" : "soft", size: "sm" }),
-                "pointer-events-none",
-              )}
-            >
-              {cta}
-              <ArrowRight
-                aria-hidden
-                className="transition-transform duration-200 group-hover:translate-x-0.5"
-              />
-            </span>
-          </div>
-        </div>
+        {meta ? <p className="t-meta mt-1">{meta}</p> : null}
       </div>
+      {/* Phones: the meter and the status share one line under the title. */}
+      <div className="col-span-2 col-start-2 flex items-center gap-4 sm:col-span-1 sm:col-start-auto sm:grid sm:gap-2.5">
+        <div className="min-w-0 flex-1">{meter}</div>
+        <div className="shrink-0">{status}</div>
+      </div>
+      <ArrowRight
+        aria-hidden="true"
+        strokeWidth={1.75}
+        className="col-start-3 row-start-1 size-5 text-ink-3 transition-transform duration-(--dur-2) group-hover:translate-x-[3px] group-hover:text-ink sm:col-start-auto sm:row-start-auto"
+      />
+      <span className="sr-only">{cta}</span>
     </LocaleLink>
-  );
-}
-
-/**
- * The generated cover — the same composition as the catalogue card's: two
- * soft washes of light over the gradient, and the initials in a frosted
- * squircle.
- */
-function CoverArt({ initials }: { initials: string }) {
-  return (
-    <>
-      <span
-        aria-hidden
-        className="absolute -right-10 -top-14 size-48 rounded-full bg-[radial-gradient(circle,rgba(200,169,81,0.45)_0%,transparent_65%)] blur-2xl"
-      />
-      <span
-        aria-hidden
-        className="absolute -bottom-20 -left-12 size-56 rounded-full bg-[radial-gradient(circle,rgba(66,118,179,0.55)_0%,transparent_65%)] blur-2xl"
-      />
-      <span
-        aria-hidden
-        className="absolute inset-0 bg-[image:var(--grain)] opacity-70 mix-blend-soft-light"
-      />
-      <span
-        aria-hidden
-        className="absolute inset-0 grid place-items-center pt-4 transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transition-none"
-      >
-        <span className="grid size-12 place-items-center rounded-2xl bg-white/10 font-display text-lg text-white shadow-[inset_0_1px_0_0_rgb(255_255_255/0.25),0_16px_32px_-12px_rgb(0_6_16/0.6)] ring-1 ring-inset ring-white/20 backdrop-blur-sm @min-[17rem]:size-16 @min-[17rem]:text-2xl">
-          {initials}
-        </span>
-      </span>
-    </>
   );
 }

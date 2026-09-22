@@ -1,0 +1,79 @@
+/* The masthead headline: each line rises out of its own clip box, then the
+   picture tiles set inside the words grow to their width. Pure CSS keyframes
+   (no JS), so the first paint already holds the start state and nothing above
+   the fold ever flashes visible -> hidden -> visible. */
+
+.line {
+  display: block;
+  overflow: clip;
+  /* room for the italic descenders and the highlighter band under "acIq." */
+  overflow-clip-margin: 0.14em;
+  padding-bottom: 0.04em;
+}
+.line > span {
+  display: inline-block;
+  animation: rise 1000ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 110ms + 80ms);
+}
+
+.tile {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: -0.04em;
+  height: 0.74em;
+  width: var(--w, 1.3em);
+  margin-inline: 0.04em 0.1em;
+  border-radius: 0.08em;
+  background: var(--cv-bg);
+  animation: grow 1100ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 110ms + 520ms);
+}
+/* The wide engineering tile only from 640px: at 390 the line has room for one. */
+.wide { display: none; }
+@media (min-width: 640px) {
+  .wide { display: inline-block; }
+}
+
+/* The AzTU seal: the gold shield on university navy with an inset hairline. */
+.seal { background: #003876; }
+.seal::after {
+  content: "";
+  position: absolute;
+  inset: 0.06em;
+  border: 1px solid rgb(200 169 81 / 0.45);
+  border-radius: 0.05em;
+}
+.sealMark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 64%;
+  width: auto;
+  transform: translate(-50%, -50%);
+  color: var(--c-gold);
+}
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme="light"])) .seal {
+    background: #0b2d5c;
+    box-shadow: inset 0 0 0 1px rgb(238 232 220 / 0.14);
+  }
+}
+:global(:root[data-theme="dark"]) .seal {
+  background: #0b2d5c;
+  box-shadow: inset 0 0 0 1px rgb(238 232 220 / 0.14);
+}
+
+@keyframes rise {
+  from { transform: translateY(105%); }
+  to { transform: none; }
+}
+@keyframes grow {
+  from { width: 0; }
+  to { width: var(--w, 1.3em); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line > span,
+  .tile { animation: none; }
+}

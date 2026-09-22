@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { GraduationCap, ShieldCheck } from "lucide-react";
 import { TutorRegisterForm } from "@/features/auth/components/TutorRegisterForm";
 import { RegisterRoleTabs } from "@/features/auth/components/RegisterRoleTabs";
+import { Note } from "@/components/editorial/Note";
 import { categoryServerApi } from "@/features/category/api.server";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
-import { AuthCard, AuthFooterLink } from "../../_components/AuthCard";
+import { AuthCard, AuthLinks } from "../../_components/AuthCard";
 
 type Props = { params: Promise<{ lang: string }> };
 
@@ -28,30 +28,34 @@ export default async function TutorRegisterPage({ params }: Props) {
 
   return (
     <AuthCard
-      size="wide"
-      icon={<GraduationCap />}
+      kicker={t("auth.kickerTutor")}
       title={t("auth.tutorRegisterTitle")}
       subtitle={t("auth.tutorRegisterSubtitle")}
       footer={
-        <p>
-          {t("auth.hasAccount")}{" "}
-          <AuthFooterLink href={localeHref(locale, "/login")}>{t("common.signIn")}</AuthFooterLink>
-        </p>
+        <AuthLinks
+          items={[
+            {
+              label: t("auth.hasAccount"),
+              href: localeHref(locale, "/login"),
+              cta: t("common.signIn"),
+            },
+          ]}
+        />
       }
     >
       <RegisterRoleTabs
         locale={locale}
         active="tutor"
+        label={t("auth.roleLabel")}
         studentLabel={t("auth.studentTab")}
         tutorLabel={t("auth.tutorTab")}
       />
 
-      <div className="mt-6 flex items-start gap-3 rounded-2xl bg-navy-50/70 p-4 text-sm leading-relaxed text-navy-800 ring-1 ring-inset ring-navy-100 dark:bg-navy-900/40 dark:text-navy-100 dark:ring-navy-800/70">
-        <ShieldCheck className="mt-0.5 size-[18px] shrink-0" aria-hidden />
-        <p>{t("auth.tutorApprovalNote")}</p>
-      </div>
+      {/* What happens after the form, said before it: the account waits for
+          an admin, and publishing happens in the portal. */}
+      <Note className="mt-8">{t("auth.tutorApprovalNote")}</Note>
 
-      <div className="mt-8">
+      <div className="mt-10">
         <TutorRegisterForm categories={categories ?? []} />
       </div>
     </AuthCard>

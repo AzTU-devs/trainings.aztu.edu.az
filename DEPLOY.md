@@ -3,16 +3,25 @@
 Next.js 16 App Router, `output: "standalone"`. The image runs the traced minimal
 server (`node server.js`) as a non-root user on port 3000.
 
+On the server, use the compose file. It takes the build args from `.env`,
+refuses to build if a required one is missing, and pins `INTERNAL_API_URL` to
+the API on loopback:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+The image on its own:
+
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
   --build-arg NEXT_PUBLIC_SITE_URL=https://example.com \
   --build-arg NEXT_PUBLIC_PORTAL_URL=https://portal.example.com \
-  --build-arg NEXT_PUBLIC_WS_URL=wss://api.example.com/ws/notifications \
   -t eduplatform-frontend:latest .
 
-docker run -p 3000:3000 -e INTERNAL_API_URL=http://backend:8080 \
-  -e REVALIDATE_SECRET=... eduplatform-frontend:latest
+docker run -p 127.0.0.1:3000:3000 -e INTERNAL_API_URL=http://backend:8080 \
+  eduplatform-frontend:latest
 ```
 
 ## Build-time vs runtime env — this is the part that bites
@@ -24,34 +33,41 @@ environment**.
 
 | Build arg (`--build-arg`) | Default | Purpose |
 | --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:8080` | Browser → backend origin |
-| `NEXT_PUBLIC_WS_URL` | `ws://localhost:8080/ws/notifications` | STOMP notifications socket |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Canonical/OG URLs |
-| `NEXT_PUBLIC_PORTAL_URL` | `http://localhost:3001` | Tutor/admin portal link target |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8080` | Browser → backend origin. **Required** by `docker-compose.prod.yml`. |
+| `NEXT_PUBLIC_WS_URL` | *(blank)* | STOMP notifications socket. Blank derives `ws(s)://<NEXT_PUBLIC_API_URL host>/ws`, which is right for this platform. If you set it, the path must be exactly `/ws`: the old default `/ws/notifications` is a 404 on the backend, and notifications then fail with no visible error. |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Canonical/OG URLs. **Required** by `docker-compose.prod.yml`. |
+| `NEXT_PUBLIC_PORTAL_URL` | `http://localhost:3001` | Tutor/admin portal link target. **Required** by `docker-compose.prod.yml`. |
 | `NEXT_PUBLIC_DEFAULT_LOCALE` | `en` | Fallback for locale negotiation |
 | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | *(empty)* | See multi-replica note below |
 
 | Runtime env (`-e` / `environment:`) | Purpose |
 | --- | --- |
-| `INTERNAL_API_URL` | Server-side (RSC + proxy token refresh) backend URL, including the scheme. Inside a container network this is the **service name**, e.g. `http://backend:8080` — not `localhost`. Under `docker-compose.prod.yml` (host networking) it is `http://127.0.0.1:8080`. |
-| `REVALIDATE_SECRET` | Shared secret for on-demand revalidation. |
-| `SENTRY_DSN` | Optional. An empty `SENTRY_DSN=` (the `.env.example` default) is the same as leaving it out. |
+| `INTERNAL_API_URL` | Server-side (RSC, the auth BFF, the proxy's token refresh) backend URL, including the scheme. Inside a container network this is the **service name**, e.g. `http://backend:8080` — not `localhost`. `docker-compose.prod.yml` sets it to `http://127.0.0.1:8080` under `environment:`, which a value in `.env` cannot override. Never the API's public hostname on the server: without hairpin NAT every server render and sign-in hangs, and all visitors' server-side calls share one API rate-limit bucket. It is a valid URL, so nothing warns. |
+| `REVALIDATE_SECRET` | Optional, and unused for now: `src/lib/env.ts` validates it, but no route performs on-demand revalidation. |
 | `PORT` / `HOSTNAME` | Preset to `3000` / `0.0.0.0` in the image. |
+
+There is no error reporting. `SENTRY_DSN` was listed here, but nothing sends to
+Sentry (the SDK is not installed), so the variable is gone from the compose files
+and `.env.example`. `src/lib/env.ts` still accepts it, harmlessly.
+
+Runtime values from `.env` are read when the container is created. After
+changing one, run `docker compose -f docker-compose.prod.yml up -d` (compose
+recreates the container); `docker compose restart` keeps the old values.
 
 `src/lib/env.ts` validates every variable above, and every `NEXT_PUBLIC_*`,
 **on its own**. An empty value means unset. An invalid value is logged once as
 `Invalid <NAME> (<rule>); treating it as unset.` and replaced by that variable's
 own default; the other variables are unaffected. The log never includes the
-value, because `SENTRY_DSN` and `REVALIDATE_SECRET` are secrets.
+value, because `REVALIDATE_SECRET` is a secret.
 
 This used to be all-or-nothing. An empty `SENTRY_DSN=` failed URL validation and
 the fallback discarded `INTERNAL_API_URL` along with it, so SSR and every
 `app/api/auth/*` route silently called the API through its public hostname (the
 server's own NAT hairpin) instead of `127.0.0.1:8080`. The client side had the
 same flaw: one bad `NEXT_PUBLIC_*` reset `NEXT_PUBLIC_API_URL` to
-`http://localhost:8080` in the browser bundle. An existing `.env` needs no
-change. If the log shows the warning for `INTERNAL_API_URL`, fix it, because
-until you do, server-side calls go to `NEXT_PUBLIC_API_URL`.
+`http://localhost:8080` in the browser bundle. If the log shows the warning for
+`INTERNAL_API_URL`, fix it, because until you do, server-side calls go to
+`NEXT_PUBLIC_API_URL`.
 
 ## Running more than one replica
 
@@ -79,8 +95,9 @@ redirected to `/en/api/health`.
 
 **No TLS configuration ships in this repo.** `docker-compose.prod.yml` uses
 `network_mode: host`, so the app binds `PORT` (3000) on the host over plain HTTP.
-Certificates, HSTS and the `http → https` redirect belong to the reverse proxy in
-front of it.
+Certificates, HSTS and the `http → https` redirect belong to the host nginx in
+front of it, whose config for all three hostnames is
+`deploy/nginx/trainings.conf` in the API repo.
 
 One requirement is easy to miss and fails silently:
 

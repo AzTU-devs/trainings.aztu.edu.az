@@ -1,0 +1,59 @@
+/* The closing "shelf": one poster spine per category with courses. A spine
+   widens when it is pointed at or focused; the vertical label is the
+   category's short name set on its own poster colour. */
+
+.shelf {
+  display: flex;
+  gap: 6px;
+  height: clamp(280px, 32vw, 440px);
+}
+@media (max-width: 767px) {
+  .shelf { height: 240px; gap: 4px; }
+}
+
+/* Where the shelf is narrow (a phone, or the five columns it gets at
+   1024–1279px) ten spines shrink to ~31px slivers whose labels cut off after
+   a few letters and the row reads as a barcode. Eight keep each spine about
+   40px wide, as in the prototype. Every field is still a link in §03 above. */
+@media (max-width: 639px), (min-width: 1024px) and (max-width: 1279px) {
+  .spine:nth-child(n + 9) { display: none; }
+}
+
+.spine {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 4px;
+  background: var(--cv-bg);
+  transition: flex-grow 700ms var(--ease-out);
+}
+.spine:hover,
+.spine:focus-visible { flex-grow: 3.2; }
+
+.label {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  max-height: calc(100% - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateX(-50%) rotate(180deg);
+  writing-mode: vertical-rl;
+  padding: 10px 5px;
+  border-radius: 2px;
+  background: var(--cv-bg);
+  color: var(--cv-fg);
+  font-family: var(--f-mono);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spine { transition: none; }
+}

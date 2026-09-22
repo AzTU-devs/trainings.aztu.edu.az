@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { RotateCcw, TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import { RotateCcw } from "lucide-react";
+import { Logo } from "@/components/layout/Logo";
+import { BlankPlate } from "@/components/editorial/BlankPlate";
+import { buttonVariants } from "@/components/ui/button";
 import { bodyClassName, htmlClassName } from "./fonts";
 import "./globals.css";
 
@@ -26,43 +30,38 @@ export default function GlobalError({
   return (
     <html lang="az" className={htmlClassName}>
       <body className={bodyClassName}>
-        <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 py-10 text-foreground">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-[36rem] bg-[radial-gradient(60%_60%_at_50%_0%,rgb(26_91_165/0.14),transparent_70%)] dark:bg-[radial-gradient(60%_60%_at_50%_0%,rgb(66_118_179/0.18),transparent_70%)]"
-          />
-
-          <div className="relative w-full max-w-lg rounded-4xl border border-border/80 bg-card p-2 elev-3">
-            <div className="surface-deep grid place-items-center rounded-3xl px-6 py-12">
-              <span className="grid size-20 place-items-center rounded-3xl bg-white/10 text-gold-200 ring-1 ring-inset ring-white/15">
-                <TriangleAlert aria-hidden className="size-9" strokeWidth={1.5} />
-              </span>
-            </div>
-
-            <div className="px-5 pb-6 pt-7 text-center sm:px-8 sm:pb-8">
-              <h1 className="font-display text-balance text-3xl leading-tight">Nəsə səhv getdi</h1>
-              <p lang="en" className="mt-1.5 text-lg font-semibold text-muted-foreground">
+        <div className="wrap flex h-[72px] w-full items-center">
+          <Link href="/" aria-label="AzTU EduPlatform">
+            <Logo />
+          </Link>
+        </div>
+        <main className="wrap w-full flex-1 pt-10 pb-24 lg:pt-16">
+          <div className="g12 gap-y-10 border-t border-line-strong pt-8 lg:pt-10">
+            <BlankPlate label="!" className="col-span-4 max-md:aspect-[5/2] md:col-span-3 lg:col-span-4" />
+            <div className="col-span-4 md:col-span-5 lg:col-span-7 lg:col-start-6">
+              <p className="t-kicker text-gold-ink">
+                Xəta · <span lang="en">Error</span>
+              </p>
+              <h1 className="t-display-xl mt-4">Nəsə səhv getdi</h1>
+              <p lang="en" className="t-title-l mt-3 text-ink-2">
                 Something went wrong
               </p>
-              <p className="mx-auto mt-4 max-w-sm text-[15px] leading-relaxed text-muted-foreground">
-                Gözlənilməz xəta baş verdi.{" "}
-                <span lang="en">An unexpected error occurred.</span>
-              </p>
-              <button
-                type="button"
-                onClick={reset}
-                className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-[15px] font-semibold text-primary-foreground shadow-[0_10px_24px_-12px_rgb(0_56_118/0.7)] transition-colors hover:bg-navy-600 dark:bg-navy-100 dark:text-navy-900 dark:hover:bg-white"
-              >
-                <RotateCcw aria-hidden className="size-4" />
+              <div className="t-body mt-6 max-w-[52ch] space-y-1">
+                <p>Gözlənilməz xəta baş verdi. Bir az sonra yenidən cəhd edin.</p>
+                <p lang="en">An unexpected error occurred. Please try again in a moment.</p>
+              </div>
+              {error.digest ? <p className="mt-3 font-mono text-xs text-ink-3">{error.digest}</p> : null}
+              <button type="button" onClick={reset} className={buttonVariants({ size: "lg", className: "mt-8" })}>
+                <RotateCcw aria-hidden="true" strokeWidth={1.75} />
                 <span>Yenidən cəhd edin</span>
-                <span aria-hidden className="opacity-40">
+                <span aria-hidden="true" className="opacity-50">
                   ·
                 </span>
                 <span lang="en">Try again</span>
               </button>
             </div>
           </div>
-        </div>
+        </main>
       </body>
     </html>
   );

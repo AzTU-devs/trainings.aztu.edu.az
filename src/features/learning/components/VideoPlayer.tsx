@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { VideoOff } from "lucide-react";
 import { useT } from "@/i18n/client";
 
@@ -10,6 +10,12 @@ type Props = {
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
   poster?: string | null;
+  /**
+   * What the stage shows when the lesson has no video. The player draws the
+   * course's own poster art here; without it, a plain night frame and the
+   * standard message.
+   */
+  fallback?: ReactNode;
 };
 
 const isHls = (url: string) => /\.m3u8(\?|$)/i.test(url);
@@ -20,6 +26,7 @@ export function VideoPlayer({
   onTimeUpdate,
   onEnded,
   poster,
+  fallback,
 }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const t = useT();
@@ -71,17 +78,20 @@ export function VideoPlayer({
   }, [src, initialPositionSec]);
 
   if (!src) {
+    if (fallback) return <>{fallback}</>;
+    // The stage is a dark screen in both editions, so its colours are fixed
+    // rather than theme tokens: the back-cover black, a step below the night
+    // paper (#0b1320), with a faint ring, so it keeps an edge in the dark
+    // edition instead of melting into the page.
     return (
-      <div className="surface-deep relative flex aspect-video w-full flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl px-6 text-center">
+      <div className="relative flex aspect-video w-full flex-col items-center justify-center gap-4 overflow-hidden bg-[#060b14] px-6 text-center shadow-[inset_0_0_0_1px_rgb(238_232_220/0.1)]">
         <span
-          aria-hidden
-          className="grid size-14 place-items-center rounded-2xl bg-white/10 text-gold-200 ring-1 ring-inset ring-white/15"
+          aria-hidden="true"
+          className="grid size-14 place-items-center rounded-full text-[#d6bb6a] shadow-[inset_0_0_0_1px_rgb(200_169_81/0.55)]"
         >
           <VideoOff className="size-6" strokeWidth={1.75} />
         </span>
-        <p className="max-w-sm text-sm leading-relaxed text-white/75 sm:text-[15px]">
-          {t("learn.videoUnavailable")}
-        </p>
+        <p className="max-w-sm text-[15px] leading-relaxed text-[#eee8dc]">{t("learn.videoUnavailable")}</p>
       </div>
     );
   }
@@ -93,7 +103,7 @@ export function VideoPlayer({
       preload="metadata"
       poster={poster ?? undefined}
       playsInline
-      className="block aspect-video w-full rounded-2xl bg-black"
+      className="block aspect-video w-full bg-black"
       onTimeUpdate={(e) => {
         const el = e.currentTarget;
         onTimeUpdate?.(el.currentTime, el.duration);

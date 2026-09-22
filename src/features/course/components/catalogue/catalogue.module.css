@@ -1,0 +1,115 @@
+/*
+ * Catalogue-only styles that read better as CSS than as inline utilities:
+ * the chip rail's phone scroll with edge fades, the sticky toolbar's frosted
+ * ground, and the filter sheet's entrance. Tokens come from globals.css and are
+ * never redefined here.
+ */
+
+/* Category chips: they wrap on wide screens; below 1024px they become one row
+   that scrolls sideways, bleeding to the screen edges, faded where it runs on,
+   so a long list costs one line of height on a phone. */
+.rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 1023px) {
+  .rail {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-inline: calc(var(--margin) * -1);
+    padding-inline: var(--margin);
+    scroll-padding-inline: var(--margin);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--margin), #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(90deg, transparent 0, #000 var(--margin), #000 calc(100% - 40px), transparent);
+  }
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* The toolbar sticks under the site header and follows it as it condenses
+   (72 to 60px), on a frosted paper ground so the posters read through it. */
+.toolbar {
+  position: sticky;
+  top: var(--hdr);
+  z-index: 20;
+  background: color-mix(in srgb, var(--c-paper) 90%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--c-line);
+  transition: top var(--dur-2) var(--ease-out);
+}
+
+/* The index list's rating cell holds either "★ 4,8" or the glossary's
+   "Hələ qiymət yoxdur" (the same words as the posters), which wraps to two
+   lines. The tracks below widen it so the break falls after "qiymət", taking
+   the room from the duration column, whose longest value ("12 s 30 dəq")
+   needs about 84px. */
+@media (min-width: 1280px) {
+  .index :global(.cindex:not(.compact) .crow),
+  .index :global(.cindex-head) {
+    grid-template-columns: 48px 96px minmax(0, 1fr) 190px 92px 132px 96px 104px 20px;
+  }
+}
+
+/* The index list's full table (globals .cindex) needs about 940px of fixed
+   columns, which leaves the title column a few pixels wide between 1024 and
+   1279px. In that range the expert column steps back into the row's sub-line
+   (where phones already show it) and the other columns tighten. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .index :global(.cindex:not(.compact) .crow),
+  .index :global(.cindex-head) {
+    grid-template-columns: 40px 80px minmax(0, 1fr) 84px 124px 88px 100px 20px;
+    gap: 16px;
+  }
+  .index :global(.cindex:not(.compact) .crow > :nth-child(4)),
+  .index :global(.cindex-head > :nth-child(4)) {
+    display: none;
+  }
+  .index :global(.cindex:not(.compact) .crow .sub .sm-only:last-child) {
+    display: inline;
+  }
+}
+
+/* Filter sheet (phones): the scrim fades, the body rises from the bottom. */
+.scrim {
+  animation: fade var(--dur-2) var(--ease-out);
+}
+.sheet {
+  animation: rise var(--dur-2) var(--ease-out);
+}
+/* Dropdown panels drop in a few pixels. */
+.pop {
+  animation: drop var(--dur-2) var(--ease-out);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rise {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+@keyframes drop {
+  from {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar {
+    transition: none;
+  }
+  .scrim,
+  .sheet,
+  .pop {
+    animation: none;
+  }
+}

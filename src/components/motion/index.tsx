@@ -13,8 +13,10 @@ import {
  *
  * Design goals:
  *  - SSR / no-JS / reduced-motion → content is fully visible (never hidden).
- *  - With JS → elements start hidden (set before first paint to avoid a flash)
- *    and fade/slide in when they scroll into view.
+ *  - With JS → elements below the fold start hidden (set before first paint)
+ *    and fade/slide in when they scroll into view. Anything already inside
+ *    the viewport at mount is never hidden: hiding it would flash visible →
+ *    hidden → visible above the fold.
  *  - Robust: an IntersectionObserver drives the reveal, but a timeout fallback
  *    guarantees content always becomes visible even if the observer never fires.
  */
@@ -22,10 +24,10 @@ import {
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 const OFFSETS = {
-  up: "translateY(28px)",
-  down: "translateY(-28px)",
-  left: "translateX(28px)",
-  right: "translateX(-28px)",
+  up: "translateY(18px)",
+  down: "translateY(-18px)",
+  left: "translateX(18px)",
+  right: "translateX(-18px)",
   none: "none",
 } as const;
 
@@ -40,6 +42,12 @@ function prefersReducedMotion() {
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
   );
+}
+
+/** Is any part of the element inside the viewport right now? */
+function inView(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  return r.top < window.innerHeight && r.bottom > 0;
 }
 
 function hide(el: HTMLElement, from: From, duration: number, delay: number) {
@@ -59,7 +67,7 @@ export function Reveal({
   children,
   from = "up",
   delay = 0,
-  duration = 0.7,
+  duration = 0.8,
   className,
   style,
 }: {
@@ -77,6 +85,7 @@ export function Reveal({
     if (!el || prefersReducedMotion()) return;
     // Ancient browsers without IntersectionObserver: keep content visible.
     if (!("IntersectionObserver" in window)) return;
+    if (inView(el)) return;
 
     hide(el, from, duration, delay);
     let done = false;
@@ -120,9 +129,9 @@ export function Reveal({
 export function Stagger({
   children,
   className,
-  stagger = 0.1,
+  stagger = 0.08,
   from = "up",
-  duration = 0.6,
+  duration = 0.8,
 }: {
   children: ReactNode;
   className?: string;
@@ -136,6 +145,7 @@ export function Stagger({
     const el = ref.current;
     if (!el || prefersReducedMotion()) return;
     if (!("IntersectionObserver" in window)) return;
+    if (inView(el)) return;
 
     const items = Array.from(el.children) as HTMLElement[];
     items.forEach((child, i) => hide(child, from, duration, i * stagger));

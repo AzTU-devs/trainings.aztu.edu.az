@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { KeyRound } from "lucide-react";
 import { ForgotPasswordForm } from "@/features/auth/components/ForgotPasswordForm";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -24,7 +23,7 @@ export default async function ForgotPasswordPage({ params }: Props) {
 
   return (
     <AuthCard
-      icon={<KeyRound />}
+      kicker={t("auth.kickerRecovery")}
       title={t("auth.forgotTitle")}
       subtitle={t("auth.forgotSubtitle")}
       footer={
@@ -35,4 +34,3 @@ export default async function ForgotPasswordPage({ params }: Props) {
     </AuthCard>
   );
 }
-

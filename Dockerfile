@@ -11,8 +11,10 @@
 #     --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
 #     --build-arg NEXT_PUBLIC_SITE_URL=https://example.com \
 #     --build-arg NEXT_PUBLIC_PORTAL_URL=https://portal.example.com \
-#     --build-arg NEXT_PUBLIC_WS_URL=wss://api.example.com/ws/notifications \
 #     -t eduplatform-frontend:latest .
+#
+# NEXT_PUBLIC_WS_URL is optional: left blank, the socket URL is derived from
+# NEXT_PUBLIC_API_URL as ws(s)://<api host>/ws, the backend's one endpoint.
 
 # ─────────────────────────── Stage 1: dependencies ───────────────────────────
 FROM node:22-alpine AS deps
@@ -30,7 +32,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
-ARG NEXT_PUBLIC_WS_URL=ws://localhost:8080/ws/notifications
+# Blank, not a URL: src/lib/env.ts treats blank as unset and derives <api>/ws.
+# The old default, ws://localhost:8080/ws/notifications, was wrong twice over
+# (localhost, and a path the backend answers with 404) and silently disabled live
+# notifications in any image built without the arg.
+ARG NEXT_PUBLIC_WS_URL=
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ARG NEXT_PUBLIC_PORTAL_URL=http://localhost:3001
 ARG NEXT_PUBLIC_DEFAULT_LOCALE=en

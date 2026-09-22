@@ -72,6 +72,13 @@ export type ExpertSummary = {
   academicTitle?: string | null;
   department?: string | null;
   headline?: string | null;
+  /** From the profile, for the "{n} il təcrübə" badge. */
+  yearsExperience?: number | null;
+  /**
+   * From the profile. The first one that is a live category colours the
+   * expert's portrait and avatar (see `expertCategory`).
+   */
+  expertiseCategoryIds?: string[];
 };
 
 export const fullExpertName = (

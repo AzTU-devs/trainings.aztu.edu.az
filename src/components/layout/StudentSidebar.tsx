@@ -2,19 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import {
-  BookOpen,
-  LayoutDashboard,
-  Bell,
-  Award,
-  ShoppingBag,
-  GraduationCap,
-  UserRound,
-  Settings as SettingsIcon,
-} from "lucide-react";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { useT, useLocale } from "@/i18n/client";
 import { localeHref } from "@/i18n/href";
+import { Kicker } from "@/components/editorial/Kicker";
+import { StatusBadge } from "@/components/ui/badge";
 import { useAuth } from "@/features/auth/hooks";
 import { useUnreadCount } from "@/features/notification/hooks";
 import { fullName } from "@/types/user";
@@ -22,41 +14,40 @@ import { cn } from "@/lib/utils/cn";
 
 type Item = {
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
   key: string;
-  badgeKey?: "unread";
+  /** What sits on the right of the row: the unread count, or "coming soon". */
+  aside?: "unread" | "soon";
 };
 
 /*
  * Two short groups rather than one list of eight: what you are learning, and
- * the housekeeping around your account. The mobile pill row flattens them
- * back into a single strip.
+ * the housekeeping around your account. The rows are numbered straight
+ * through (01–08) like a table of contents; the phone strip flattens the
+ * groups back into one row of pills with the same numbers.
  */
 const groups: { label: string; items: Item[] }[] = [
   {
     label: "navLearning",
     items: [
-      { href: "/dashboard", icon: LayoutDashboard, key: "dashboard" },
-      { href: "/my-courses", icon: BookOpen, key: "myCourses" },
-      { href: "/certificates", icon: Award, key: "certificates" },
+      { href: "/dashboard", key: "dashboard" },
+      { href: "/my-courses", key: "myCourses" },
+      { href: "/certificates", key: "certificates", aside: "soon" },
     ],
   },
   {
     label: "navAccount",
     items: [
-      { href: "/notifications", icon: Bell, key: "notifications", badgeKey: "unread" },
-      { href: "/orders", icon: ShoppingBag, key: "orders" },
-      { href: "/tutor", icon: GraduationCap, key: "tutor" },
-      { href: "/profile", icon: UserRound, key: "profile" },
-      { href: "/settings", icon: SettingsIcon, key: "settings" },
+      { href: "/notifications", key: "notifications", aside: "unread" },
+      { href: "/orders", key: "orders" },
+      { href: "/tutor", key: "tutor" },
+      { href: "/profile", key: "profile" },
+      { href: "/settings", key: "settings" },
     ],
   },
 ];
 
 const items = groups.flatMap((g) => g.items);
-
-/** The soft navy tint that marks the page you are on — the header uses it too. */
-const ACTIVE_PILL = "bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100";
+const numberOf = new Map(items.map((item, i) => [item.key, String(i + 1).padStart(2, "0")] as const));
 
 export function StudentSidebar() {
   const pathname = usePathname();
@@ -74,52 +65,80 @@ export function StudentSidebar() {
 
   // On a phone the section strip scrolls sideways; bring the current page's
   // pill into view so "Settings" is not hidden off the right edge. Only the
-  // strip scrolls — never the page.
+  // strip scrolls — never the page (so scrollLeft, not scrollIntoView).
+  // Measured again whenever the pills change width after the first paint:
+  // once the web fonts are in (the fallback font draws narrower pills) and
+  // when the unread badge appears or goes (it adds 32px to "Notifications",
+  // pushing every later pill right). A position taken before either leaves
+  // "Settings" short of the end, clipped under the edge fade. Clamped to the
+  // scroll range so the end pills land fully inside the padding.
+  const hasBadge = unreadCount > 0;
   useEffect(() => {
-    const strip = stripRef.current;
-    const current = strip?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!strip || !current || strip.scrollWidth <= strip.clientWidth) return;
-    strip.scrollLeft = current.offsetLeft - (strip.clientWidth - current.offsetWidth) / 2;
-  }, [pathname]);
+    let cancelled = false;
+    const center = () => {
+      const strip = stripRef.current;
+      const current = strip?.querySelector<HTMLElement>('[aria-current="page"]');
+      if (cancelled || !strip || !current) return;
+      const max = strip.scrollWidth - strip.clientWidth;
+      if (max <= 0) return;
+      const target = current.offsetLeft - (strip.clientWidth - current.offsetWidth) / 2;
+      strip.scrollLeft = Math.max(0, Math.min(max, target));
+    };
+    center();
+    void document.fonts?.ready.then(center);
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, hasBadge]);
 
-  const badge = (item: Item, className?: string) =>
-    item.badgeKey === "unread" && unreadCount > 0 ? (
-      <span
-        className={cn(
-          "grid h-5 min-w-5 place-items-center rounded-full bg-destructive px-1.5 text-[10px] font-semibold leading-none text-destructive-foreground",
-          className,
-        )}
-      >
-        {unreadCount > 9 ? "9+" : unreadCount}
+  // The count is said in words for screen readers ("1 Oxunmamış"); sighted
+  // readers get the figure on a gold dot.
+  // Gold with fixed dark ink reads on the paper row and on the ink pill alike.
+  // `relative`: the sr-only text is absolutely positioned, and without a
+  // positioned ancestor it escapes the phone strip's scroll box and widens
+  // the page.
+  const unreadBadge = () =>
+    unreadCount > 0 ? (
+      <span className="relative inline-grid h-6 min-w-6 place-items-center rounded-full bg-gold px-1.5 font-mono text-xs font-medium leading-none tabular-nums text-[#0e1a2b]">
+        {unreadCount > 99 ? "99+" : unreadCount}
+        <span className="sr-only"> {t("student.unreadMarker")}</span>
       </span>
     ) : null;
 
   return (
     <>
-      {/* Below md: one horizontally scrolling row of pills under the header. */}
-      <nav aria-label={t("student.accountNav")} className="-mx-5 md:hidden">
+      {/* Below 1024: one horizontally scrolling row of pills under the header. */}
+      <nav aria-label={t("student.accountNav")} className="col-span-4 -mx-(--margin) md:col-span-8 lg:hidden">
         <ul
           ref={stripRef}
-          className="flex gap-2 overflow-x-auto overscroll-x-contain px-5 py-1 [mask-image:linear-gradient(to_right,transparent,#000_1.25rem,#000_calc(100%-1.25rem),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          // `relative` keeps the badges' sr-only text (absolutely positioned)
+          // inside the scrolling strip instead of widening the page. The edge
+          // fades are exactly as wide as the side padding, so a pill scrolled
+          // hard against either end is never faded.
+          className="relative flex gap-2 overflow-x-auto overscroll-x-contain px-(--margin) py-1 [mask-image:linear-gradient(to_right,transparent,#000_var(--margin),#000_calc(100%-var(--margin)),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {items.map((item) => {
             const active = isActive(item.href);
-            const Icon = item.icon;
             return (
               <li key={item.key} className="shrink-0">
                 <LocaleLink
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition-colors duration-200",
+                    "inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full pl-3.5 pr-4 text-[15px] font-medium transition-[background-color,color,box-shadow] duration-(--dur-1)",
                     active
-                      ? "border-transparent bg-primary text-primary-foreground"
-                      : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                      ? "bg-ink text-paper"
+                      : "text-ink-2 shadow-[inset_0_0_0_1px_var(--c-line-2)] hover:text-ink hover:shadow-[inset_0_0_0_1px_var(--c-ink)]",
                   )}
                 >
-                  <Icon className="size-4" />
+                  <span
+                    aria-hidden="true"
+                    className={cn("font-mono text-xs", active ? "text-gold" : "text-gold-ink")}
+                  >
+                    {numberOf.get(item.key)}
+                  </span>
                   {t(`nav.${item.key}`)}
-                  {badge(item, active ? "ring-2 ring-primary" : undefined)}
+                  {item.aside === "unread" ? unreadBadge() : null}
                 </LocaleLink>
               </li>
             );
@@ -127,60 +146,56 @@ export function StudentSidebar() {
         </ul>
       </nav>
 
-      {/* md and up: a white rounded card that stays in view while the page scrolls. */}
-      <aside className="hidden w-64 shrink-0 self-start md:sticky md:top-24 md:block lg:w-72">
-        <div className="rounded-3xl border border-border/80 bg-card p-2.5 elev-1">
-          {user ? (
-            <div className="flex items-center gap-3 rounded-2xl bg-muted/70 p-3 dark:bg-muted/50">
-              <span
-                aria-hidden
-                className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-navy-500 to-navy-800 font-display text-sm text-white shadow-[inset_0_1px_0_0_rgb(255_255_255/0.2)]"
-              >
-                {user.firstName?.[0]}
-                {user.lastName?.[0]}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold">{fullName(user)}</div>
-                <div className="truncate text-xs text-muted-foreground">{user.email}</div>
-              </div>
-            </div>
-          ) : null}
+      {/* 1024 and up: the section index in columns 1–3, in view while the page scrolls. */}
+      <aside className="hidden self-start lg:sticky lg:top-[calc(var(--hdr)+24px)] lg:col-span-3 lg:block">
+        <Kicker tone="gold">{t("nav.dashboard")}</Kicker>
+        {user ? (
+          <div className="mt-3 min-w-0">
+            <p className="t-title break-words">{fullName(user)}</p>
+            <p className="t-meta mt-1 truncate" title={user.email}>
+              {user.email}
+            </p>
+          </div>
+        ) : null}
 
-          <nav aria-label={t("student.accountNav")} className="pb-1">
-            {groups.map((group) => (
-              <div key={group.label} className="pt-4">
-                <div className="flex items-center gap-2 px-4 pb-2 text-xs font-semibold text-muted-foreground">
-                  <span aria-hidden className="size-1.5 rounded-full bg-gold-500" />
-                  {t(`student.${group.label}`)}
-                </div>
-                <ul className="grid gap-0.5">
-                  {group.items.map((item) => {
-                    const active = isActive(item.href);
-                    const Icon = item.icon;
-                    return (
-                      <li key={item.key}>
-                        <LocaleLink
-                          href={item.href}
-                          aria-current={active ? "page" : undefined}
-                          className={cn(
-                            "flex h-11 items-center gap-3 rounded-full px-4 text-sm font-semibold transition-colors duration-200",
-                            active
-                              ? ACTIVE_PILL
-                              : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                          )}
-                        >
-                          <Icon className="size-[18px] shrink-0" />
-                          <span className="flex-1 truncate">{t(`nav.${item.key}`)}</span>
-                          {badge(item)}
-                        </LocaleLink>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </nav>
-        </div>
+        <nav aria-label={t("student.accountNav")} className="mt-8">
+          {groups.map((group) => (
+            <div key={group.label} className="mt-7 first:mt-0">
+              <Kicker as="p" className="border-t border-line-strong pt-3 pb-2" tone="ink-3">
+                {t(`student.${group.label}`)}
+              </Kicker>
+              <ol>
+                {group.items.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <li key={item.key} className="border-b border-line last:border-b-0">
+                      <LocaleLink
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "grid min-h-11 grid-cols-[30px_minmax(0,1fr)_auto] items-center gap-2 border-l-2 py-2 pl-3 pr-2 text-[15px] leading-snug transition-colors duration-(--dur-1)",
+                          active
+                            ? "border-gold bg-paper-2 font-semibold text-ink"
+                            : "border-transparent text-ink-2 hover:bg-paper-2 hover:text-ink",
+                        )}
+                      >
+                        <span aria-hidden="true" className="font-mono text-xs text-gold-ink">
+                          {numberOf.get(item.key)}
+                        </span>
+                        <span className="truncate">{t(`nav.${item.key}`)}</span>
+                        {item.aside === "unread" ? (
+                          unreadBadge()
+                        ) : item.aside === "soon" ? (
+                          <StatusBadge className="text-[13px]">{t("ui.comingSoon")}</StatusBadge>
+                        ) : null}
+                      </LocaleLink>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          ))}
+        </nav>
       </aside>
     </>
   );

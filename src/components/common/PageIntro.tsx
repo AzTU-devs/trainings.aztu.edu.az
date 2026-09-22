@@ -1,15 +1,13 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
-import { Eyebrow } from "./SectionHeading";
+import { isLong } from "@/features/course/catalog";
+import { Kicker } from "@/components/editorial/Kicker";
 
 /**
- * The opening of every inner page — catalogue, categories, experts, the
- * student area. It sits directly on the page background rather than in a
- * banded strip, so the first card below it is the first object on the page.
- *
- * `aside` takes the right-hand column on wide screens (a search box, a
- * primary action) and drops below the text on narrow ones. `children` runs
- * full width underneath, for tabs or filter chips that belong to the intro.
+ * The editorial page head for inner pages (categories, experts, the
+ * participant area): breadcrumbs, a mono kicker, the h1 with an optional gold
+ * superscript count, the dek at columns 1–7 and `aside` (a search box, a
+ * LinkGo) at columns 8–12, bottom-aligned. `children` runs full width below.
  */
 export function PageIntro({
   eyebrow,
@@ -17,6 +15,8 @@ export function PageIntro({
   description,
   aside,
   breadcrumbs,
+  count,
+  titleClassName,
   children,
   className,
 }: {
@@ -25,27 +25,31 @@ export function PageIntro({
   description?: ReactNode;
   aside?: ReactNode;
   breadcrumbs?: ReactNode;
+  /** A mono superscript after the title, e.g. the number of experts. */
+  count?: string;
+  titleClassName?: string;
   children?: ReactNode;
   className?: string;
 }) {
   return (
-    <section className={cn("container-fluid pt-8 pb-8 sm:pt-12 sm:pb-10", className)}>
-      {breadcrumbs ? <div className="mb-6">{breadcrumbs}</div> : null}
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
-        <div className="max-w-2xl">
-          {eyebrow ? <Eyebrow className="mb-4">{eyebrow}</Eyebrow> : null}
-          <h1 className="font-display text-balance text-4xl leading-[1.05] sm:text-5xl">
+    <section className={cn("wrap pt-6 lg:pt-8", className)}>
+      {breadcrumbs ? <div className="mb-8 lg:mb-10">{breadcrumbs}</div> : null}
+      <div className="g12 items-end gap-y-6">
+        <div className="col-span-4 md:col-span-8 lg:col-span-7">
+          {eyebrow ? <Kicker className="mb-4">{eyebrow}</Kicker> : null}
+          <h1 className={cn("t-display-xl", typeof title === "string" && isLong(title) && "is-long", titleClassName)}>
             {title}
+            {count ? (
+              <sup className="ml-2 align-super font-mono text-[0.75rem] font-medium tracking-[0.06em] text-gold-ink sm:text-[0.875rem]">
+                {count}
+              </sup>
+            ) : null}
           </h1>
-          {description ? (
-            <p className="mt-4 text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-              {description}
-            </p>
-          ) : null}
+          {description ? <div className="t-lead mt-5 max-w-[52ch]">{description}</div> : null}
         </div>
-        {aside ? <div className="w-full shrink-0 lg:w-auto lg:min-w-[22rem]">{aside}</div> : null}
+        {aside ? <div className="col-span-4 md:col-span-8 lg:col-span-5 lg:col-start-8">{aside}</div> : null}
       </div>
-      {children ? <div className="mt-8">{children}</div> : null}
+      {children ? <div className="mt-8 lg:mt-10">{children}</div> : null}
     </section>
   );
 }

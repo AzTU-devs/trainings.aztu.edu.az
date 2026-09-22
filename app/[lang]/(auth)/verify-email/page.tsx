@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { MailCheck } from "lucide-react";
 import { VerifyEmail } from "@/features/auth/components/VerifyEmail";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -27,9 +26,12 @@ export default async function VerifyEmailPage({ params, searchParams }: Props) {
   const { token } = await searchParams;
   const verifyToken = Array.isArray(token) ? token[0] : token;
 
+  // The dek is rendered on the server before the token is checked, so it must
+  // not claim any state ("verifying…", "verified"): VerifyEmail below owns the
+  // working, success and failure states.
   return (
     <AuthCard
-      icon={<MailCheck />}
+      kicker={t("auth.kickerVerify")}
       title={t("auth.verifyTitle")}
       subtitle={t("auth.verifySubtitle")}
     >

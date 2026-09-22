@@ -1,21 +1,29 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowRight, LayoutGrid } from "lucide-react";
 import { categoryServerApi } from "@/features/category/api.server";
-import { CategoryGrid } from "@/features/category/components/CategoryGrid";
-import { categoryDescription, categoryLabel } from "@/features/category/label";
+import { categoryDescription } from "@/features/category/label";
+import { toCategoryRef } from "@/features/category/style";
+import type { Category } from "@/features/category/types";
+import { CategoryIndexList, type CategoryIndexItem } from "@/features/category/components/CategoryIndex";
+import { getCategoryIndex } from "@/features/course/catalog.server";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PageIntro } from "@/components/common/PageIntro";
 import { buttonVariants } from "@/components/ui/button";
+import { LinkGo } from "@/components/ui/link-go";
+import { formatNumber } from "@/lib/utils/format";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
 
 // Rendered per request. The page-level window dominates the fetch cache, so
 // caching it for ten minutes kept newly added categories off the site for that
-// long however fresh the data underneath was. The only work per request is one
-// small category query — see categoryServerApi.list.
+// long however fresh the data underneath was. Per request the API sees one
+// small, uncached category query (see categoryServerApi.list); the category
+// index behind the counts (getCategoryIndex: one course list per active
+// category, more pages only past 100 courses) is served from the data cache
+// and refetched at most once a minute, not per request.
 export const revalidate = 0;
 
 type Props = { params: Promise<{ lang: string }> };
@@ -36,56 +44,78 @@ export default async function CategoriesPage({ params }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
-  const categories = await categoryServerApi.list().catch(() => []);
+  const categories = await categoryServerApi.list().catch((): Category[] => []);
   const active = categories.filter((c) => c.active);
+  // Added, read-only (60 s): each category's published courses, for the
+  // counts, the newest course line and the rule that an empty category is
+  // never offered as a link (D6).
+  const index = active.length ? await getCategoryIndex(active).catch(() => null) : null;
+
+  // Every active category; without the index the rows still render, with no
+  // count (unknown, not zero), so a failed walk never hides a category.
+  const entries: CategoryIndexItem[] = (index?.entries ?? active.map((category) => ({ category, count: null, latest: null })))
+    .map((e) => ({
+      ref: toCategoryRef(e.category, t, locale),
+      count: e.count,
+      description: categoryDescription(e.category, locale),
+      latestTitle: e.latest?.title ?? null,
+    }));
+  const populated = entries.filter((e) => e.count === null || e.count > 0).length;
+
+  const breadcrumbs = (
+    <Breadcrumbs
+      items={[{ label: t("common.home"), href: localeHref(locale, "/") }, { label: t("categoriesPage.title") }]}
+    />
+  );
 
   return (
     <>
       <PageIntro
-        eyebrow={t("nav.categories")}
+        breadcrumbs={breadcrumbs}
+        eyebrow={t("categoriesPage.kicker")}
         title={t("categoriesPage.title")}
-        description={t("categoriesPage.subtitle")}
+        count={populated ? formatNumber(populated, locale) : undefined}
+        description={t("categoriesPage.lead")}
         aside={
-          active.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-              {/* A plain count, not a control: no border, no fill, so the link
-                  beside it is the only thing that reads as clickable. */}
-              <span className="inline-flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground">
-                <LayoutGrid aria-hidden className="size-4" />
-                {t("categoriesPage.count", { count: active.length })}
-              </span>
-              <Link
-                href={localeHref(locale, "/courses")}
-                className={buttonVariants({ variant: "soft", className: "group" })}
-              >
-                {t("home.browseCourses")}
-                <ArrowRight
-                  aria-hidden
-                  className="transition-transform duration-200 group-hover:translate-x-0.5"
-                />
-              </Link>
+          populated ? (
+            <div className="flex lg:justify-end">
+              <LinkGo href={localeHref(locale, "/courses")}>{t("ui.allCourses")}</LinkGo>
             </div>
           ) : null
         }
       />
 
-      <div className="container-fluid pb-20">
+      <section className="wrap pt-12 pb-24 lg:pt-16 lg:pb-32" aria-label={t("ui.fields")}>
         {active.length === 0 ? (
           <EmptyState
-            icon={<LayoutGrid strokeWidth={1.75} />}
+            plate={t("categoriesPage.emptyPlate")}
             title={t("categoriesPage.empty")}
             description={t("categoriesPage.emptyHint")}
+            headingLevel="h2"
+            action={
+              <Link href={localeHref(locale, "/categories")} className={buttonVariants({ variant: "outline" })}>
+                {t("common.retry")}
+              </Link>
+            }
           />
         ) : (
-          <CategoryGrid
-            categories={active}
-            exploreLabel={t("categoriesPage.explore")}
-            labelFor={(c) => categoryLabel(c, t, locale)}
-            descriptionFor={(c) => categoryDescription(c, locale)}
-            hrefFor={(c) => localeHref(locale, `/courses?categoryId=${c.id}`)}
-          />
+          <>
+            <CategoryIndexList
+              entries={entries}
+              locale={locale}
+              numbered
+              hrefFor={(ref) => localeHref(locale, `/courses?categoryId=${ref.id}`)}
+            />
+            <div className="mt-14 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t border-line-strong pt-6 lg:mt-20">
+              <LinkGo href={localeHref(locale, "/courses")}>{t("ui.allCourses")}</LinkGo>
+              <p className="t-small flex flex-wrap items-center gap-x-4 gap-y-1 text-ink-2">
+                <span>{t("categoriesPage.applyLine")}</span>
+                <LinkGo href={localeHref(locale, "/register/tutor")}>{t("categoriesPage.apply")}</LinkGo>
+              </p>
+            </div>
+          </>
         )}
-      </div>
+      </section>
     </>
   );
 }

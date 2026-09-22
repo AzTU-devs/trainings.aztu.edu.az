@@ -95,3 +95,94 @@ export function formatRating(value: string | number, locale: string) {
   const fixed = n.toFixed(1);
   return locale === "az" ? fixed.replace(".", ",") : fixed;
 }
+
+/*
+ * Dates. Built from month tables in both languages rather than Intl: browsers
+ * lack Azerbaijani data, and even English differs between ICU versions (en-GB
+ * abbreviates September as "Sept" in newer data, "Sep" in older), which would
+ * be a hydration mismatch in a client component. Always read in UTC, so a date
+ * is the same day on the server and in every visitor's time zone.
+ * Instants (enrolment, review, order and publication timestamps) go through
+ * bakuDate/bakuTime instead, so they print the university's calendar day
+ * rather than Greenwich's.
+ */
+const MONTHS: Record<"az" | "en", { long: string[]; short: string[] }> = {
+  az: {
+    long: ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktyabr", "noyabr", "dekabr"],
+    short: ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avq", "sen", "okt", "noy", "dek"],
+  },
+  en: {
+    long: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    short: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  },
+};
+
+type DateOpts = { month?: "long" | "short"; year?: boolean };
+
+/** Parses an ISO date or date-time; a bare "2026-09-14" is read as UTC midnight. */
+function parseIso(iso: string | null | undefined): Date | null {
+  if (!iso) return null;
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00Z` : iso);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** "14 sentyabr 2026" / "14 September 2026"; short: "6 okt" / "6 Oct". Empty for a missing or bad date. */
+export function formatDate(iso: string | null | undefined, locale: string, opts: DateOpts = {}) {
+  const d = parseIso(iso);
+  if (!d) return "";
+  const names = MONTHS[locale === "az" ? "az" : "en"][opts.month ?? "long"];
+  const base = `${d.getUTCDate()} ${names[d.getUTCMonth()]}`;
+  return opts.year === false ? base : `${base} ${d.getUTCFullYear()}`;
+}
+
+/**
+ * "6 okt – 27 noy 2026" within one year (the year once, at the end), full
+ * dates on both sides otherwise. With `year: false` no year is printed.
+ */
+export function formatDateRange(
+  from: string | null | undefined,
+  to: string | null | undefined,
+  locale: string,
+  opts: DateOpts = {},
+) {
+  const a = parseIso(from);
+  const b = parseIso(to);
+  if (!a) return b ? formatDate(to, locale, opts) : "";
+  if (!b) return formatDate(from, locale, opts);
+  const sameYear = a.getUTCFullYear() === b.getUTCFullYear();
+  const left = formatDate(from, locale, { ...opts, year: sameYear ? false : opts.year });
+  return `${left} – ${formatDate(to, locale, opts)}`;
+}
+
+/*
+ * Baku time: UTC+4 all year (no daylight saving since 2016). A timestamp is
+ * shifted by four hours and then read as UTC by the helpers above, which
+ * prints the day and clock in Baku on the server and in every browser alike,
+ * with no Intl time-zone data involved. Otherwise 00:00–04:00 in Baku
+ * (20:00–24:00 UTC) would show the previous day.
+ */
+const BAKU_OFFSET_MS = 4 * 60 * 60 * 1000;
+
+/**
+ * The instant moved to Baku wall-clock time, read back as UTC. A bare date
+ * ("2026-09-14") is a calendar day already, so it is left alone.
+ */
+function inBaku(iso: string | null | undefined): Date | null {
+  const d = parseIso(iso);
+  if (!d || !iso) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? d : new Date(d.getTime() + BAKU_OFFSET_MS);
+}
+
+/** formatDate for a timestamp, on the Baku calendar: "22 sentyabr 2026". */
+export function bakuDate(iso: string | null | undefined, locale: string, opts: DateOpts = {}) {
+  const d = inBaku(iso);
+  return d ? formatDate(d.toISOString(), locale, opts) : "";
+}
+
+/** The Baku wall-clock time of a timestamp, "09:05". Empty for a missing or bad date. */
+export function bakuTime(iso: string | null | undefined) {
+  const d = inBaku(iso);
+  if (!d) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+}

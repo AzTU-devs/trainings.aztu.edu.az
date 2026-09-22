@@ -1,0 +1,104 @@
+/* Course page: the pieces that are awkward as inline utilities (nth-child
+   borders, container-driven ratios, the running head's state). Tokens come
+   from globals.css and are never redefined here.
+   These rules are unlayered, so they beat Tailwind utilities on the same
+   element: never set margins or anything else a caller passes as a class. */
+
+/* -- the wide title plate (below 1024px): a 3:2 frame whose drawing sits
+   between the label rule and the title block. The plate's default band is
+   placed in % of the frame's height, but its labels and title block in % of
+   its width (plus their fixed type), so on a wide frame the drawing would run
+   into both. 23px = the 12px labels' rule offset (1.9em); 27px = the title
+   block's height. An unlayered module rule, so it wins over
+   .cover-plate > svg.art in @layer components. */
+.plateWide > svg:global(.art) {
+  top: calc(9.5cqi + 23px);
+  height: calc(100% - 19cqi - 50px);
+}
+
+/* -- the trail: the separator ends a line rather than starting the next one,
+   so on a phone the category drops under "Kurslar /" as a clean line. Relies
+   on Breadcrumbs printing its "/" as the first child of each item; the last
+   two items (the category and the visually hidden title) get none after. */
+.crumbs li > span[aria-hidden] { display: none; }
+.crumbs li:nth-last-child(n + 3)::after {
+  content: "/";
+  content: "/" / "";
+}
+
+/* -- spec strip: 2 columns on phones, one row of N facts from 1024px -- */
+.spec {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--c-line-strong);
+  border-bottom: 1px solid var(--c-line-strong);
+}
+.spec > div { min-width: 0; padding: 14px 14px 16px 0; border-bottom: 1px solid var(--c-line); }
+.spec > div:nth-child(2n) { padding-left: 14px; border-left: 1px solid var(--c-line); }
+.spec > div:nth-last-child(-n + 2):nth-child(odd),
+.spec > div:last-child { border-bottom: 0; }
+.spec dt { color: var(--c-ink-3); }
+.spec dd {
+  margin: 8px 0 0;
+  font-weight: 600;
+  font-size: 1.1875rem;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  color: var(--c-ink);
+  overflow-wrap: break-word;
+}
+.spec dd small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--c-ink-3);
+  /* A sub-line that needs two lines ("2026–2027 · həftədə 3,5 saat" in a
+     sixth of the row) breaks at the dot, not before its last word. */
+  text-wrap: balance;
+}
+@media (min-width: 1024px) {
+  .spec { grid-template-columns: repeat(var(--spec-cols, 6), minmax(0, 1fr)); }
+  .spec > div,
+  .spec > div:nth-child(2n) { padding: 18px 20px 20px; border-bottom: 0; border-left: 1px solid var(--c-line); }
+  .spec > div:first-child { padding-left: 0; border-left: 0; }
+  .spec dd { font-size: 1.375rem; }
+}
+
+/* -- table of contents under the enrol card: the gold rule marks the section
+   in view (aria-current, set by the scroll-spy) -- */
+.toc a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0 7px 14px;
+  margin-left: -16px;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--c-ink-3);
+  border-left: 2px solid transparent;
+  transition: color var(--dur-1), border-color var(--dur-1);
+}
+.toc a:hover { color: var(--c-ink); }
+.toc a[aria-current] { color: var(--c-ink); border-left-color: var(--c-gold); }
+.toc a span { font-family: var(--f-mono); font-size: 0.75rem; line-height: 1.9; }
+/* When the list scrolls inside the rail (a short screen), its cut edges fade
+   out, so it reads as "more below" rather than as the end of the page. */
+.toc[data-fade="bottom"] { mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent); }
+.toc[data-fade="top"] { mask-image: linear-gradient(to top, #000 calc(100% - 40px), transparent); }
+.toc[data-fade="both"] { mask-image: linear-gradient(to bottom, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
+
+/* -- running head (>= 1024px): fades and slides in once the title is gone -- */
+.runhead {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity var(--dur-2), transform var(--dur-2) var(--ease-out);
+}
+.runhead[data-on] { opacity: 1; transform: none; pointer-events: auto; }
+.progress { transform-origin: left; transform: scaleX(var(--p, 0)); }
+@media (prefers-reduced-motion: reduce) {
+  .runhead, .runhead[data-on] { transform: none; transition: none; }
+}

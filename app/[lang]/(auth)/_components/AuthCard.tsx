@@ -1,99 +1,98 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { Kicker } from "@/components/editorial/Kicker";
+import { LinkGo } from "@/components/ui/link-go";
 
 /**
- * The white card every auth page is built on: an icon squircle, the page
- * title and a short lead, then the form. `footer` sits inside the card under a
- * hairline (the "already have an account?" switch); `note` sits below it on
- * the canvas (legal small print), so the card itself holds only what a person
- * acts on.
+ * The page every auth route is set on: no card and no icon, just type — a
+ * mono kicker, the Fraunces title and a short dek, then the form. `footer`
+ * holds the ways out of the page (the "no account? / have an account?"
+ * switch, the way back to sign-in) under an ink rule; `note` is small print
+ * below it.
  */
 export function AuthCard({
-  icon,
+  kicker,
   title,
   subtitle,
   children,
   footer,
   note,
-  size = "default",
 }: {
-  icon: ReactNode;
+  kicker: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
   note?: ReactNode;
-  /**
-   * `wide` gives the sign-up forms room for two-column rows. Both sign-up
-   * pages use it, so switching between the participant and expert tabs keeps
-   * the card (and the tabs) in place.
-   */
-  size?: "default" | "wide";
 }) {
+  // One width for every auth page: the sign-up forms need 34rem for their
+  // two-column rows, and the shorter pages share it so that moving between
+  // them (sign-in ↔ sign-up, sign-in → forgot password) leaves the kicker and
+  // the title where they were.
   return (
-    <div className={cn("w-full", size === "wide" ? "max-w-[40rem]" : "max-w-[30rem]")}>
-      <div className="rounded-3xl border border-border/80 bg-card p-6 elev-2 sm:p-10">
-        <header className="mb-8">
-          <span
-            aria-hidden
-            className="grid size-12 place-items-center rounded-2xl bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100 [&_svg]:size-5"
-          >
-            {icon}
-          </span>
-          <h1 className="mt-6 font-display text-balance text-3xl leading-[1.1] sm:text-[2rem]">
-            {title}
-          </h1>
-          {subtitle ? (
-            <p className="mt-2.5 text-pretty text-[15px] leading-relaxed text-muted-foreground">
-              {subtitle}
-            </p>
-          ) : null}
-        </header>
+    <div className="w-full max-w-[34rem]">
+      <header>
+        <Kicker tone="gold">{kicker}</Kicker>
+        <h1 className="t-display-m mt-4">{title}</h1>
+        {subtitle ? <p className="t-body mt-3 max-w-[44ch]">{subtitle}</p> : null}
+      </header>
 
-        {children}
+      <div className="mt-9">{children}</div>
 
-        {footer ? (
-          <div className="mt-8 border-t border-border/80 pt-6 text-center text-sm text-muted-foreground">
-            {footer}
-          </div>
-        ) : null}
-      </div>
+      {footer ? <div className="mt-12">{footer}</div> : null}
 
-      {note ? (
-        <p className="mx-auto mt-5 max-w-sm text-balance text-center text-xs leading-relaxed text-muted-foreground">
-          {note}
-        </p>
-      ) : null}
+      {note ? <p className="t-meta mt-6">{note}</p> : null}
     </div>
   );
 }
 
-/** The quiet way back to sign-in, used in the card footer of the recovery pages. */
-export function AuthBackLink({ href, children }: { href: string; children: ReactNode }) {
+/**
+ * The ways out of an auth page as index rows under an ink rule: a quiet
+ * question on the left, the link on the right (wrapping under it on narrow
+ * phones). `portal` links leave for the expert portal in the same tab, as
+ * they always have, so they get the up-right arrow without a new tab.
+ */
+export function AuthLinks({
+  items,
+}: {
+  items: { label: ReactNode; href: string; cta: ReactNode; portal?: boolean }[];
+}) {
   return (
-    <Link
-      href={href}
-      className="inline-flex h-10 items-center gap-2 rounded-full px-4 font-semibold text-primary transition-colors hover:bg-accent"
-    >
-      <ArrowLeft className="size-4" aria-hidden />
-      {children}
-    </Link>
+    <ul className="border-t border-line-strong">
+      {items.map((item, i) => (
+        <li
+          key={i}
+          className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-line py-3.5"
+        >
+          <span className="t-meta">{item.label}</span>
+          {item.portal ? (
+            <a href={item.href} className="link-go t-small">
+              {item.cta}
+              <ArrowUpRight aria-hidden="true" strokeWidth={1.75} />
+            </a>
+          ) : (
+            <LinkGo href={item.href} className="t-small">
+              {item.cta}
+            </LinkGo>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 
-/**
- * The "no account? / have an account?" switch in the card footer. Padding
- * grows the tap target to 40px; the negative margin keeps the line height.
- */
-export function AuthFooterLink({ href, children }: { href: string; children: ReactNode }) {
+/** The quiet way back to sign-in on the recovery pages. */
+export function AuthBackLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link
-      href={href}
-      className="-my-2.5 inline-flex items-center py-2.5 font-semibold text-primary underline-offset-4 hover:underline"
-    >
-      {children}
-    </Link>
+    <div className="border-t border-line-strong pt-4">
+      <Link
+        href={href}
+        className="link-go t-small hover:[&>svg]:-translate-x-[3px]"
+      >
+        <ArrowLeft aria-hidden="true" strokeWidth={1.75} />
+        {children}
+      </Link>
+    </div>
   );
 }

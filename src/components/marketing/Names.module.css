@@ -1,0 +1,81 @@
+/* The contributors wall: the experts' names set as one Fraunces paragraph,
+   separated by slashes, with a gold underline under the name whose portrait
+   the sticky panel shows. The open slot ("your name?") closes the list. */
+
+.names {
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 30, "WONK" 0;
+  font-weight: 380;
+  font-size: clamp(1.75rem, 1rem + 2vw, 3rem);
+  line-height: 1.18;
+  letter-spacing: -0.024em;
+  color: var(--c-ink-3);
+}
+
+/* A name and the slash after it form one atomic box capped at the column,
+   so the wall breaks only between units: a name that does not fit moves to
+   the next line whole, taking its slash with it. Only a name wider than the
+   column on its own (a long admin-made one) wraps inside its box, rather
+   than pushing the page wide. (A no-break space cannot do this job: browsers
+   always allow a break next to an inline-block.) */
+.unit {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.name > a {
+  color: var(--c-ink-3);
+  background-image: linear-gradient(var(--c-gold), var(--c-gold));
+  background-position: 0 92%;
+  background-repeat: no-repeat;
+  background-size: 0% 0.06em;
+  transition: color var(--dur-2);
+}
+.name > a:hover,
+.name > a:focus-visible,
+.name[data-active] > a { color: var(--c-head); }
+.name[data-active] > a {
+  background-size: 100% 0.06em;
+  transition: color var(--dur-2), background-size var(--dur-3) var(--ease-out);
+}
+.count {
+  position: relative;
+  top: -1.6em;
+  margin-left: 0.3em;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  vertical-align: baseline;
+  color: var(--c-ink-3);
+}
+
+.sep {
+  margin-inline: 0.12em;
+  color: var(--c-line-2);
+}
+
+.slot {
+  white-space: nowrap;
+  color: var(--c-gold-ink);
+  font-style: italic;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  border-bottom: 0.04em dashed var(--c-gold);
+  transition: color var(--dur-2);
+}
+.slot:hover { color: var(--c-head); border-bottom-style: solid; }
+
+.more {
+  margin-left: 0.4em;
+  vertical-align: middle;
+  font-family: var(--f-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .name > a { transition: none; }
+}

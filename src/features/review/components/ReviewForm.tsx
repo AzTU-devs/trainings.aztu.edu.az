@@ -3,10 +3,10 @@
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/field";
 import { FormError } from "@/components/common/FormError";
 import { useT } from "@/i18n/client";
 import { reviewSchema, type ReviewInput } from "../schemas";
@@ -14,6 +14,18 @@ import { useCreateReview } from "../hooks";
 import { StarsInput } from "./Stars";
 import type { ApiError } from "@/types/api";
 
+/** The review refusals a participant can understand (codes from the API's review endpoint). */
+const REVIEW_ERROR_KEY = new Map<string, string>([
+  ["ALREADY_REVIEWED", "review.submitErrorDuplicate"],
+  ["NOT_ENROLLED", "review.submitErrorNotEnrolled"],
+  ["VALIDATION_FAILED", "review.submitErrorInvalid"],
+]);
+
+/**
+ * A signed-in participant's review: stars (required), a title and a body.
+ * Same fields, validation and payload as before; only the look changed to the
+ * editorial card (a hairline card on paper, the Fraunces heading).
+ */
 export function ReviewForm({ courseId }: { courseId: string }) {
   const t = useT();
   const create = useCreateReview(courseId);
@@ -39,7 +51,10 @@ export function ReviewForm({ courseId }: { courseId: string }) {
         },
         onError: (err) => {
           const e = err as unknown as ApiError;
-          toast.error(e.message ?? t("review.submitError"));
+          // The API's `message` is English and written for developers, so it
+          // is never shown: known refusals get a translated line, anything
+          // else the generic one.
+          toast.error(t((e.code && REVIEW_ERROR_KEY.get(e.code)) || "review.submitError"));
         },
       },
     );
@@ -48,22 +63,15 @@ export function ReviewForm({ courseId }: { courseId: string }) {
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
-      className="space-y-5 rounded-2xl border border-border/80 bg-background/50 p-5 sm:p-6"
+      className="grid gap-6 rounded-card border border-line bg-card p-6 sm:p-7"
     >
-      <div className="flex items-start gap-3.5">
-        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100">
-          <PenLine aria-hidden className="size-[18px]" />
-        </span>
-        <div className="space-y-1 pt-0.5">
-          <h3 className="font-display text-lg leading-snug">{t("review.writeYours")}</h3>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {t("review.shareYourThoughts")}
-          </p>
-        </div>
+      <div>
+        <h3 className="t-title">{t("review.writeYours")}</h3>
+        <p className="t-meta mt-1.5">{t("review.shareYourThoughts")}</p>
       </div>
-      <div className="space-y-2">
+      <div className="grid gap-2">
         <Label>{t("review.rating")}</Label>
-        <div className="-ml-1.5">
+        <div className="-ml-2.5">
           <StarsInput
             value={rating}
             onChange={(v) => form.setValue("rating", v, { shouldValidate: true })}
@@ -71,8 +79,10 @@ export function ReviewForm({ courseId }: { courseId: string }) {
         </div>
         <FormError message={form.formState.errors.rating?.message} />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="review-title">{t("review.titleLabel")}</Label>
+      <div className="grid gap-2">
+        <Label htmlFor="review-title">
+          <Optional label={t("review.titleLabel")} optional={t("review.optional")} />
+        </Label>
         <Input
           id="review-title"
           placeholder={t("review.titlePlaceholder")}
@@ -80,14 +90,15 @@ export function ReviewForm({ courseId }: { courseId: string }) {
           {...form.register("title")}
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="review-body">{t("review.body")}</Label>
-        <textarea
+      <div className="grid gap-2">
+        <Label htmlFor="review-body">
+          <Optional label={t("review.body")} optional={t("review.optional")} />
+        </Label>
+        <Textarea
           id="review-body"
           rows={4}
           maxLength={5000}
           placeholder={t("review.bodyPlaceholder")}
-          className="flex w-full resize-y rounded-2xl border border-input bg-card px-4 py-3 text-sm leading-relaxed transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15"
           {...form.register("body")}
         />
       </div>
@@ -102,5 +113,18 @@ export function ReviewForm({ courseId }: { courseId: string }) {
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * A label for a field the review can go without, marked as the auth forms
+ * mark theirs: the name, then a quiet "(istəyə bağlı)" in the same line.
+ * Only the stars are required.
+ */
+function Optional({ label, optional }: { label: string; optional: string }) {
+  return (
+    <>
+      {label} <span className="text-sm font-normal text-ink-3">({optional})</span>
+    </>
   );
 }

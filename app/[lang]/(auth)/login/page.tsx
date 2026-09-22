@@ -1,13 +1,12 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowUpRight, GraduationCap, LogIn } from "lucide-react";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
 import { env } from "@/lib/env";
-import { AuthCard, AuthFooterLink } from "../_components/AuthCard";
+import { AuthCard, AuthLinks } from "../_components/AuthCard";
 
 type Props = { params: Promise<{ lang: string }> };
 
@@ -27,40 +26,36 @@ export default async function LoginPage({ params }: Props) {
   // No "by signing in you agree to the Terms and Privacy Policy" note: the
   // platform has no such documents to link to yet, and people should not be
   // asked to agree to something they cannot read. Restore it (as links) when
-  // they exist — the `auth.legalSignIn` key is kept for that.
+  // they exist, under a new key that names the real documents: the old
+  // `auth.legalSignIn`/`legalSignUp` keys no longer hold that wording.
   return (
     <AuthCard
-      icon={<LogIn />}
+      kicker={t("auth.kickerLogin")}
       title={t("auth.loginTitle")}
       subtitle={t("auth.loginSubtitle")}
       footer={
-        <p>
-          {t("auth.noAccount")}{" "}
-          <AuthFooterLink href={localeHref(locale, "/register")}>{t("common.signUp")}</AuthFooterLink>
-        </p>
+        <AuthLinks
+          items={[
+            {
+              label: t("auth.noAccount"),
+              href: localeHref(locale, "/register"),
+              cta: t("common.signUp"),
+            },
+            // Experts and admins work in the separate portal app.
+            {
+              label: t("auth.tutorLoginPrompt"),
+              href: env.NEXT_PUBLIC_PORTAL_URL,
+              cta: t("auth.tutorLoginCta"),
+              portal: true,
+            },
+          ]}
+        />
       }
     >
-      <Suspense fallback={<div className="h-64" />}>
+      {/* Same height as the form, so nothing jumps when it mounts. */}
+      <Suspense fallback={<div className="h-[16.5rem]" />}>
         <LoginForm />
       </Suspense>
-
-      {/* Experts and admins work in the separate portal app. */}
-      <div className="mt-6 flex items-center gap-3.5 rounded-2xl bg-muted/70 p-4 dark:bg-accent/50">
-        <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-card text-navy-700 ring-1 ring-inset ring-border dark:text-navy-100">
-          <GraduationCap className="size-[18px]" aria-hidden />
-        </span>
-        <div className="min-w-0 text-sm">
-          <p className="text-muted-foreground">{t("auth.tutorLoginPrompt")}</p>
-          <a
-            href={env.NEXT_PUBLIC_PORTAL_URL}
-            // Padding makes a 40px tap target without changing the line height.
-            className="-my-2.5 inline-flex items-center gap-1 py-2.5 font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            {t("auth.tutorLoginCta")}
-            <ArrowUpRight className="size-4 shrink-0" aria-hidden />
-          </a>
-        </div>
-      </div>
     </AuthCard>
   );
 }

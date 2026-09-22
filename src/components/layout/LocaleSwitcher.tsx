@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, Globe } from "lucide-react";
 import { locales, localeNames, type Locale } from "@/i18n/config";
 import { useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
@@ -15,6 +14,29 @@ const DISPLAY_ORDER: readonly Locale[] = [...locales].sort(
   (a, b) => Number(b === "az") - Number(a === "az"),
 );
 
+/** The current URL with its locale segment swapped. */
+function hrefFor(pathname: string, next: Locale) {
+  const segments = pathname.split("/");
+  if (segments[1] && (locales as readonly string[]).includes(segments[1])) {
+    segments[1] = next;
+  } else {
+    segments.splice(1, 0, next);
+  }
+  return segments.join("/") || `/${next}`;
+}
+
+/**
+ * The same, plus the query string and hash the visitor is on now, so the
+ * catalogue's filters, search, view and page (and a login's ?next=) survive
+ * the switch. Read from `window.location` at the moment of use rather than
+ * through useSearchParams: the header renders on every page, including static
+ * ones, where useSearchParams would need a Suspense boundary around it, and
+ * the server-rendered href would not match the browser's.
+ */
+function liveHrefFor(pathname: string, next: Locale) {
+  return `${hrefFor(pathname, next)}${window.location.search}${window.location.hash}`;
+}
+
 /** Swaps the locale segment of the current URL and remembers the choice. */
 function useSwitchLocale() {
   const router = useRouter();
@@ -24,26 +46,20 @@ function useSwitchLocale() {
   return (next: Locale) => {
     if (next === current) return;
     document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; samesite=lax`;
-    const segments = pathname.split("/");
-    if (segments[1] && (locales as readonly string[]).includes(segments[1])) {
-      segments[1] = next;
-    } else {
-      segments.splice(1, 0, next);
-    }
-    router.push(segments.join("/") || `/${next}`);
+    router.push(liveHrefFor(pathname, next));
     router.refresh();
   };
 }
 
 /**
- * `pill` (the default) is a native <select>: accessible and dependency-free,
- * but the raw control looks nothing like the rest of the header — so it is
- * made transparent and overlaid on a styled pill that shows the current
- * locale. Because the select itself is invisible, the pill draws the focus
- * ring on its behalf.
+ * The language switch as two mono codes, "AZ EN", the current one on a
+ * paper-2 chip. Each is a real link to the same page in that language (so it
+ * also works as a link), and a click remembers the choice in the NEXT_LOCALE
+ * cookie before navigating — the behaviour the switch has always had. The
+ * server renders the bare path; the link picks up the current query string as
+ * the pointer or focus reaches it, so "open in new tab" keeps it as well.
  *
- * `segmented` lays both languages out as a two-button toggle, for the mobile
- * menu sheet where there is room to show the choice instead of hiding it.
+ * `segmented` is the roomier version for the mobile menu (44px targets).
  */
 export function LocaleSwitcher({
   variant = "pill",
@@ -54,63 +70,46 @@ export function LocaleSwitcher({
 }) {
   const current = useLocale();
   const t = useT();
+  const pathname = usePathname();
   const switchTo = useSwitchLocale();
-
-  if (variant === "segmented") {
-    return (
-      <div
-        role="group"
-        aria-label={t("nav.language")}
-        className={cn("inline-flex rounded-full bg-muted p-1", className)}
-      >
-        {DISPLAY_ORDER.map((l) => {
-          const active = l === current;
-          return (
-            <button
-              key={l}
-              type="button"
-              lang={l}
-              aria-pressed={active}
-              onClick={() => switchTo(l)}
-              className={cn(
-                "h-9 rounded-full px-4 text-sm font-semibold transition-[background-color,color,box-shadow] duration-200",
-                active
-                  ? "bg-card text-foreground elev-1"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {localeNames[l]}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
+  const roomy = variant === "segmented";
 
   return (
     <div
-      className={cn(
-        "relative inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-within:bg-accent focus-within:text-foreground has-[select:focus-visible]:ring-2 has-[select:focus-visible]:ring-ring",
-        className,
-      )}
+      role="group"
+      aria-label={t("nav.language")}
+      className={cn("inline-flex items-center font-mono text-xs font-medium tracking-[0.06em]", className)}
     >
-      <Globe className="size-4 shrink-0" aria-hidden />
-      {/* The code stays visible at every width: a bare globe would not say
-          which language is on. */}
-      <span className="uppercase">{current}</span>
-      <ChevronDown className="hidden size-3.5 opacity-60 sm:block" aria-hidden />
-      <select
-        value={current}
-        onChange={(e) => switchTo(e.target.value as Locale)}
-        aria-label={t("nav.language")}
-        className="absolute inset-0 cursor-pointer opacity-0"
-      >
-        {DISPLAY_ORDER.map((l) => (
-          <option key={l} value={l}>
-            {localeNames[l]}
-          </option>
-        ))}
-      </select>
+      {DISPLAY_ORDER.map((l) => {
+        const active = l === current;
+        return (
+          <a
+            key={l}
+            href={hrefFor(pathname, l)}
+            lang={l}
+            hrefLang={l}
+            aria-label={localeNames[l]}
+            aria-current={active ? "true" : undefined}
+            onPointerEnter={(e) => {
+              e.currentTarget.href = liveHrefFor(pathname, l);
+            }}
+            onFocus={(e) => {
+              e.currentTarget.href = liveHrefFor(pathname, l);
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              switchTo(l);
+            }}
+            className={cn(
+              "grid place-items-center rounded-tag uppercase transition-colors duration-(--dur-1)",
+              roomy ? "h-11 min-w-11 px-3" : "h-8 min-w-8 px-[7px]",
+              active ? "bg-paper-2 text-ink" : "text-ink-3 hover:text-ink",
+            )}
+          >
+            {l}
+          </a>
+        );
+      })}
     </div>
   );
 }

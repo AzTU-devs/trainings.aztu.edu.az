@@ -20,4 +20,15 @@ export const categoryServerApi = {
       revalidate: 0,
       tags: ["categories:list"],
     }),
+
+  /**
+   * The same list, cached for `revalidate` seconds. For routes whose own data
+   * is cached (the course page and the expert pages, 300 s): calling the
+   * uncached `list()` there would make them dynamic just to colour a poster.
+   */
+  listCached: (revalidate: number) =>
+    serverFetch<Category[]>(endpoints.public.categories, {
+      revalidate,
+      tags: ["categories:list"],
+    }),
 };

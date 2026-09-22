@@ -1,15 +1,147 @@
 @import "tailwindcss";
 
 /* ==================================================================== */
-/*  AzTU EduPlatform — design tokens                                    */
+/*  AzTU EduPlatform — "Campus Editorial"                               */
 /*                                                                      */
-/*  The palette is the university's: a deep navy ground (#003876 and     */
-/*  its shades) lifted by a single warm gold accent (#c8a951). Surfaces  */
-/*  are warm off-whites rather than pure white, so cards read as paper   */
-/*  rather than as holes punched in the page.                           */
+/*  A university that publishes: warm paper, navy ink, one gold accent, */
+/*  Fraunces for the editorial voice, Schibsted Grotesk for everything  */
+/*  people scan, IBM Plex Mono for labels. Dark mode is a designed      */
+/*  "night edition", not an inversion.                                  */
+/*                                                                      */
+/*  Order matters: raw tokens → night edition (twice) → legacy aliases  */
+/*  → @theme → base → components → reduced motion. Components live in   */
+/*  `@layer components`, so any Tailwind utility can still override     */
+/*  them inline.                                                         */
 /* ==================================================================== */
 
+/* ---------- 1. Raw tokens (light) ------------------------------------ */
+:root {
+  color-scheme: light;
+  /* surfaces */
+  --c-paper: #f6f2ea;   --c-paper-2: #ece6da;   --c-card: #fcfaf6;
+  /* ink — contrast on paper: ink 15.7, ink-2 8.4, ink-3 5.5 (4.9 on paper-2), head 12.6 */
+  --c-ink: #0e1a2b;     --c-ink-2: #3d4757;     --c-ink-3: #5a6271;     --c-head: #0b2a5b;
+  --c-line: rgb(14 26 43 / 0.14);  --c-line-2: rgb(14 26 43 / 0.28);  --c-line-strong: #0e1a2b;
+  /* a form field's edge: line-2 is for decorative rules, but a control's
+     boundary needs 3:1 (WCAG 1.4.11) — this is 3.3:1 on paper and on card */
+  --c-line-input: rgb(14 26 43 / 0.5);
+  /* brand */
+  --c-navy: #003876;  --c-gold: #c8a951;  --c-gold-ink: #7a5d10;   /* gold as TEXT 5.5:1 */
+  --c-shield: #003876;                                              /* the AzTU shield in the brand lock-up */
+  --c-accent: #003876;  --c-on-accent: #f6f2ea;                   /* action colour + its text */
+  /* highlighter behind the one italic word */
+  --c-mark: rgb(200 169 81 / 0.5);  --hl-top: 60%;  --hl-bot: 90%;  --c-hl-text: inherit;
+  /* the single navy spread (home finder, auth panel) */
+  --c-spread: #003876;  --c-spread-ink: #f6f2ea;  --c-spread-2: #b9c4d6;
+  --c-spread-line: rgb(246 242 234 / 0.2);  --c-spread-gold: #d9be6c;
+  /* footer ("back cover") */
+  --c-back: #ece6da;  --c-back-word: #003876;
+  /* status */
+  --c-danger: #b42318;  --c-success: #1f6449;  --c-on-status: #f6f2ea;
+  /* posters: fixed figure colours + the "night" poster ground */
+  --poster-paper: #f6f2ea;  --poster-ink: #0e1a2b;  --poster-navy: #0b2a5b;  --c-night: #0b2246;
+  /* elevation: only things that float (enrol card, popovers, menus, peek, toasts) */
+  --sh-float: 0 1px 0 rgb(14 26 43 / 0.04), 0 18px 48px -18px rgb(14 26 43 / 0.32);
+  --sh-pop:   0 1px 0 rgb(14 26 43 / 0.04), 0 24px 64px -20px rgb(14 26 43 / 0.36);
+  /* category palette: poster ground / category text on paper / tint for the night poster */
+  --cat-it: #2a56d0;    --cat-it-ink: #2a50c4;    --cat-it-t: #9db2f5;
+  --cat-data: #6444b8;  --cat-data-ink: #5e3fb0;  --cat-data-t: #b9a7f1;
+  --cat-eng: #e0661f;   --cat-eng-ink: #a5460f;   --cat-eng-t: #f29a62;
+  --cat-arch: #12737d;  --cat-arch-ink: #0f6770;  --cat-arch-t: #6cc3c8;
+  --cat-biz: #8a2d59;   --cat-biz-ink: #8a2d59;   --cat-biz-t: #e59bc0;
+  --cat-trans: #b53a2f; --cat-trans-ink: #a5342a; --cat-trans-t: #f08d82;
+  --cat-res: #226b50;   --cat-res-ink: #1f6449;   --cat-res-t: #7acba6;
+  --cat-nrg: #e2a21f;   --cat-nrg-ink: #7e5a08;   --cat-nrg-t: #edc05a;
+  /* type (the --font-* variables come from next/font, app/fonts.ts) */
+  --f-display: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
+  --f-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
+  --f-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  /* layout */
+  --wrap: 1440px;  --margin: clamp(20px, 3.4vw, 48px);  --gutter: clamp(16px, 1.7vw, 24px);
+  --hdr: 72px;     /* live header height; condenses to 60 when scrolled (html.hdr-stuck) */
+  --section-y: clamp(80px, 8vw, 128px);
+  /* motion — unlayered on purpose: this --ease-out beats Tailwind's theme
+     value, so the `ease-out` utility uses the design curve too. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-1: 160ms;  --dur-2: 320ms;  --dur-3: 640ms;
+}
+html.hdr-stuck { --hdr: 60px; }
+
+/* ---------- 2. Night edition ------------------------------------------ */
+/* Navy-black paper, warm ink, gold takes the accent role, posters step one
+   notch darker, photos are dimmed, the footer is the darkest surface. The
+   same declarations are repeated for an explicit [data-theme="dark"] so a
+   future theme switch works (no switch UI ships now). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --c-paper: #0b1320;  --c-paper-2: #111b2c;  --c-card: #16233a;
+    --c-ink: #eee8dc;    --c-ink-2: #c0baad;    --c-ink-3: #9ca2ac;    --c-head: #f1ebdf;
+    --c-line: rgb(238 232 220 / 0.13);  --c-line-2: rgb(238 232 220 / 0.26);  --c-line-strong: rgb(238 232 220 / 0.78);
+    --c-line-input: rgb(238 232 220 / 0.42);   /* 3.5:1 on paper, 3.4:1 on card */
+    --c-gold-ink: #d6bb6a;  --c-accent: #d6bb6a;  --c-on-accent: #0b1320;  --c-shield: #eee8dc;
+    --c-mark: #c8a951;  --hl-top: 88%;  --hl-bot: 94%;  --c-hl-text: #d6bb6a;
+    --c-spread: #0b2d5c;  --c-spread-2: #b3bfd2;
+    --c-back: #060b14;  --c-back-word: #173766;
+    --c-danger: #f97066;  --c-success: #7acba6;  --c-on-status: #0b1320;
+    --sh-float: 0 0 0 1px rgb(238 232 220 / 0.09), 0 24px 56px -16px rgb(0 0 0 / 0.7);
+    --sh-pop:   0 0 0 1px rgb(238 232 220 / 0.1),  0 28px 64px -18px rgb(0 0 0 / 0.75);
+    --cat-it: #2a4fbe;    --cat-it-ink: #9db2f5;
+    --cat-data: #5a3ea6;  --cat-data-ink: #b9a7f1;
+    --cat-eng: #d5641f;   --cat-eng-ink: #f29a62;
+    --cat-arch: #146b74;  --cat-arch-ink: #6cc3c8;
+    --cat-biz: #7d2a51;   --cat-biz-ink: #e59bc0;
+    --cat-trans: #a3352b; --cat-trans-ink: #f08d82;
+    --cat-res: #206249;   --cat-res-ink: #7acba6;
+    --cat-nrg: #cd921c;   --cat-nrg-ink: #edc05a;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-paper: #0b1320;  --c-paper-2: #111b2c;  --c-card: #16233a;
+  --c-ink: #eee8dc;    --c-ink-2: #c0baad;    --c-ink-3: #9ca2ac;    --c-head: #f1ebdf;
+  --c-line: rgb(238 232 220 / 0.13);  --c-line-2: rgb(238 232 220 / 0.26);  --c-line-strong: rgb(238 232 220 / 0.78);
+  --c-line-input: rgb(238 232 220 / 0.42);
+  --c-gold-ink: #d6bb6a;  --c-accent: #d6bb6a;  --c-on-accent: #0b1320;  --c-shield: #eee8dc;
+  --c-mark: #c8a951;  --hl-top: 88%;  --hl-bot: 94%;  --c-hl-text: #d6bb6a;
+  --c-spread: #0b2d5c;  --c-spread-2: #b3bfd2;
+  --c-back: #060b14;  --c-back-word: #173766;
+  --c-danger: #f97066;  --c-success: #7acba6;  --c-on-status: #0b1320;
+  --sh-float: 0 0 0 1px rgb(238 232 220 / 0.09), 0 24px 56px -16px rgb(0 0 0 / 0.7);
+  --sh-pop:   0 0 0 1px rgb(238 232 220 / 0.1),  0 28px 64px -18px rgb(0 0 0 / 0.75);
+  --cat-it: #2a4fbe;    --cat-it-ink: #9db2f5;
+  --cat-data: #5a3ea6;  --cat-data-ink: #b9a7f1;
+  --cat-eng: #d5641f;   --cat-eng-ink: #f29a62;
+  --cat-arch: #146b74;  --cat-arch-ink: #6cc3c8;
+  --cat-biz: #7d2a51;   --cat-biz-ink: #e59bc0;
+  --cat-trans: #a3352b; --cat-trans-ink: #f08d82;
+  --cat-res: #206249;   --cat-res-ink: #7acba6;
+  --cat-nrg: #cd921c;   --cat-nrg-ink: #edc05a;
+}
+
+/* ---------- 3. Legacy aliases ----------------------------------------- */
+/* Pages not yet migrated still use the shadcn-style names. They point at the
+   raw tokens, so they flip to the night edition on their own. New code must
+   not use them (see IMPLEMENTATION §1.2); they are deleted after migration. */
+:root {
+  --background: var(--c-paper);        --foreground: var(--c-ink);
+  --card: var(--c-card);               --card-foreground: var(--c-ink);
+  --popover: var(--c-card);            --popover-foreground: var(--c-ink);
+  --primary: var(--c-accent);          --primary-foreground: var(--c-on-accent);
+  --secondary: var(--c-paper-2);       --secondary-foreground: var(--c-ink);
+  --muted: var(--c-paper-2);           --muted-foreground: var(--c-ink-3);
+  --accent: var(--c-paper-2);          --accent-foreground: var(--c-ink);   /* D18: legacy hover fill */
+  --destructive: var(--c-danger);      --destructive-foreground: var(--c-on-status);
+  --success: var(--c-success);         --success-foreground: var(--c-on-status);
+  --warning: var(--c-gold-ink);        --warning-foreground: var(--c-ink);
+  --border: var(--c-line);             --input: var(--c-line-input);            --ring: var(--c-accent);
+  --radius: 0.5rem;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+}
+
+/* ---------- 4. Tailwind theme ----------------------------------------- */
 @theme inline {
+  /* legacy (unmigrated files) */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -34,7 +166,6 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Brand — AzTU navy */
   --color-navy-25: #f4f7fb;
   --color-navy-50: #e8eef7;
   --color-navy-100: #c9d8ec;
@@ -47,8 +178,6 @@
   --color-navy-800: #002d60;
   --color-navy-900: #001f45;
   --color-navy-950: #00122a;
-
-  /* Accent — AzTU gold */
   --color-gold-50: #fbf7ea;
   --color-gold-100: #f5e9c2;
   --color-gold-200: #ecd794;
@@ -60,9 +189,6 @@
   --color-gold-800: #5c4a1c;
   --color-gold-900: #3a2f12;
 
-  /* A fixed, generous radius scale. The whole site is built from soft,
-     rounded shapes: pill buttons and chips, 24–32px cards, and imagery inset
-     inside its card with a matching smaller radius. */
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
@@ -71,278 +197,569 @@
   --radius-3xl: 2rem;
   --radius-4xl: 2.5rem;
 
-  --font-sans: var(--font-jakarta);
-  --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-jakarta);
-
-  /* Elevation — tinted with the brand navy rather than neutral black, so
-     shadows sit in the same colour family as everything else. Kept soft and
-     wide: depth reads from blur, not from a dark edge. */
   --shadow-e1: 0 1px 2px rgb(0 31 69 / 0.04), 0 2px 6px -2px rgb(0 31 69 / 0.05);
   --shadow-e2: 0 1px 2px rgb(0 31 69 / 0.04), 0 10px 24px -12px rgb(0 31 69 / 0.12);
   --shadow-e3: 0 2px 4px rgb(0 31 69 / 0.04), 0 24px 48px -20px rgb(0 31 69 / 0.20);
   --shadow-e4: 0 4px 8px rgb(0 31 69 / 0.05), 0 40px 80px -28px rgb(0 31 69 / 0.28);
+
+  /* surfaces & ink */
+  --color-paper: var(--c-paper);  --color-paper-2: var(--c-paper-2);  /* --color-card → var(--card) = --c-card */
+  --color-ink: var(--c-ink);  --color-ink-2: var(--c-ink-2);  --color-ink-3: var(--c-ink-3);  --color-head: var(--c-head);
+  --color-line: var(--c-line);  --color-line-2: var(--c-line-2);  --color-line-strong: var(--c-line-strong);
+  --color-line-input: var(--c-line-input);
+  /* brand & action (D18: `accent` keeps its legacy meaning; the action colour is `action`) */
+  --color-navy: var(--c-navy);  --color-gold: var(--c-gold);  --color-gold-ink: var(--c-gold-ink);  --color-shield: var(--c-shield);
+  --color-action: var(--c-accent);  --color-on-action: var(--c-on-accent);  --color-mark: var(--c-mark);
+  /* spread & back cover */
+  --color-spread: var(--c-spread);  --color-spread-ink: var(--c-spread-ink);  --color-spread-2: var(--c-spread-2);
+  --color-spread-gold: var(--c-spread-gold);  --color-spread-line: var(--c-spread-line);
+  --color-back: var(--c-back);  --color-back-word: var(--c-back-word);
+  --color-danger: var(--c-danger);  --color-on-status: var(--c-on-status);
+  /* category binding: resolves on whatever element carries data-cat (or inherits it) */
+  --color-cat-ink: var(--cat-ink);  --color-cv-bg: var(--cv-bg);  --color-cv-fg: var(--cv-fg);  --color-cv-ac: var(--cv-ac);
+  /* type */
+  --font-display: var(--f-display);  --font-sans: var(--f-sans);  --font-mono: var(--f-mono);
+  /* radii (the design's; the legacy scale stays alongside) */
+  --radius-poster: 4px;  --radius-tag: 3px;  --radius-card: 8px;  --radius-pop: 10px;  --radius-sheet: 16px;
+  /* elevation */
+  --shadow-float: var(--sh-float);  --shadow-pop: var(--sh-pop);
 }
 
-:root {
-  /* The page is a soft cool grey and content sits on white cards above it,
-     so every card, form and panel reads as a distinct rounded object. */
-  --background: #f6f8fc;
-  --foreground: #0d1b2f;
-  --card: #ffffff;
-  --card-foreground: #0d1b2f;
-  --popover: #ffffff;
-  --popover-foreground: #0d1b2f;
-  --primary: #003876;
-  --primary-foreground: #ffffff;
-  --secondary: #eef2f8;
-  --secondary-foreground: #12233b;
-  --muted: #eef2f8;
-  --muted-foreground: #56677f;
-  --accent: #e9eff8;
-  --accent-foreground: #12233b;
-  --destructive: #c0342c;
-  --destructive-foreground: #ffffff;
-  --success: #17784f;
-  --success-foreground: #ffffff;
-  --warning: #a97b12;
-  --warning-foreground: #1a1206;
-  --border: #e3e9f2;
-  --input: #d9e1ec;
-  --ring: #1a5ba5;
-  --radius: 1rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #060d18;
-    --foreground: #eef2f8;
-    --card: #0c1524;
-    --card-foreground: #eef2f8;
-    --popover: #0c1524;
-    --popover-foreground: #eef2f8;
-    --primary: #a8c4e6;
-    --primary-foreground: #00122a;
-    --secondary: #131f31;
-    --secondary-foreground: #eef2f8;
-    --muted: #111c2c;
-    --muted-foreground: #93a3b8;
-    --accent: #16233a;
-    --accent-foreground: #eef2f8;
-    --destructive: #e2685f;
-    --destructive-foreground: #1a0706;
-    --success: #45c08a;
-    --success-foreground: #04170f;
-    --warning: #e0c266;
-    --warning-foreground: #1a1206;
-    --border: #1d2b41;
-    --input: #24344d;
-    --ring: #6d93c5;
-  }
-}
-
-:root {
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
-}
-
+/* ---------- 5. Base --------------------------------------------------- */
 @layer base {
-  * {
-    border-color: var(--border);
+  * { border-color: var(--c-line); }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* anchors land below the sticky header (and the catalogue toolbar) */
+    scroll-padding-top: calc(var(--hdr) + 40px);
   }
   body {
-    background: var(--background);
-    color: var(--foreground);
-    font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+    background: var(--c-paper);
+    color: var(--c-ink);
+    font-family: var(--f-sans);
+    font-size: 1.0625rem;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* clip, not hidden: hidden would make body a scroll container and break
+       every position:sticky below it */
+    overflow-x: clip;
   }
-  ::selection {
-    background: color-mix(in srgb, var(--color-gold-400) 40%, transparent);
-    color: var(--foreground);
-  }
-  :focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
-  /* Headings: the same family as the text, set heavier and tighter. The
-     weight is a default — a heading can still ask for font-extrabold. */
-  .font-display {
-    font-family: var(--font-jakarta), system-ui, sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-  }
+  ::selection { background: var(--c-gold); color: #0e1a2b; }
+  :focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; border-radius: 2px; }
+  button { cursor: pointer; }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Keyframes — ambient loops only; entrance motion is JS-driven.      */
-/* ------------------------------------------------------------------ */
-@keyframes sheen {
-  0%   { transform: translateX(-130%) skewX(-12deg); }
-  100% { transform: translateX(260%) skewX(-12deg); }
+/* ---------- 6. Shared components (ported from the prototype site.css) - */
+@layer components {
+  /* -- layout ---------------------------------------------------------- */
+  .skip-link {
+    position: absolute; left: 12px; top: -80px; z-index: 100;
+    background: var(--c-ink); color: var(--c-paper);
+    padding: 10px 14px; font-weight: 600; border-radius: 4px;
+  }
+  .skip-link:focus { top: 12px; }
+  .wrap { max-width: var(--wrap); margin-inline: auto; padding-inline: var(--margin); }
+  .g12 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--gutter); }
+  @media (min-width: 768px) { .g12 { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .g12 { grid-template-columns: repeat(12, minmax(0, 1fr)); } }
+  .section { padding-block: var(--section-y); }
+
+  /* -- type ------------------------------------------------------------ */
+  /* Fraunces = the editorial voice (headlines, names). Schibsted = everything
+     people scan or compare (card titles, facts, specs, UI). Plex Mono = labels. */
+  .t-display-xxl, .t-display-xl, .t-display-l, .t-display-m, .t-title-l, .t-title {
+    font-family: var(--f-display); font-optical-sizing: auto; font-weight: 400;
+    font-variation-settings: "SOFT" 30, "WONK" 0; color: var(--c-head);
+    text-wrap: balance; overflow-wrap: break-word; hyphens: manual;
+  }
+  .t-display-xxl { font-size: clamp(3rem, 9.6vw, 8.25rem); line-height: 0.92; letter-spacing: -0.038em; font-weight: 380; }
+  .t-display-xl  { font-size: clamp(2.375rem, 0.95rem + 4.8vw, 5.5rem); line-height: 1; letter-spacing: -0.03em; font-weight: 390; }
+  .t-display-xl.is-long { font-size: clamp(1.75rem, 0.8rem + 3.6vw, 4.25rem); line-height: 1.04; letter-spacing: -0.026em; }
+  .t-display-l   { font-size: clamp(2rem, 1rem + 2.8vw, 3.75rem); line-height: 1.04; letter-spacing: -0.026em; }
+  .t-display-m   { font-size: clamp(1.75rem, 1.1rem + 1.6vw, 2.625rem); line-height: 1.08; letter-spacing: -0.02em; }
+  .t-title-l     { font-size: clamp(1.5rem, 1.2rem + 0.8vw, 2rem); line-height: 1.14; letter-spacing: -0.015em; font-weight: 430; }
+  .t-title       { font-size: 1.375rem; line-height: 1.2; letter-spacing: -0.01em; font-weight: 460; }
+  @media (max-width: 767px) { .t-display-xl { line-height: 1.06; } .t-display-l { line-height: 1.08; } }
+  /* the scan face: card titles, index rows, spec values */
+  .t-card { font-family: var(--f-sans); font-weight: 600; font-size: 1.1875rem; line-height: 1.26; letter-spacing: -0.012em; color: var(--c-ink); text-wrap: balance; overflow-wrap: break-word; }
+  .t-lead  { font-size: clamp(1.125rem, 1rem + 0.35vw, 1.3125rem); line-height: 1.55; color: var(--c-ink-2); text-wrap: pretty; }
+  .t-body  { font-size: 1.0625rem; line-height: 1.65; color: var(--c-ink-2); text-wrap: pretty; }
+  .t-small { font-size: 0.9375rem; line-height: 1.5; }
+  .t-meta  { font-size: 0.875rem; line-height: 1.45; color: var(--c-ink-3); }
+  /* Stored in sentence case, uppercased here: with <html lang="az"> the
+     browser applies the Azerbaijani mapping (i → İ), which JS on the client
+     cannot be trusted to do. */
+  .t-kicker { font-family: var(--f-mono); font-size: 0.75rem; line-height: 1.3; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+  .t-num { font-variant-numeric: tabular-nums; }
+  /* The italic device is rationed: the hero word and the closing call to action only. */
+  .hl {
+    font-style: italic; font-variation-settings: "SOFT" 100, "WONK" 1; color: var(--c-hl-text);
+    background-image: linear-gradient(transparent var(--hl-top), var(--c-mark) var(--hl-top), var(--c-mark) var(--hl-bot), transparent var(--hl-bot));
+    background-repeat: no-repeat; background-size: var(--hl, 100%) 100%;
+    padding-inline: 0.06em; margin-inline: -0.06em;
+    transition: background-size 1100ms var(--ease-out) 350ms;
+  }
+  /* <Highlight> removes data-pre once the word is in view, which runs the sweep */
+  .hl[data-pre] { --hl: 0%; }
+
+  /* -- rules & department openers -------------------------------------- */
+  .rule { border: 0; border-top: 1px solid var(--c-line-strong); margin: 0; }
+  .rule-soft { border: 0; border-top: 1px solid var(--c-line); margin: 0; }
+  /* The label's flex-basis is 0, so it only claims its longest word when the
+     row decides whether to wrap: a label that can still wrap beside the aside
+     does so (as before), and only when even that would overflow does the aside
+     drop to its own line, right-aligned (Dept gives it margin-left: auto). */
+  .dept { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; border-top: 1px solid var(--c-line-strong); padding-top: 14px; }
+  .dept-l { display: flex; flex: 1 1 0%; align-items: baseline; gap: 14px; color: var(--c-ink-2); margin: 0; }
+  .dept .link-go { white-space: normal; text-align: right; }
+  .dept-l b { color: var(--c-gold-ink); font-weight: 500; }
+
+  /* -- links & tags ---------------------------------------------------- */
+  .link { color: var(--c-ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.22em; text-decoration-color: var(--c-line-2); transition: text-decoration-color var(--dur-1); }
+  .link:hover { text-decoration-color: var(--c-gold); text-decoration-thickness: 2px; }
+  .link-go {
+    display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--c-ink); white-space: nowrap;
+    background-image: linear-gradient(var(--c-gold), var(--c-gold)); background-size: 0% 2px; background-position: 0 100%; background-repeat: no-repeat;
+    padding-block: 4px; transition: background-size var(--dur-2) var(--ease-out);
+  }
+  .link-go:hover { background-size: 100% 2px; }
+  .link-go > svg { width: 1.125em; height: 1.125em; flex: none; transition: transform var(--dur-2) var(--ease-out); }
+  .link-go:hover > svg { transform: translateX(3px); }
+
+  /* tag: mono 12px, hairline, square-ish (facts, expertise, badges) */
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px; height: 28px; padding-inline: 9px;
+    font-family: var(--f-mono); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--c-ink-2); border: 1px solid var(--c-line-2); border-radius: 3px; white-space: nowrap;
+  }
+  .tag > svg { width: 14px; height: 14px; flex: none; }
+  .tag-case { font-family: var(--f-sans); font-size: 0.8125rem; letter-spacing: 0; text-transform: none; height: 26px; }
+  .tag-ink { background: var(--c-ink); color: var(--c-paper); border-color: var(--c-ink); }
+  .tag-gold { background: var(--c-gold); color: #0e1a2b; border-color: var(--c-gold); }
+  /* badge: sans, for statuses that must read as words ("Yeni", "Hələ qiymət yoxdur") */
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.875rem; line-height: 1.3; color: var(--c-ink-3); }
+  .badge-new { height: 24px; padding-inline: 8px; border-radius: 999px; background: var(--c-paper-2); color: var(--c-ink-2); font-weight: 600; font-size: 0.8125rem; }
+
+  .cat-k { display: inline-flex; align-items: center; gap: 8px; color: var(--cat-ink, var(--c-ink-2)); min-width: 0; }
+  .cat-k::before { content: ""; width: 10px; height: 10px; background: var(--cv-bg, currentColor); border-radius: 2px; flex: none; }
+
+  /* -- category binding ------------------------------------------------ */
+  /* Any element with data-cat receives its poster colours (--cv-*) and its text
+     colour (--cat-ink). Figures on dark grounds are paper with a gold accent;
+     on the two light grounds (eng, nrg) they are ink/navy with a paper accent,
+     so every poster carries a navy or gold "second ink". */
+  [data-cat="it"]    { --cv-bg: var(--cat-it);    --cv-fg: var(--poster-paper); --cv-ac: var(--c-gold);       --cat-ink: var(--cat-it-ink);    --cat-t: var(--cat-it-t); }
+  [data-cat="data"]  { --cv-bg: var(--cat-data);  --cv-fg: var(--poster-paper); --cv-ac: var(--c-gold);       --cat-ink: var(--cat-data-ink);  --cat-t: var(--cat-data-t); }
+  [data-cat="eng"]   { --cv-bg: var(--cat-eng);   --cv-fg: var(--poster-ink);   --cv-ac: var(--poster-paper); --cat-ink: var(--cat-eng-ink);   --cat-t: var(--cat-eng-t); }
+  [data-cat="arch"]  { --cv-bg: var(--cat-arch);  --cv-fg: var(--poster-paper); --cv-ac: var(--c-gold);       --cat-ink: var(--cat-arch-ink);  --cat-t: var(--cat-arch-t); }
+  [data-cat="biz"]   { --cv-bg: var(--cat-biz);   --cv-fg: var(--poster-paper); --cv-ac: var(--c-gold);       --cat-ink: var(--cat-biz-ink);   --cat-t: var(--cat-biz-t); }
+  [data-cat="trans"] { --cv-bg: var(--cat-trans); --cv-fg: var(--poster-paper); --cv-ac: var(--c-gold);       --cat-ink: var(--cat-trans-ink); --cat-t: var(--cat-trans-t); }
+  [data-cat="res"]   { --cv-bg: var(--cat-res);   --cv-fg: var(--poster-paper); --cv-ac: var(--c-gold);       --cat-ink: var(--cat-res-ink);   --cat-t: var(--cat-res-t); }
+  [data-cat="nrg"]   { --cv-bg: var(--cat-nrg);   --cv-fg: var(--poster-navy);  --cv-ac: var(--poster-paper); --cat-ink: var(--cat-nrg-ink);   --cat-t: var(--cat-nrg-t); }
+  /* Unknown / admin-created category: the OKLCH hue engine. The server sets --h
+     from hash(slug) % 360; the role steps are derived so AA holds. */
+  [data-cat="oth"]   { --cv-bg: oklch(0.5 0.12 var(--h, 200)); --cv-fg: var(--poster-paper); --cv-ac: var(--c-gold); --cat-ink: oklch(0.46 0.12 var(--h, 200)); --cat-t: oklch(0.82 0.09 var(--h, 200)); }
+  [data-cat="brand"] { --cv-bg: #003876; --cv-fg: var(--poster-paper); --cv-ac: var(--c-gold); --cat-ink: var(--c-head); --cat-t: #9db2f5; }
+  /* :not(.inv): these selectors (0,3,0) would otherwise outrank .cover.inv (0,2,0)
+     when both sit on the same cover, and a night poster in a fallback category
+     would lose its navy ground while keeping the tint as its text colour. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) [data-cat="oth"]:not(.inv) { --cv-bg: oklch(0.45 0.11 var(--h, 200)); --cat-ink: oklch(0.82 0.09 var(--h, 200)); }
+  }
+  :root[data-theme="dark"] [data-cat="oth"]:not(.inv) { --cv-bg: oklch(0.45 0.11 var(--h, 200)); --cat-ink: oklch(0.82 0.09 var(--h, 200)); }
+  /* The "AzTU" kicker's swatch (uncategorised courses): the brand navy is 1.6:1
+     on night paper, so the swatch alone is lifted to the category swatches'
+     weight (about 3:1). The poster ground stays the true navy. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) [data-cat="brand"] .cat-k::before { background: #2f5fa8; }
+  }
+  :root[data-theme="dark"] [data-cat="brand"] .cat-k::before { background: #2f5fa8; }
+
+  /* -- cover: generative poster, photo, plate, portrait ----------------- */
+  .cover {
+    position: relative; overflow: hidden; isolation: isolate;
+    background: var(--cv-bg); color: var(--cv-fg);
+    aspect-ratio: var(--ratio, 4 / 3); border-radius: 4px; container-type: inline-size;
+  }
+  /* "night" variant (~1 in 5): AzTU navy ground, category tint figure, paper accent */
+  .cover.inv { --cv-bg: var(--c-night); --cv-fg: var(--cat-t); --cv-ac: var(--poster-paper); }
+  /* At night a navy poster on night paper is about 1.2:1, so it gets a hairline
+     ring. It is drawn by ::after, above the art: an inset box-shadow on .cover
+     paints below the SVG's own ground rect and never shows, and an outline on
+     the SVG would scale out of the frame with the hover zoom. ::after is free
+     here: only photo covers use it, and a photo is never .inv. */
+  .cover.inv::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cover.inv::after { box-shadow: inset 0 0 0 1px rgb(238 232 220 / 0.16); } }
+  :root[data-theme="dark"] .cover.inv::after { box-shadow: inset 0 0 0 1px rgb(238 232 220 / 0.16); }
+  .cover > svg.art, .cover > img { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; transition: transform 900ms var(--ease-out), filter 600ms var(--ease-out); }
+  .cover > img { object-fit: cover; }
+  .cover-labels {
+    position: absolute; inset: 0 0 auto 0; display: flex; justify-content: space-between; gap: 12px;
+    padding: 5cqi 5.5cqi 0; font-family: var(--f-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1;
+  }
+  /* long SMOKE / admin category names must never break the poster */
+  /* (the clip box is padded above cap height, or the dot of the capital I-dot is cut off) */
+  .cover-labels span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-top: 0.3em; margin-top: -0.3em; }
+  .cover-labels span:last-child { flex: none; max-width: 50%; }
+  .cover-labels::after { content: ""; position: absolute; left: 5.5cqi; right: 5.5cqi; top: calc(5cqi + 1.9em); border-top: 1px solid currentColor; opacity: 0.5; }
+  /* technical marks (crosshair + scale ruler) drawn by art.ts; hidden on thumbnails */
+  .cover svg .tech { opacity: 0.62; }
+  @container (width < 240px) { .cover-labels { display: none; } .cover svg .tech { display: none; } }
+
+  /* Photo thumbnails join the poster family: a category hue-wash (grayscale photo +
+     category colour in `color` blend mode), the same mono header bar, and full
+     colour revealed on hover. The poster is never shown behind a photo. */
+  .cover.is-photo > img { filter: grayscale(1) contrast(1.08) brightness(1.02); }
+  .cover.is-photo::after { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--cv-bg); mix-blend-mode: color; pointer-events: none; transition: opacity 600ms var(--ease-out); }
+  .cover.is-photo .cover-labels { background: var(--cv-bg); color: var(--cv-fg); padding: 4.2cqi 5.5cqi 4.2cqi; }
+  .cover.is-photo .cover-labels::after { top: auto; bottom: 0; left: 0; right: 0; opacity: 0.35; }
+  .cover.is-photo.inv .cover-labels { background: var(--c-night); }
+  a:hover .cover.is-photo::after, .cover-hover:hover .cover.is-photo::after { opacity: 0; }
+  a:hover .cover.is-photo > img, .cover-hover:hover .cover.is-photo > img { filter: none; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .cover > img { filter: grayscale(1) contrast(1.08) brightness(0.86); }
+    :root:not([data-theme="light"]) a:hover .cover.is-photo > img { filter: brightness(0.88) saturate(0.95); }
+  }
+  :root[data-theme="dark"] .cover > img { filter: grayscale(1) contrast(1.08) brightness(0.86); }
+  :root[data-theme="dark"] a:hover .cover.is-photo > img { filter: brightness(0.88) saturate(0.95); }
+  a:hover .cover > svg.art, a:hover .cover > img { transform: scale(1.035); }
+
+  /* the course "plate": book-cover poster with an inset drawing frame and an
+     engineering title block instead of a repeated course title */
+  .cover-plate { --ratio: 1 / 1; }
+  .cover-plate::before { content: ""; position: absolute; inset: 3.2cqi; border: 1px solid currentColor; opacity: 0.32; pointer-events: none; z-index: 1; border-radius: 2px; }
+  .cover-plate .cover-labels { padding: 7cqi 7.5cqi 0; }
+  .cover-plate .cover-labels::after { left: 7.5cqi; right: 7.5cqi; top: calc(7cqi + 1.9em); }
+  /* The art band sits inside the inset frame (3.2cqi), between the label rule
+     and the title block, so full-bleed motifs (arcades, roads, sections) never
+     run through the frame line to the plate's edge. CourseCover draws it at
+     the band's ratio (PLATE_ART_* in CourseCover.tsx). */
+  .cover-plate > svg.art { top: 14%; height: 66%; left: 3.2cqi; width: calc(100% - 6.4cqi); }
+  .cover-plate.is-photo > svg.art { display: none; }
+  .cover-plate .tblock {
+    position: absolute; right: 7.5cqi; bottom: 7cqi; z-index: 2; display: grid; grid-template-columns: auto auto;
+    font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1;
+    border: 1px solid color-mix(in srgb, currentColor 55%, transparent); background: var(--cv-bg);
+  }
+  .cover-plate .tblock span { padding: 7px 9px 6px; border-left: 1px solid color-mix(in srgb, currentColor 40%, transparent); white-space: nowrap; }
+  .cover-plate .tblock span:first-child { border-left: 0; }
+  .cover-plate.is-photo .tblock { color: var(--cv-fg); }
+
+  /* expert portrait fallback — oversized cropped italic initials on category colour */
+  .portrait { position: relative; overflow: hidden; background: var(--cv-bg); color: var(--cv-fg); aspect-ratio: var(--ratio, 4 / 5); border-radius: 4px; container-type: inline-size; isolation: isolate; }
+  .portrait > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .portrait .ini { position: absolute; left: -4cqi; bottom: -17cqi; font-family: var(--f-display); font-style: italic; font-weight: 360; font-variation-settings: "SOFT" 100, "WONK" 1; font-size: 92cqi; line-height: 1; letter-spacing: -0.06em; white-space: nowrap; }
+  .portrait .dot { position: absolute; right: 9cqi; top: 9cqi; width: 16cqi; height: 16cqi; border-radius: 50%; background: var(--cv-ac); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .portrait > img, :root:not([data-theme="light"]) .avatar img { filter: brightness(0.9); } }
+  :root[data-theme="dark"] .portrait > img, :root[data-theme="dark"] .avatar img { filter: brightness(0.9); }
+  .avatar { position: relative; flex: none; width: var(--s, 44px); height: var(--s, 44px); border-radius: 50%; overflow: hidden; background: var(--cv-bg); color: var(--cv-fg); display: grid; place-items: center; font-family: var(--f-display); font-style: italic; font-variation-settings: "SOFT" 100, "WONK" 1; font-size: calc(var(--s, 44px) * 0.42); letter-spacing: -0.02em; line-height: 1; }
+  .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* -- search field + quick chips -------------------------------------- */
+  .field-xl { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--c-ink); transition: border-color var(--dur-1); }
+  /* gold-ink, not gold: plain gold is 2.0:1 on day paper, weaker than the
+     resting ink rule. The 1px shadow thickens the rule to 3px without moving
+     the layout. (At night gold-ink is the bright gold, 9.9:1.) */
+  .field-xl:focus-within { border-bottom-color: var(--c-gold-ink); box-shadow: 0 1px 0 var(--c-gold-ink); }
+  .field-xl > svg { width: 26px; height: 26px; flex: none; color: var(--c-ink-3); }
+  .field-xl input {
+    flex: 1; min-width: 0; background: transparent; border: 0; outline: 0;
+    font-family: var(--f-sans); font-weight: 500; font-size: clamp(1.25rem, 1rem + 0.9vw, 1.75rem); letter-spacing: -0.015em;
+    padding: 16px 0 18px; color: var(--c-ink);
+  }
+  .field-xl input::placeholder { color: var(--c-ink-3); font-weight: 400; }
+  /* the field's own gold underline is the focus indicator; the input's outline would double it */
+  .field-xl input:focus-visible { outline: none; }
+  .field-xl button { display: grid; place-items: center; width: 52px; height: 52px; flex: none; border-radius: 999px; background: var(--c-accent); color: var(--c-on-accent); border: 0; transition: background-color var(--dur-1), transform var(--dur-2) var(--ease-out); }
+  .field-xl button:hover { background: var(--c-ink); color: var(--c-paper); transform: translateX(2px); }
+  .field-xl button > svg { width: 22px; height: 22px; }
+  .field-xl.is-md input { font-size: 1.125rem; padding: 12px 0 13px; }
+  .field-xl.is-md > svg { width: 22px; height: 22px; }
+  .field-xl.is-md button { width: 44px; height: 44px; }
+  .field-xl.is-md button > svg { width: 20px; height: 20px; }
+  .qchips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .qchip { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding-inline: 14px; border-radius: 999px; border: 1px solid var(--c-line-2); font-size: 0.9375rem; font-weight: 500; color: var(--c-ink); background: transparent; transition: border-color var(--dur-1), background-color var(--dur-1); white-space: nowrap; }
+  .qchip:hover { border-color: var(--c-ink); background: var(--c-card); }
+  .qchip > svg { width: 16px; height: 16px; flex: none; color: var(--c-ink-3); }
+  .qchip .n { font-family: var(--f-mono); font-size: 0.75rem; color: var(--c-ink-3); }
+  @media (max-width: 639px) {
+    .qchips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(var(--margin) * -1); padding-inline: var(--margin); }
+    .qchips::-webkit-scrollbar { display: none; }
+  }
+
+  /* -- course index rows + cursor peek ---------------------------------- */
+  .cindex { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--c-line-strong); }
+  .cindex > li { border-bottom: 1px solid var(--c-line); }
+  .crow { position: relative; display: grid; align-items: center; gap: 16px; grid-template-columns: 76px minmax(0, 1fr) 20px; padding: 16px 0; isolation: isolate; }
+  .crow .no { font-family: var(--f-mono); font-size: 0.75rem; color: var(--c-ink-3); letter-spacing: 0.06em; }
+  .crow .thumb .cover { --ratio: 1 / 1; border-radius: 3px; }
+  .crow .ttl { font-weight: 600; font-size: 1.0625rem; line-height: 1.28; letter-spacing: -0.01em; color: var(--c-ink); text-wrap: balance; overflow-wrap: break-word; }
+  .crow .sub { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 0.875rem; color: var(--c-ink-3); }
+  .crow .col { display: none; font-size: 0.9375rem; color: var(--c-ink-2); min-width: 0; overflow-wrap: break-word; }
+  .crow .go { width: 20px; height: 20px; color: var(--c-ink-3); transition: transform var(--dur-2) var(--ease-out), color var(--dur-2); }
+  .crow::before { content: ""; position: absolute; inset: 0 -14px; background: var(--c-paper-2); opacity: 0; transition: opacity var(--dur-2); z-index: -1; border-radius: 4px; }
+  .crow:hover::before { opacity: 1; }
+  .crow:hover .go { transform: translateX(4px); color: var(--c-ink); }
+  .crow:hover .ttl { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; text-decoration-color: var(--c-gold); }
+  .cindex.compact .crow { grid-template-columns: 30px 72px minmax(0, 1fr) 20px; }
+  @media (min-width: 1024px) {
+    .cindex:not(.compact) .crow { grid-template-columns: 48px 96px minmax(0, 1fr) 190px 92px 132px 108px 92px 20px; gap: 20px; }
+    .cindex:not(.compact) .crow .ttl { font-size: 1.1875rem; }
+    .cindex:not(.compact) .crow .thumb .cover { --ratio: 4 / 3; }
+    .cindex:not(.compact) .crow .col { display: block; }
+    .cindex:not(.compact) .crow .sub .sm-only { display: none; }
+  }
+  .cindex-head { display: none; }
+  @media (min-width: 1024px) { .cindex-head { display: grid; grid-template-columns: 48px 96px minmax(0, 1fr) 190px 92px 132px 108px 92px 20px; gap: 20px; padding: 0 0 10px; color: var(--c-ink-3); } }
+  .crow .no-lg { display: none; }
+  @media (min-width: 1024px) { .cindex:not(.compact) .crow .no-lg { display: block; } }
+  .cindex.compact .crow .no-lg { display: block; }
+  @media (max-width: 1023px) { .cindex.compact .crow { grid-template-columns: 72px minmax(0, 1fr) 20px; } .cindex.compact .crow .no-lg { display: none; } }
+  .peek { position: fixed; left: 0; top: 0; width: 280px; z-index: 30; pointer-events: none; opacity: 0; transform: translate3d(var(--x, 0), var(--y, 0), 0) rotate(-2.5deg) scale(0.9); transition: opacity var(--dur-2) var(--ease-out), scale var(--dur-2); box-shadow: var(--sh-float); border-radius: 4px; }
+  .peek.on { opacity: 1; scale: 1.04; }
+  @media (hover: none), (prefers-reduced-motion: reduce) { .peek { display: none; } }
+
+  /* -- category index rows + muted tags --------------------------------- */
+  .catlist { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--c-line-strong); }
+  .catlist > li { border-bottom: 1px solid var(--c-line); }
+  .catrow { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 0; isolation: isolate; }
+  .catrow .tile .cover { --ratio: 1 / 1; border-radius: 3px; }
+  .catrow .nm { font-family: var(--f-display); font-size: clamp(1.375rem, 1rem + 1.35vw, 2.375rem); line-height: 1.06; letter-spacing: -0.022em; font-weight: 400; color: var(--c-head); text-wrap: balance; overflow-wrap: break-word; transition: color var(--dur-2); }
+  .catrow .ds { display: none; margin-top: 6px; font-size: 0.9375rem; color: var(--c-ink-3); transition: color var(--dur-2); }
+  .catrow .ct { font-family: var(--f-mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-ink-2); white-space: nowrap; display: flex; align-items: center; gap: 12px; transition: color var(--dur-2); }
+  .catrow .ct > svg { width: 20px; height: 20px; transition: transform var(--dur-2) var(--ease-out); }
+  .catrow.zero .nm, .catrow.zero .ct { color: var(--c-ink-3); }
+  .catrow.zero .tile .cover { filter: grayscale(0.9); opacity: 0.55; }
+  .catrow .no { display: none; font-family: var(--f-mono); font-size: 0.75rem; color: var(--c-ink-3); transition: color var(--dur-2); }
+  .catrow::before { content: ""; position: absolute; inset: 0 -14px; background: var(--cv-bg); clip-path: inset(0 100% 0 0 round 4px); transition: clip-path 560ms var(--ease-out); z-index: -1; border-radius: 4px; }
+  @media (hover: hover) {
+    a.catrow:hover::before { clip-path: inset(0 0 0 0 round 4px); }
+    a.catrow:hover .nm, a.catrow:hover .ds, a.catrow:hover .ct, a.catrow:hover .no { color: var(--cv-fg); }
+    a.catrow:hover .ct > svg { transform: translateX(4px); }
+  }
+  @media (min-width: 1024px) { .catrow { grid-template-columns: 40px 72px minmax(0, 1fr) auto; gap: 24px; padding: 18px 0; } .catrow .no { display: block; } }
+  @media (min-width: 640px) { .catrow .ds { display: block; } }
+  .mtags { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+  .mtag { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; max-width: 100%; padding-inline: 12px; border: 1px dashed var(--c-line-2); border-radius: 999px; font-size: 0.875rem; color: var(--c-ink-3); overflow-wrap: anywhere; }
+  .mtag::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--cv-bg); opacity: 0.5; flex: none; }
+  /* at night the half-strength poster ground sinks into the paper; the
+     category's night tint (as on the night posters) keeps the colour cue */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mtag::before { background: var(--cat-t); opacity: 0.9; } }
+  :root[data-theme="dark"] .mtag::before { background: var(--cat-t); opacity: 0.9; }
+
+  /* -- poster card ------------------------------------------------------ */
+  .pcard { display: flex; flex-direction: column; min-width: 0; }
+  .pcard .cover { --ratio: 4 / 3; }
+  .pcard .k { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.8125rem; min-width: 0; }
+  .pcard h3 { margin: 8px 0 0; }
+  .pcard:hover h3 { text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 0.18em; text-decoration-color: var(--c-gold); }
+  .pcard .by { margin: 6px 0 14px; font-size: 0.9375rem; color: var(--c-ink-2); overflow-wrap: break-word; }
+  .facts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: 0.875rem; color: var(--c-ink-2); }
+  .pcard .facts { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--c-line); }
+  .facts .f { display: inline-flex; align-items: center; gap: 6px; }
+  .facts .f > svg { width: 15px; height: 15px; flex: none; color: var(--c-ink-3); }
+  .facts .f > svg.star { color: var(--c-gold-ink); fill: currentColor; stroke: none; }
+  .facts .norate { color: var(--c-ink-3); }
+  /* In a grid row the cards share a height and the facts sit at the bottom,
+     so the facts reserve two rows: the hairline above them then lines up
+     across the row even when one card's facts wrap onto a second line. */
+  @media (min-width: 640px) { .pcard .facts { min-height: calc(2lh + 6px + 12px + 1px); align-content: flex-start; } }
+  /* phones: posters become compact media rows so a page of 12 is ~2 screens */
+  @media (max-width: 639px) {
+    .pcard { display: grid; grid-template-columns: 104px minmax(0, 1fr); column-gap: 16px; align-items: start; }
+    .pcard > .cover { --ratio: 1 / 1; grid-row: span 4; }
+    .pcard .k { margin-top: 0; }
+    .pcard h3 { margin-top: 4px; font-size: 1.0625rem; }
+    .pcard .by { margin: 4px 0 8px; font-size: 0.875rem; }
+    .pcard .facts { border-top: 0; padding-top: 0; gap: 4px 12px; font-size: 0.8125rem; }
+  }
+
+  /* -- feature ("cover story") ------------------------------------------ */
+  .feature .cover { --ratio: 16 / 10; }
+  .feature-title { font-family: var(--f-display); font-weight: 400; letter-spacing: -0.024em; line-height: 1.04; text-wrap: balance; overflow-wrap: break-word; font-size: clamp(1.875rem, 1.1rem + 2vw, 3.125rem); color: var(--c-head); font-variation-settings: "SOFT" 30, "WONK" 0; }
+  a:hover .feature-title, .feature-title a:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.12em; text-decoration-color: var(--c-gold); }
+
+  /* -- accordion (FAQ + curriculum) ------------------------------------- */
+  .acc { border-top: 1px solid var(--c-line-strong); }
+  .acc-item { border-bottom: 1px solid var(--c-line); }
+  .acc-btn { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-items: center; gap: 16px; padding: 22px 0; text-align: left; background: none; border: 0; color: inherit; font: inherit; }
+  .acc-btn .q { font-family: var(--f-display); font-size: clamp(1.1875rem, 1.05rem + 0.5vw, 1.5rem); line-height: 1.22; letter-spacing: -0.012em; font-weight: 420; color: var(--c-head); text-wrap: balance; overflow-wrap: break-word; }
+  .pm { position: relative; width: 36px; height: 36px; border: 1px solid var(--c-line-2); border-radius: 50%; display: grid; place-items: center; transition: background-color var(--dur-2), border-color var(--dur-2), color var(--dur-2); }
+  .pm::before, .pm::after { content: ""; position: absolute; width: 12px; height: 1.5px; background: currentColor; transition: transform var(--dur-2) var(--ease-out); }
+  .pm::after { transform: rotate(90deg); }
+  [aria-expanded="true"] .pm { background: var(--c-ink); color: var(--c-paper); border-color: var(--c-ink); }
+  [aria-expanded="true"] .pm::after { transform: rotate(0deg); }
+  .acc-btn:hover .pm { border-color: var(--c-ink); }
+  .acc-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-3) var(--ease-out); }
+  .acc-panel > div { overflow: hidden; min-height: 0; }
+  .acc-item.open .acc-panel { grid-template-rows: 1fr; }
+  /* collapsed panels leave the tab order and the accessibility tree */
+  .acc-item:not(.open) .acc-panel > div { visibility: hidden; transition: visibility 0s linear var(--dur-3); }
+  /* curriculum */
+  .mod-btn { grid-template-columns: 72px minmax(0, 1fr) auto 36px; }
+  .mod-btn .mn { font-family: var(--f-mono); font-size: 0.75rem; letter-spacing: 0.08em; color: var(--c-gold-ink); line-height: 1.3; text-transform: uppercase; }
+  .mod-btn .q { font-family: var(--f-sans); font-weight: 600; font-size: 1.125rem; letter-spacing: -0.01em; color: var(--c-ink); }
+  .mod-btn .mm { font-size: 0.875rem; color: var(--c-ink-3); white-space: nowrap; }
+  @media (max-width: 767px) {
+    .mod-btn { grid-template-columns: minmax(0, 1fr) 36px; row-gap: 4px; }
+    .mod-btn .mn, .mod-btn .q, .mod-btn .mm { grid-column: 1; }
+    .mod-btn .pm { grid-column: 2; grid-row: 1 / span 3; }
+  }
+  .lessons { list-style: none; margin: 0; padding: 0 0 18px; }
+  .lesson { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 11px 0; border-top: 1px dashed var(--c-line); font-size: 0.9375rem; color: var(--c-ink-2); }
+  @media (min-width: 768px) { .lesson { padding-left: 88px; grid-template-columns: 22px minmax(0, 1fr) 110px 64px; } }
+  .lesson > svg { width: 17px; height: 17px; color: var(--c-ink-3); transform: translateY(3px); }
+  .lesson .lt { display: none; font-family: var(--f-mono); font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--c-ink-3); }
+  @media (min-width: 768px) { .lesson .lt { display: block; } }
+  .lesson .d { font-family: var(--f-mono); font-size: 0.75rem; color: var(--c-ink-3); white-space: nowrap; text-align: right; }
+  /* a label only (D4): visitors cannot open a preview, so it is not a link */
+  .lesson .pv {
+    display: inline-block; margin-left: 10px; padding: 1px 6px; font-family: var(--f-mono); font-size: 0.75rem; font-weight: 500; line-height: 1.5;
+    letter-spacing: 0.05em; text-transform: uppercase; color: var(--c-gold-ink); white-space: nowrap;
+    border: 1px solid color-mix(in srgb, var(--c-gold-ink) 45%, transparent); border-radius: var(--radius-tag);
+  }
+  .kinds { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* lesson-type counts (curriculum summary + enrol card) */
+  .kinds .tag { height: 30px; font-family: var(--f-sans); font-size: 0.875rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--c-ink); background: var(--c-card); border-color: var(--c-line); border-radius: 999px; padding-inline: 10px 12px; }
+  .kinds .tag > svg { color: var(--c-ink-3); }
+
+  /* -- prose, standfirst, numbered outcomes ----------------------------- */
+  /* No drop cap: a Fraunces standfirst opens the description instead
+     (drop caps split short Azerbaijani words — "B|u", "M|əlumatlar"). */
+  .prose p { margin: 0 0 1.1em; font-size: 1.0625rem; line-height: 1.72; color: var(--c-ink-2); text-wrap: pretty; max-width: 66ch; overflow-wrap: break-word; }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose p.standfirst { font-family: var(--f-display); font-size: clamp(1.25rem, 1.1rem + 0.45vw, 1.5rem); line-height: 1.45; letter-spacing: -0.01em; color: var(--c-head); font-variation-settings: "SOFT" 40, "WONK" 0; max-width: 40ch; padding-left: 18px; border-left: 2px solid var(--cat-ink, var(--c-gold)); }
+  .olist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); column-gap: var(--gutter); counter-reset: o; }
+  @media (min-width: 768px) { .olist { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .olist li { counter-increment: o; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; padding: 16px 0 18px; border-top: 1px solid var(--c-line); font-size: 1.0625rem; line-height: 1.5; color: var(--c-ink); overflow-wrap: break-word; }
+  .olist li::before { content: counter(o, decimal-leading-zero); font-family: var(--f-mono); font-size: 0.75rem; color: var(--c-gold-ink); padding-top: 4px; letter-spacing: 0.06em; }
+
+  /* -- footer ("back cover") -------------------------------------------- */
+  .back { background: var(--c-back); color: var(--c-ink); position: relative; overflow: hidden; }
+  /* balance: where a link must wrap (phone columns) it splits evenly rather
+     than leaving one word on its own line */
+  .back .flink { display: inline-block; padding: 5px 0; color: var(--c-ink-2); text-wrap: balance; transition: color var(--dur-1); }
+  .back .flink:hover { color: var(--c-ink); text-decoration: underline; text-underline-offset: 0.2em; text-decoration-color: var(--c-gold); }
+  .back .wordmark { font-family: var(--f-display); font-weight: 420; font-variation-settings: "SOFT" 30, "opsz" 144; letter-spacing: -0.058em; line-height: 0.74; font-size: 21.2vw; white-space: nowrap; color: var(--c-back-word); user-select: none; margin-left: -0.055em; }
+  @media (max-width: 767px) { .back .wordmark { font-size: 20.2vw; } }
+  @media (min-width: 1440px) { .back .wordmark { font-size: 305px; } }
+
+  /* -- empty / sparse ---------------------------------------------------- */
+  .note { border-left: 2px solid var(--c-gold); padding: 4px 0 4px 18px; color: var(--c-ink-2); }
+  .blank { position: relative; border: 1px dashed var(--c-line-2); border-radius: 4px; aspect-ratio: 4 / 3; background-image: radial-gradient(var(--c-line-2) 1px, transparent 1.2px); background-size: 18px 18px; display: grid; place-items: center; }
+  .blank > span { font-family: var(--f-mono); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-ink-2); background: var(--c-paper); padding: 5px 9px; border-radius: 3px; }
+  .invite { border: 1px dashed var(--c-gold); border-radius: 8px; }
+
+  /* -- form fields (auth, profile, expert application) ------------------ */
+  .input, .select, .textarea {
+    width: 100%; height: 52px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--c-line-input);
+    background: var(--c-card); color: var(--c-ink); font: 400 1rem/1.4 var(--f-sans);
+    transition: border-color var(--dur-1), box-shadow var(--dur-1);
+  }
+  .input::placeholder, .textarea::placeholder { color: var(--c-ink-3); }
+  .input:hover, .select:hover, .textarea:hover { border-color: var(--c-ink-3); }
+  .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--c-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 24%, transparent); }
+  .input[aria-invalid="true"], .select[aria-invalid="true"], .textarea[aria-invalid="true"] { border-color: var(--c-danger); }
+  .input[aria-invalid="true"]:focus, .select[aria-invalid="true"]:focus, .textarea[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-danger) 22%, transparent); }
+  .input:disabled, .select:disabled, .textarea:disabled { opacity: 0.55; cursor: not-allowed; }
+  .textarea { height: auto; min-height: 128px; padding: 12px 16px; resize: vertical; }
+  .select { appearance: none; -webkit-appearance: none; padding-right: 44px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 22px) 50%, calc(100% - 17px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+  .pw { position: relative; }
+  .pw .input { padding-right: 52px; }
+  .pw button { position: absolute; right: 4px; top: 4px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--c-ink-3); border-radius: 8px; }
+  .check { display: flex; gap: 12px; align-items: flex-start; font-size: 0.9375rem; color: var(--c-ink-2); cursor: pointer; }
+  .check input { appearance: none; -webkit-appearance: none; flex: none; width: 20px; height: 20px; margin-top: 1px; border: 1.5px solid var(--c-line-input); border-radius: 5px; background: var(--c-card); display: grid; place-items: center; transition: background-color var(--dur-1), border-color var(--dur-1); }
+  .check input:checked { background: var(--c-accent); border-color: var(--c-accent); }
+  .check input:checked::after { content: ""; width: 10px; height: 6px; border-left: 2px solid var(--c-on-accent); border-bottom: 2px solid var(--c-on-accent); transform: translateY(-1px) rotate(-45deg); }
+  .check input:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
 }
 
+/* ---------- 7. Page hooks --------------------------------------------- */
+/* The course page's fixed enrol bar (owned by the detail area) reserves its
+   own space and lifts the toasts, without the layout knowing about it. */
+@media (max-width: 1023px) {
+  :root:has(.enrol-bar) { --enrol-bar-h: 76px; }
+  :root:has(.enrol-bar) body { padding-bottom: 80px; }
+}
+
+/* ---------- 8. Toasts (sonner, restyled as the ink toast) -------------- */
+/* Sonner injects its own unlayered CSS at runtime; `:root` lifts these rules
+   above its [data-sonner-toaster][data-sonner-theme] selectors. The toast is
+   an inverted surface (ink ground, paper text), so its icons take the colours
+   of the opposite scheme to stay legible. */
+:root [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--c-ink);
+  --normal-border: transparent;
+  --normal-text: var(--c-paper);
+  --border-radius: 10px;
+  --toast-icon: var(--c-gold);
+  --toast-icon-error: #f97066;
+  font-family: var(--f-sans);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) [data-sonner-toaster][data-sonner-theme] { --toast-icon: #7a5d10; --toast-icon-error: #b42318; }
+}
+:root[data-theme="dark"] [data-sonner-toaster][data-sonner-theme] { --toast-icon: #7a5d10; --toast-icon-error: #b42318; }
+:root [data-sonner-toast][data-styled="true"] {
+  gap: 12px; align-items: flex-start; padding: 14px 48px 14px 16px;
+  box-shadow: var(--sh-pop); font-size: 0.875rem;
+}
+:root [data-sonner-toast][data-styled="true"] [data-icon] { color: var(--toast-icon); width: 22px; height: 22px; margin: 0; }
+:root [data-sonner-toast][data-styled="true"] [data-icon] > svg { width: 22px; height: 22px; }
+:root [data-sonner-toast][data-styled="true"][data-type="error"] [data-icon] { color: var(--toast-icon-error); }
+:root [data-sonner-toast][data-styled="true"] [data-title] { font-weight: 600; font-size: 0.9375rem; line-height: 1.35; }
+:root [data-sonner-toast][data-styled="true"] [data-description] { margin-top: 2px; font-size: 0.875rem; line-height: 1.45; color: color-mix(in srgb, var(--c-paper) 78%, transparent); }
+:root [data-sonner-toast][data-styled="true"] [data-close-button] {
+  left: auto; right: 8px; top: 10px; transform: none;
+  width: 32px; height: 32px; border: 0; border-radius: 6px;
+  background: transparent; color: inherit; opacity: 0.7;
+}
+:root [data-sonner-toast][data-styled="true"] [data-close-button]:hover { opacity: 1; background: color-mix(in srgb, var(--c-paper) 12%, transparent); }
+:root [data-sonner-toast][data-styled="true"] [data-close-button] > svg { width: 16px; height: 16px; }
+:root [data-sonner-toast][data-styled="true"] [data-button] { background: var(--c-gold); color: #0e1a2b; font-weight: 600; border-radius: 999px; }
+
+/* ---------- 9. Legacy utilities (unmigrated pages only) ---------------- */
+/* Kept, re-pointed at the new tokens, until `grep -r` finds no user; the QA
+   pass deletes them. New code must not use any of these. */
 @layer utilities {
-  /* ---- Layout ---- */
-  .container-fluid {
-    width: 100%;
-    max-width: 84rem;
-    margin-inline: auto;
-    padding-inline: 1.25rem;
-  }
-  @media (min-width: 768px) {
-    .container-fluid { padding-inline: 2rem; }
-  }
-  @media (min-width: 1280px) {
-    .container-fluid { padding-inline: 2.5rem; }
-  }
-
-  /* Vertical rhythm — every marketing section uses one of these two, so the
-     page reads as a single grid rather than a stack of unrelated blocks. */
+  .container-fluid { width: 100%; max-width: var(--wrap); margin-inline: auto; padding-inline: var(--margin); }
   .section-y { padding-block: 4.5rem; }
   @media (min-width: 768px) { .section-y { padding-block: 6.5rem; } }
-
-  /* ---- Surfaces ---------------------------------------------------- */
-  /*
-   * No repeating geometry anywhere. Depth comes from three things only:
-   * large off-canvas light washes, a fine film grain for tactility, and
-   * hairline rules for structure. Grids and dot patterns read as "template";
-   * washes and grain read as printed material.
-   */
-
-  /* The deep navy canvas: hero, closing CTA, footer, auth panel. Carries its
-     own lighting, so pages never need decorative child elements. */
-  .surface-deep {
-    /* A deep, saturated navy base with the light concentrated where content
-       sits, rather than a broad pale wash that flattens the whole plane to
-       grey. Gold warmth stays a hint at the top-right. */
-    background-image:
-      var(--grain),
-      radial-gradient(58% 52% at 76% 20%, rgba(31, 106, 190, 0.50) 0%, transparent 64%),
-      radial-gradient(45% 40% at 95% 4%, rgba(200, 169, 81, 0.16) 0%, transparent 62%),
-      radial-gradient(70% 65% at 8% 92%, rgba(11, 74, 141, 0.34) 0%, transparent 62%),
-      linear-gradient(164deg, #01234a 0%, #00152f 56%, #00091b 100%);
-    color: #f3f6fb;
-  }
-
-  /* A warm paper tint for alternating light sections. */
-  .surface-paper {
-    background-image:
-      var(--grain),
-      linear-gradient(180deg, var(--muted) 0%, var(--background) 78%);
-  }
-
-  .glass-nav {
-    background: color-mix(in srgb, var(--background) 84%, transparent);
-    --glass-filter: saturate(160%) blur(16px);
+  .surface-deep { background: var(--c-spread); color: var(--c-spread-ink); }
+  .surface-paper { background: var(--c-paper-2); }
+  .glass-nav, .glass-bar {
+    background: color-mix(in srgb, var(--c-paper) 86%, transparent);
+    /* through a variable on purpose: the CSS minifier folds a literal pair
+       into the -webkit- form alone, which Chromium ignores */
+    --glass-filter: saturate(1.4) blur(16px);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
   }
-
-  /* A translucent panel for use on the deep canvas. */
-  .panel-onDeep {
-    background: rgb(255 255 255 / 0.085);
-    border: 1px solid rgb(255 255 255 / 0.16);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.18),
-      0 40px 80px -24px rgb(0 6 16 / 0.95);
-    --glass-filter: blur(14px);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-  }
-
-  /* ---- Depth ---------------------------------------------------------- */
+  .panel-onDeep { background: rgb(246 242 234 / 0.08); border: 1px solid var(--c-spread-line); }
   .elev-1 { box-shadow: var(--shadow-e1); }
   .elev-2 { box-shadow: var(--shadow-e2); }
-  .elev-3 { box-shadow: var(--shadow-e3); }
-  .elev-4 { box-shadow: var(--shadow-e4); }
-
-  .hairline {
-    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.6), var(--shadow-e2);
-  }
-  @media (prefers-color-scheme: dark) {
-    .hairline { box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.06), var(--shadow-e2); }
-  }
-
-  /* A single gold sheen sweeping a primary button on hover. */
-  .sheen { position: relative; overflow: hidden; }
-  .sheen::after {
-    content: "";
-    position: absolute;
-    inset-block: 0;
-    left: 0;
-    width: 40%;
-    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent);
-    transform: translateX(-130%) skewX(-12deg);
-    pointer-events: none;
-  }
-  .sheen:hover::after { animation: sheen 0.9s ease-out; }
+  .elev-3 { box-shadow: var(--sh-float); }
+  .elev-4 { box-shadow: var(--sh-pop); }
+  .hairline { box-shadow: inset 0 0 0 1px var(--c-line); }
+  .sheen { position: relative; }
+  .animate-pop-in { animation: pop-in var(--dur-2) var(--ease-out) both; transform-origin: top center; }
 }
 
-/* Users who ask for less motion get none of the ambient loops. */
+/* ---------- 10. Keyframes --------------------------------------------- */
+@keyframes pop-in { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes drop-in { from { opacity: 0; transform: translateY(-12px); } }
+
+/* ---------- 11. Reduced motion ---------------------------------------- */
+/* Everything is shown in its final state at once: no sweep, no zoom, no
+   wipe, no drop-ins. The Reveal/Stagger components check the same query. */
 @media (prefers-reduced-motion: reduce) {
-  .sheen::after {
-    animation: none !important;
-  }
-  *, *::before, *::after {
-    scroll-behavior: auto !important;
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/*  Site chrome — the floating header and its popovers.                */
-/* ------------------------------------------------------------------ */
-@keyframes pop-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@layer utilities {
-  /* The floating header pill. A translucent *card* rather than the page
-     colour (compare .glass-nav), so the bar reads as a white object resting
-     on the grey canvas — and stays legible when it drifts over the navy
-     hero as the page scrolls. */
-  .glass-bar {
-    background: color-mix(in srgb, var(--card) 80%, transparent);
-    /* Through a variable on purpose: given a literal value, the CSS
-       minifier folds the pair into the -webkit- form alone, which Chromium
-       ignores — so the bar would not blur at all there. */
-    --glass-filter: saturate(180%) blur(18px);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-  }
-
-  /* Popovers and the mobile sheet drop in from the bar they belong to. */
-  .animate-pop-in {
-    animation: pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
-    transform-origin: top center;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
+  .hl, .hl[data-pre] { --hl: 100%; transition: none; }
+  .cover > svg.art, .cover > img, .cover.is-photo::after, .catrow::before, .crow::before,
+  .acc-panel, .link-go, .link-go > svg, .pm, .pm::before, .pm::after { transition: none !important; }
+  a:hover .cover > svg.art, a:hover .cover > img { transform: none; }
   .animate-pop-in { animation: none !important; }
-}
-
-@layer utilities {
-  /* In dark mode a deep panel's gradient ends almost on the page colour, so
-     its rounded lower corners dissolve into the canvas and the contained
-     panel reads as a smudge. Two small fixes keep it an object: the base
-     gradient stops a step short of black (the same layers as .surface-deep,
-     only the last stop differs), and a faint hairline traces the edge. The
-     hairline is an outline rather than a box-shadow so it never fights the
-     elev-* and ring-* shadows those panels already carry, and it steps
-     aside for a focus ring. */
-  @media (prefers-color-scheme: dark) {
-    .surface-deep {
-      background-image:
-        var(--grain),
-        radial-gradient(58% 52% at 76% 20%, rgba(31, 106, 190, 0.50) 0%, transparent 64%),
-        radial-gradient(45% 40% at 95% 4%, rgba(200, 169, 81, 0.16) 0%, transparent 62%),
-        radial-gradient(70% 65% at 8% 92%, rgba(11, 74, 141, 0.34) 0%, transparent 62%),
-        linear-gradient(164deg, #01234a 0%, #00152f 56%, #001026 100%);
-    }
-    .surface-deep:not(:focus-visible) {
-      outline: 1px solid rgb(255 255 255 / 0.08);
-      outline-offset: -1px;
-    }
-  }
+  html { scroll-behavior: auto; }
 }

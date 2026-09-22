@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { LearningClient } from "@/features/learning/components/LearningClient";
 import { courseServerApi } from "@/features/course/api.server";
 import { enrollmentServerApi } from "@/features/enrollment/api.server";
+import { categoryServerApi } from "@/features/category/api.server";
+import { primaryCategoryId, toCategoryRef, type CategoryRef } from "@/features/category/style";
 import { getSession } from "@/lib/auth/session";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -56,11 +58,30 @@ export default async function LearnLessonPage({ params }: Props) {
     savedProgress.map((p) => [p.lessonId, p]),
   );
 
+  // Presentation only: the course's primary category colours the lesson
+  // stage the way it colours the course's poster everywhere else. Read-only,
+  // cached for 300 s like the course page's own category lookup, and optional
+  // — if it fails the stage uses the navy brand colours.
+  let category: CategoryRef | null = null;
+  try {
+    const [categories, t] = await Promise.all([
+      categoryServerApi.listCached(300),
+      getT(locale),
+    ]);
+    const byId = new Map(categories.map((c) => [c.id, c] as const));
+    const primary = primaryCategoryId(course.categoryIds, byId);
+    const found = primary ? byId.get(primary) : undefined;
+    category = found ? toCategoryRef(found, t, locale) : null;
+  } catch {
+    category = null;
+  }
+
   return (
     <LearningClient
       course={course}
       currentLessonId={lessonId}
       initialProgress={initialProgress}
+      category={category}
     />
   );
 }

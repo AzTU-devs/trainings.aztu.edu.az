@@ -1,151 +1,151 @@
 "use client";
 
-import { useId, useState } from "react";
-import { ChevronDown, CirclePlay, ListTree, Lock } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
+import { Accordion } from "@/components/common/Accordion";
+import { BlankPlate } from "@/components/editorial/BlankPlate";
+import { Tag } from "@/components/ui/badge";
 import { useT } from "@/i18n/client";
 import type { TFunction } from "@/i18n/format";
-import type { CourseModule } from "../types";
+import { LESSON_KIND, formatDuration } from "../format";
+import type { CourseModule, LessonContentType } from "../types";
 
-/** A module's total, e.g. "1 saat 20 dəq" — formatDuration's units are English-only. */
-function durationText(seconds: number, t: TFunction) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h && m) return t("courseDetail.durationHM", { h, m });
-  if (h) return t("courseDetail.durationH", { h });
-  return t("courseDetail.durationM", { m: Math.max(m, 1) });
+/**
+ * A lesson's length in the one duration style the site uses everywhere ("12
+ * dəq", "1 s 5 dəq", "2 s"), so this list, the module meta beside it and the
+ * player's sidebar print the same lesson the same way; a clock reading such
+ * as "17:00" would look like a time of day. "—" when the author has not set it.
+ */
+function lessonLength(seconds: number, t: TFunction) {
+  return formatDuration(seconds, t, "short") || "—";
 }
 
-/** A lesson's length as a clock reading (12:05, 1:02:30), which needs no words. */
-function clock(seconds: number) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
-}
+const pad = (n: number) => String(n).padStart(2, "0");
 
+/**
+ * The curriculum: the summary line with "expand all", the lesson-type counts
+ * (computed from each lesson's type, never typed by hand), then one module per
+ * row with the first one open. A lesson marked as a preview is only labelled:
+ * /learn needs sign-in and enrolment, so it cannot be a link for visitors.
+ *
+ * With no modules it says so next to an empty plate instead of showing an
+ * empty list.
+ */
 export function CurriculumAccordion({
   modules,
+  kinds = [],
+  totalSeconds = 0,
   emptyMessage,
   emptyHint,
 }: {
   modules: CourseModule[];
+  /** lessonKindCounts(modules), computed once by the page (the enrol card shows the same tags). */
+  kinds?: { kind: LessonContentType; count: number }[];
+  /** The course length for the summary (the online total, else the sum of the lessons). */
+  totalSeconds?: number;
   emptyMessage?: string;
   emptyHint?: string;
 }) {
   const t = useT();
-  const baseId = useId();
-  const [openId, setOpenId] = useState<string | null>(modules[0]?.id ?? null);
+  const lessonCount = modules.reduce((s, m) => s + m.lessons.length, 0);
 
-  if (!modules.length) {
+  if (!modules.length || lessonCount === 0) {
     return (
-      <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/40 px-6 py-12 text-center">
-        <span className="grid size-12 place-items-center rounded-2xl bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100">
-          <ListTree aria-hidden className="size-5" />
-        </span>
-        <p className="mt-4 font-display text-base leading-snug">
-          {emptyMessage ?? t("courseDetail.curriculumEmpty")}
-        </p>
-        {emptyHint ? (
-          <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            {emptyHint}
-          </p>
-        ) : null}
+      <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-5 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-8">
+        <BlankPlate label={t("courseDetail.zeroLessons")} square />
+        <div className="min-w-0">
+          <p className="t-title">{emptyMessage ?? t("courseDetail.curriculumEmpty")}</p>
+          {emptyHint ? <p className="t-body mt-2">{emptyHint}</p> : null}
+        </div>
       </div>
     );
   }
 
+  const summary = [
+    t("courseDetail.modules", { count: modules.length }),
+    t("courseDetail.lessons", { count: lessonCount }),
+    formatDuration(totalSeconds, t, "long"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className="space-y-3">
-      {modules.map((mod, index) => {
-        const isOpen = openId === mod.id;
-        const totalSec = mod.lessons.reduce(
-          (sum, l) => sum + (l.durationSeconds ?? 0),
-          0,
-        );
-        const panelId = `${baseId}-${mod.id}`;
-        return (
-          <div
-            key={mod.id}
-            className={cn(
-              "overflow-hidden rounded-2xl border transition-[border-color,box-shadow,background-color] duration-200",
-              isOpen
-                ? "border-border bg-card elev-2"
-                : "border-border/80 bg-background/60 hover:border-primary/30 dark:bg-background/40",
-            )}
-          >
-            <button
-              type="button"
-              onClick={() => setOpenId(isOpen ? null : mod.id)}
-              aria-expanded={isOpen}
-              aria-controls={panelId}
-              className="flex w-full items-center gap-4 px-4 py-4 text-left sm:px-5"
-            >
-              <span
-                aria-hidden
-                className={cn(
-                  "grid size-10 shrink-0 place-items-center rounded-2xl font-display text-sm tabular-nums transition-colors duration-200",
-                  isOpen
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100",
-                )}
-              >
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold leading-snug">{mod.title}</span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {t("courseDetail.lessons", { count: mod.lessons.length })}
-                  {totalSec > 0 ? ` · ${durationText(totalSec, t)}` : null}
-                </span>
-              </span>
-              <span
-                aria-hidden
-                className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground"
-              >
-                <ChevronDown
-                  className={cn(
-                    "size-4 transition-transform duration-200",
-                    isOpen && "rotate-180",
-                  )}
-                />
-              </span>
-            </button>
-            {isOpen ? (
-              <ul id={panelId} className="border-t border-border px-2 py-2 sm:px-3">
-                {mod.lessons.map((lesson) => (
-                  <li
-                    key={lesson.id}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-muted/60"
-                  >
-                    {lesson.preview ? (
-                      <CirclePlay aria-hidden className="size-[18px] shrink-0 text-primary" />
-                    ) : (
-                      <Lock aria-hidden className="size-4 shrink-0 text-muted-foreground/70" />
-                    )}
-                    {/* The marker flows after the title, so on a phone it wraps
-                        under a long title instead of squeezing it. */}
-                    <span className="min-w-0 flex-1 leading-snug">
+    <Accordion
+      variant="module"
+      defaultOpen={modules[0] ? [modules[0].id] : []}
+      toggleAll={
+        modules.length > 1
+          ? { openLabel: t("ui.expandAll"), closeLabel: t("ui.collapseAll") }
+          : undefined
+      }
+      // The Accordion puts `summary` in the left cell of its header row. With
+      // that cell as `display: contents`, the summary line and the kinds become
+      // items of the row itself: the line sits beside "Hamısını açın" and the
+      // kinds wrap onto a full-width line under both. The module number never
+      // breaks ("MODULE 01" is a hair wider than its 72px column in English),
+      // and like every mono label it is set in the 500 weight. "Hamısını açın"
+      // is the only way to open every module on a phone, so its hit area is
+      // padded to 43px tall; the negative margin keeps the row's height.
+      className="[&>div:first-child>button]:-my-2.5 [&>div:first-child>button]:py-2.5 [&>div:first-child>div:first-child]:contents [&_.mn]:font-medium [&_.mn]:whitespace-nowrap"
+      summary={
+        <>
+          <p className="min-w-0">{summary}</p>
+          {kinds.length ? (
+            <div className="kinds order-last basis-full">
+              {kinds.map(({ kind, count }) => (
+                <Tag key={kind} icon={LESSON_KIND[kind].icon}>
+                  {t(LESSON_KIND[kind].key, { count })}
+                </Tag>
+              ))}
+            </div>
+          ) : null}
+        </>
+      }
+      items={modules.map((mod, i) => {
+        const seconds = mod.lessons.reduce((s, l) => s + (l.durationSeconds ?? 0), 0);
+        return {
+          id: mod.id,
+          number: t("courseDetail.moduleN", { n: pad(i + 1) }),
+          title: mod.title,
+          meta: [
+            t("courseDetail.lessons", { count: mod.lessons.length }),
+            formatDuration(seconds, t, "short"),
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          content: (
+            <ol className="lessons">
+              {mod.lessons.map((lesson) => {
+                const kind = LESSON_KIND[lesson.contentType] ?? LESSON_KIND.TEXT;
+                const Icon = kind.icon;
+                const typeName = t(kind.nameKey);
+                return (
+                  // The length column is 80px rather than globals.css's 64px:
+                  // durations are in words now, and "1 s 30 dəq" is ten mono
+                  // characters.
+                  <li key={lesson.id} className="lesson md:grid-cols-[22px_minmax(0,1fr)_110px_80px]">
+                    <Icon aria-hidden="true" strokeWidth={1.75} />
+                    <span className="min-w-0 [overflow-wrap:anywhere]">
+                      <span className="sr-only">{typeName}: </span>
                       {lesson.title}
+                      {/* A status, not a link (visitors cannot open it, D4): a
+                          small outlined tag instead of the underlined link look
+                          globals.css gives `.pv`. Utilities win over that layer. */}
                       {lesson.preview ? (
-                        <span className="ml-2 inline-block rounded-full bg-gold-500/15 px-2.5 py-1 align-[1px] text-[11px] font-semibold leading-none text-gold-700 dark:text-gold-300">
-                          {t("courseDetail.preview")}
+                        <span className="pv rounded-[3px] border-b-0 px-1.5 py-px font-medium shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--c-gold-ink)_45%,transparent)]">
+                          {t("ui.preview")}
                         </span>
                       ) : null}
                     </span>
-                    {lesson.durationSeconds > 0 ? (
-                      <span className="w-14 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                        {clock(lesson.durationSeconds)}
-                      </span>
-                    ) : null}
+                    <span className="lt font-medium" aria-hidden="true">
+                      {typeName}
+                    </span>
+                    <span className="d">{lessonLength(lesson.durationSeconds, t)}</span>
                   </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        );
+                );
+              })}
+            </ol>
+          ),
+        };
       })}
-    </div>
+    />
   );
 }

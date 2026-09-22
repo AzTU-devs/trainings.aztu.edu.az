@@ -1,0 +1,110 @@
+/* The navy spread: the finder sentence with its select slots, and the two
+   big format words of the diptych. Colours come from the spread tokens, so
+   the night edition (a deeper navy) needs no rules of its own. */
+
+.sentence {
+  position: relative;
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 30, "WONK" 0;
+  font-weight: 360;
+  font-size: clamp(2rem, 0.9rem + 3.6vw, 4.5rem);
+  line-height: 1.14;
+  letter-spacing: -0.026em;
+  color: var(--c-spread-ink);
+  text-wrap: pretty;
+}
+
+.slot {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 0.72em 0.02em 0;
+  border: 0;
+  border-bottom: 0.05em solid color-mix(in srgb, var(--c-spread-gold) 60%, transparent);
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  font-style: italic;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  color: var(--c-spread-gold);
+  cursor: pointer;
+  /* The slot is as wide as the chosen words; JS measures where this is unsupported. */
+  field-sizing: content;
+  text-overflow: ellipsis;
+  transition: border-color var(--dur-1);
+}
+.select:hover { border-bottom-color: var(--c-spread-gold); }
+.select:focus-visible {
+  outline: 2px solid var(--c-gold);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+/* The open list is drawn by the OS: plain sans on paper, readable in both schemes. */
+.select option {
+  font-family: var(--f-sans);
+  font-size: 1rem;
+  font-style: normal;
+  color: #0e1a2b;
+  background: #f6f2ea;
+}
+.chev {
+  position: absolute;
+  right: 0.08em;
+  top: 50%;
+  width: 0.44em;
+  height: 0.44em;
+  transform: translateY(-40%);
+  color: var(--c-spread-gold);
+  pointer-events: none;
+}
+/* Measuring box for browsers without field-sizing (same face as the select). */
+.probe {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  font-style: italic;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+}
+
+.fmt {
+  display: grid;
+  align-content: start;
+  gap: 28px;
+}
+/* The hairline between the two formats, once they sit side by side. */
+@media (min-width: 1024px) {
+  .fmtCol + .fmtCol {
+    padding-left: var(--gutter);
+    border-left: 1px solid var(--c-spread-line);
+  }
+}
+.word {
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 30, "WONK" 0;
+  font-weight: 330;
+  font-size: clamp(4rem, 1.6rem + 8.2vw, 9.5rem);
+  line-height: 0.84;
+  letter-spacing: -0.045em;
+  color: var(--c-spread-ink);
+  /* room for the tall capital schwa above the tight line box */
+  padding-top: 0.08em;
+}
+.frame {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: var(--cv-bg);
+}

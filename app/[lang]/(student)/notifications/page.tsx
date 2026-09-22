@@ -20,13 +20,15 @@ export default async function NotificationsPage({ params }: Props) {
   const t = await getT(lang as Locale);
 
   return (
-    <div className="space-y-8">
+    <div>
       <AccountIntro
         eyebrow={t("student.areaEyebrow")}
         title={t("student.notificationsTitle")}
         description={t("student.notificationsSubtitle")}
       />
-      <NotificationList />
+      <div className="mt-10 md:mt-14">
+        <NotificationList />
+      </div>
     </div>
   );
 }

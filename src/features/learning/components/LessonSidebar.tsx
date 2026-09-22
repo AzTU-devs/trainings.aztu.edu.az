@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { CheckCircle2, Play } from "lucide-react";
+import { Check } from "lucide-react";
+import { Accordion } from "@/components/common/Accordion";
+import { formatDuration, LESSON_KIND } from "@/features/course/format";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { useT } from "@/i18n/client";
-import type { TFunction } from "@/i18n/format";
 import { cn } from "@/lib/utils/cn";
 import type { CourseModule } from "@/features/course/types";
 import type { LessonProgress } from "@/features/enrollment/types";
@@ -14,22 +15,22 @@ type Props = {
   modules: CourseModule[];
   currentLessonId: string;
   progress: Record<string, LessonProgress>;
-  /** Shown in the card's header; the player computes them once for both. */
+  /** Shown in the list's header; the player computes them once for both. */
   completedCount: number;
   totalLessons: number;
   percent: number;
+  className?: string;
 };
 
-/** "1 h 5 min" in the page's language; nothing at all for an unknown length. */
-function durationLabel(seconds: number, t: TFunction) {
-  if (!seconds || seconds < 0) return null;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h && m) return t("courses.durationHm", { h, m });
-  if (h) return t("courses.durationH", { h });
-  return t("courses.durationM", { m: Math.max(m, 1) });
-}
+const pad = (n: number) => String(n).padStart(2, "0");
 
+/**
+ * The course's table of contents beside the lesson: the module accordion the
+ * course page uses, opened at the module being studied, with one row per
+ * lesson (type icon — or a gold check once completed —, title, length). The
+ * current lesson carries the gold left rule. On wide screens the list sticks
+ * beside the stage and scrolls on its own.
+ */
 export function LessonSidebar({
   courseSlug,
   modules,
@@ -38,12 +39,13 @@ export function LessonSidebar({
   completedCount,
   totalLessons,
   percent,
+  className,
 }: Props) {
   const t = useT();
   const listRef = useRef<HTMLDivElement>(null);
 
-  // On wide screens the list scrolls inside a sticky card; open it at the
-  // lesson being watched rather than at lesson one. Only the list moves.
+  // On wide screens the list scrolls inside the sticky column; open it at the
+  // lesson being studied rather than at lesson one. Only the list moves.
   useEffect(() => {
     const list = listRef.current;
     const current = list?.querySelector<HTMLElement>('[aria-current="page"]');
@@ -51,26 +53,94 @@ export function LessonSidebar({
     list.scrollTop = current.offsetTop - list.clientHeight / 3;
   }, [currentLessonId]);
 
-  // Lessons are numbered through the whole course, not restarted per module.
-  const lessonNumbers = new Map(
-    modules.flatMap((m) => m.lessons).map((l, i) => [l.id, i + 1] as const),
-  );
+  const currentModule = modules.find((m) => m.lessons.some((l) => l.id === currentLessonId));
+
+  const items = modules.map((mod, moduleIndex) => {
+    const done = mod.lessons.filter((l) => progress[l.id]?.status === "COMPLETED").length;
+    return {
+      id: mod.id,
+      number: t("learn.moduleLabel", { n: pad(moduleIndex + 1) }),
+      title: mod.title,
+      meta: (
+        <span className="inline-flex items-center gap-1.5 font-mono text-xs tabular-nums">
+          {done === mod.lessons.length && done > 0 ? (
+            <Check aria-hidden="true" strokeWidth={2} className="size-3.5 text-gold-ink" />
+          ) : null}
+          {done}/{mod.lessons.length}
+        </span>
+      ),
+      content: (
+        <ol className="pb-4">
+          {mod.lessons.map((lesson) => {
+            const completed = progress[lesson.id]?.status === "COMPLETED";
+            const active = lesson.id === currentLessonId;
+            const Icon = completed ? Check : LESSON_KIND[lesson.contentType]?.icon;
+            const duration = formatDuration(lesson.durationSeconds, t, "short");
+            return (
+              <li key={lesson.id}>
+                <LocaleLink
+                  href={`/learn/${courseSlug}/${lesson.id}`}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "grid grid-cols-[18px_minmax(0,1fr)_auto] items-start gap-3 border-l-2 py-2.5 pl-3 pr-2 text-[15px] leading-snug transition-colors duration-(--dur-1)",
+                    active
+                      ? "border-gold bg-paper-2 font-semibold text-ink"
+                      : "border-transparent text-ink-2 hover:bg-paper-2 hover:text-ink",
+                  )}
+                >
+                  {Icon ? (
+                    <Icon
+                      aria-hidden="true"
+                      strokeWidth={completed ? 2.25 : 1.75}
+                      className={cn("mt-0.5 size-[18px]", completed ? "text-gold-ink" : "text-ink-3")}
+                    />
+                  ) : (
+                    <span />
+                  )}
+                  <span className="min-w-0">
+                    <span className="line-clamp-2">{lesson.title}</span>
+                    {completed ? <span className="sr-only"> · {t("learn.completed")}</span> : null}
+                  </span>
+                  {duration ? (
+                    <span className="whitespace-nowrap pt-0.5 font-mono text-xs font-normal text-ink-3">
+                      {duration}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                </LocaleLink>
+              </li>
+            );
+          })}
+        </ol>
+      ),
+    };
+  });
 
   return (
-    <aside className="overflow-hidden rounded-3xl border border-border/80 bg-card elev-1 lg:sticky lg:top-24 lg:flex lg:max-h-[calc(100dvh-7.5rem)] lg:flex-col">
-      <div className="border-b border-border/80 px-5 pb-4 pt-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display text-lg leading-snug">{t("learn.courseContent")}</h2>
-          <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+    <aside
+      aria-labelledby="lesson-list-h"
+      className={cn(
+        "min-w-0 lg:sticky lg:top-[88px] lg:flex lg:max-h-[calc(100dvh-112px)] lg:flex-col",
+        className,
+      )}
+    >
+      <div className="pb-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="lesson-list-h" className="t-kicker text-ink-2">
+            {t("learn.courseContent")}
+          </h2>
+          <span className="font-mono text-xs tabular-nums text-ink-3">
             {t("learn.progressSummary", { done: completedCount, total: totalLessons })}
           </span>
         </div>
-        <div
-          aria-hidden
-          className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted dark:bg-white/[0.08]"
-        >
+        {/* Phones: the list sits far below the top bar, so it repeats the
+            meter over the lessons it counts. The warm paper-2 track of the
+            prototype's meters; in the dark edition the soft hairline, so an
+            empty or barely started course still shows its full length. */}
+        <div aria-hidden="true" className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-paper-2 dark:bg-line sm:hidden">
           <div
-            className="h-full rounded-full bg-primary transition-[width] duration-500"
+            className="h-full rounded-full bg-gold transition-[width] duration-(--dur-3) ease-out motion-reduce:transition-none"
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -78,108 +148,11 @@ export function LessonSidebar({
 
       <div
         ref={listRef}
-        className="relative space-y-1 overflow-y-auto overscroll-contain p-2 lg:flex-1"
+        className="relative lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-1 [&_.acc-btn]:py-4 [&_.mod-btn_.q]:text-base lg:[&_.mod-btn]:grid-cols-[80px_minmax(0,1fr)_auto_32px] [&_.pm]:size-8"
       >
-        {modules.map((mod, moduleIndex) => {
-          const moduleDone = mod.lessons.filter(
-            (l) => progress[l.id]?.status === "COMPLETED",
-          ).length;
-          return (
-            <section key={mod.id} aria-label={mod.title}>
-              <div className="flex items-start justify-between gap-3 px-3 pb-2 pt-3">
-                <div className="min-w-0">
-                  <div className="text-[11px] font-semibold text-muted-foreground">
-                    {t("learn.moduleLabel", { n: moduleIndex + 1 })}
-                  </div>
-                  <h3 className="mt-0.5 text-sm font-semibold leading-snug text-foreground">
-                    {mod.title}
-                  </h3>
-                </div>
-                <span
-                  className={cn(
-                    "mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
-                    moduleDone === mod.lessons.length && mod.lessons.length > 0
-                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {moduleDone}/{mod.lessons.length}
-                </span>
-              </div>
-              <ul className="grid gap-0.5">
-                {mod.lessons.map((lesson) => {
-                  const pr = progress[lesson.id];
-                  const completed = pr?.status === "COMPLETED";
-                  const active = lesson.id === currentLessonId;
-                  const duration = durationLabel(lesson.durationSeconds, t);
-                  return (
-                    <li key={lesson.id}>
-                      <LocaleLink
-                        href={`/learn/${courseSlug}/${lesson.id}`}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "flex items-start gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors duration-200",
-                          active
-                            ? "bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100"
-                            : "text-foreground hover:bg-accent",
-                        )}
-                      >
-                        {completed ? (
-                          <CheckCircle2
-                            aria-hidden
-                            className="mt-px size-5 shrink-0 text-emerald-600 dark:text-emerald-400"
-                          />
-                        ) : active ? (
-                          <span
-                            aria-hidden
-                            className="mt-px grid size-5 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"
-                          >
-                            <Play className="ml-px size-2.5 fill-current" />
-                          </span>
-                        ) : (
-                          <span
-                            aria-hidden
-                            className="mt-px grid size-5 shrink-0 place-items-center rounded-full border border-border text-[10px] font-semibold tabular-nums text-muted-foreground"
-                          >
-                            {lessonNumbers.get(lesson.id)}
-                          </span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div
-                            className={cn(
-                              "line-clamp-2 leading-snug",
-                              active ? "font-semibold" : "font-medium",
-                            )}
-                          >
-                            {lesson.title}
-                          </div>
-                          {duration || completed ? (
-                            <div
-                              className={cn(
-                                "mt-0.5 text-xs",
-                                active
-                                  ? "text-navy-700/75 dark:text-navy-100/75"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {duration}
-                              {completed ? (
-                                <span className="sr-only">
-                                  {duration ? " · " : ""}
-                                  {t("learn.completed")}
-                                </span>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
-                      </LocaleLink>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          );
-        })}
+        {/* Keyed by the module being studied: moving into the next module
+            re-opens the accordion there instead of keeping the old one open. */}
+        <Accordion key={currentModule?.id ?? "none"} variant="module" items={items} defaultOpen={currentModule ? [currentModule.id] : []} />
       </div>
     </aside>
   );

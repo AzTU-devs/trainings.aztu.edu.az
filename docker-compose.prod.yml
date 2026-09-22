@@ -12,8 +12,9 @@
 #  2. Build args come from .env, so one file configures build and runtime.
 #
 # NEXT_PUBLIC_* are inlined into the client bundle by `next build`, so changing
-# any of them requires `up -d --build`, not just a restart. INTERNAL_API_URL and
-# REVALIDATE_SECRET are read per request and only need a restart.
+# any of them requires `up -d --build`. Runtime values in .env are read when the
+# container is created: after editing one, run `up -d`, which recreates it.
+# `docker compose restart` keeps the old values.
 
 services:
   frontend:
@@ -21,10 +22,18 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL:        ${NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_WS_URL:         ${NEXT_PUBLIC_WS_URL}
-        NEXT_PUBLIC_SITE_URL:       ${NEXT_PUBLIC_SITE_URL}
-        NEXT_PUBLIC_PORTAL_URL:     ${NEXT_PUBLIC_PORTAL_URL}
+        # Required, and checked here rather than trusted to the Dockerfile's
+        # defaults. A variable missing from .env used to reach the build as an
+        # empty string, which overrides the ARG default, and an empty
+        # NEXT_PUBLIC_API_URL fell back to http://localhost:8080 inside the
+        # browser bundle, so every visitor's browser called its own machine. The
+        # build now stops with the message instead.
+        NEXT_PUBLIC_API_URL:        ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in .env (https://api-trainings.aztu.edu.az)}
+        NEXT_PUBLIC_SITE_URL:       ${NEXT_PUBLIC_SITE_URL:?Set NEXT_PUBLIC_SITE_URL in .env (https://trainings.aztu.edu.az)}
+        NEXT_PUBLIC_PORTAL_URL:     ${NEXT_PUBLIC_PORTAL_URL:?Set NEXT_PUBLIC_PORTAL_URL in .env (https://dashboard-trainings.aztu.edu.az)}
+        # Optional. Blank means "derive it": NEXT_PUBLIC_API_URL with ws(s):// and
+        # the path /ws, which is the backend's endpoint.
+        NEXT_PUBLIC_WS_URL:         ${NEXT_PUBLIC_WS_URL:-}
         NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-en}
         # Only needed when running more than one replica.
         NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}
@@ -39,6 +48,16 @@ services:
 
     env_file:
       - .env
+
+    # Pinned here, not read from .env. Server components, the auth BFF under
+    # app/api/auth and the token refresh in proxy.ts all call the API at this
+    # address. Over loopback they reach it directly; a prepared .env once pointed
+    # them at https://api-trainings.aztu.edu.az instead, which works only if the
+    # host can reach its own public address (hairpin NAT) and otherwise hangs
+    # every server render. It is a valid URL, so nothing warned. `environment:`
+    # beats env_file, so a copied .env cannot bring that back.
+    environment:
+      INTERNAL_API_URL: "http://127.0.0.1:8080"
 
     healthcheck:
       # Liveness only: this route deliberately does not call the backend, so an

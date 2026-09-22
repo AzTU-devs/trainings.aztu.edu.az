@@ -1,11 +1,31 @@
 "use client";
 
+import axios from "axios";
 import { MailWarning } from "lucide-react";
 import { toast } from "sonner";
 import { useRequestEmailVerification } from "../hooks";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/client";
+import { normalizeError } from "@/lib/api/client";
 import type { ApiError } from "@/types/api";
+
+/**
+ * The failed request's toast key. The `api` client's interceptor already
+ * rejects with a normalised ApiError (normalizeError would reduce that to a
+ * bare "Unexpected error"); anything else goes through normalizeError. The
+ * API's own message is never shown: it is English only, and axios's is
+ * "Request failed with status code …".
+ */
+function errorKey(error: unknown): string {
+  const err: ApiError =
+    !axios.isAxiosError(error) && typeof (error as ApiError | null)?.status === "number"
+      ? (error as ApiError)
+      : normalizeError(error);
+  if (err.status === 429) return "auth.rateLimited";
+  // Verified in another tab since this page rendered.
+  if (err.code === "EMAIL_ALREADY_VERIFIED") return "student.verifyAlreadyVerified";
+  return "auth.verifyResendError";
+}
 
 export function ResendVerificationButton() {
   const t = useT();
@@ -14,41 +34,29 @@ export function ResendVerificationButton() {
   const onClick = () =>
     resend.mutate(undefined, {
       onSuccess: () => toast.success(t("auth.verifyResendSent")),
-      onError: (error) => {
-        const err = error as unknown as ApiError;
-        toast.error(err.message ?? t("auth.verifyResendError"));
-      },
+      onError: (error) => toast.error(t(errorKey(error))),
     });
 
-  // Gold tints rather than an off-palette amber: the notice stays in the
-  // brand's colours while still reading as "needs your attention".
+  // The editorial note (gold left rule) rather than a coloured alert box: the
+  // notice reads as "needs your attention" without leaving the palette.
   return (
-    <div className="flex flex-col gap-4 rounded-3xl border border-gold-200 bg-gold-50 p-5 text-sm dark:border-gold-800/60 dark:bg-gold-900/20 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-start gap-3.5">
-        <span
-          aria-hidden
-          className="grid size-10 shrink-0 place-items-center rounded-2xl bg-gold-100 text-gold-800 dark:bg-gold-900/60 dark:text-gold-200"
-        >
-          <MailWarning className="size-[18px]" />
-        </span>
-        <div className="min-w-0 space-y-0.5 pt-0.5">
-          <p className="font-semibold text-gold-900 dark:text-gold-100">
-            {t("auth.verifyUnverifiedTitle")}
-          </p>
-          <p className="leading-relaxed text-gold-800 dark:text-gold-200/75">
-            {t("auth.verifyUnverifiedBody")}
-          </p>
+    <div className="flex flex-col gap-4 border-l-2 border-gold bg-paper-2 py-4 pl-5 pr-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <div className="flex min-w-0 items-start gap-3">
+        <MailWarning aria-hidden="true" strokeWidth={1.75} className="mt-0.5 size-5 shrink-0 text-gold-ink" />
+        <div className="min-w-0">
+          <p className="font-semibold text-ink">{t("auth.verifyUnverifiedTitle")}</p>
+          <p className="mt-0.5 text-[15px] leading-relaxed text-ink-2">{t("auth.verifyUnverifiedBody")}</p>
         </div>
       </div>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        className="h-10 shrink-0 self-start border-gold-200 sm:h-9 sm:self-center dark:border-gold-800/60"
+        className="shrink-0 self-start sm:self-center"
         loading={resend.isPending}
         onClick={onClick}
       >
-        {t("auth.verifyResendCta")}
+        {t("student.resendCta")}
       </Button>
     </div>
   );

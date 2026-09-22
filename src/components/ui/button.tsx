@@ -2,40 +2,59 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils/cn";
 
+/**
+ * The editorial pill button. The API is unchanged from the previous design, so
+ * every existing caller keeps compiling; only the look moved to the tokens.
+ * An icon marked `data-go` (the trailing arrow) nudges 3px on hover. Focus
+ * uses the global :focus-visible ring (the action colour, offset 3px).
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold tracking-tight transition-[background-color,border-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  [
+    "relative inline-flex items-center justify-center gap-2.5 whitespace-nowrap rounded-full",
+    "font-sans font-semibold leading-none tracking-[-0.005em] no-underline",
+    "transition-[background-color,color,box-shadow,transform,background-size] duration-(--dur-2) ease-out",
+    "active:translate-y-px active:scale-[.99]",
+    "disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45",
+    "[&_svg]:size-[1.125em] [&_svg]:shrink-0",
+    "[&_[data-go]]:transition-transform [&_[data-go]]:duration-(--dur-2) hover:[&_[data-go]]:translate-x-[3px]",
+  ].join(" "),
   {
     variants: {
       variant: {
-        /** Primary action — the navy pill. */
-        default:
-          "sheen bg-primary text-primary-foreground shadow-[0_10px_24px_-12px_rgb(0_56_118/0.7)] hover:bg-navy-600 hover:shadow-[0_14px_28px_-12px_rgb(0_56_118/0.75)] active:translate-y-px dark:bg-navy-100 dark:text-navy-900 dark:hover:bg-white",
-        /** The gold call to action, reserved for the single most wanted click. */
-        gold:
-          "sheen bg-gold-500 text-navy-950 shadow-[0_10px_24px_-12px_rgb(169_138_54/0.8)] hover:bg-gold-400 active:translate-y-px",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-accent",
-        /** Navy text on a pale navy tint — a quieter primary. */
-        soft:
-          "bg-navy-50 text-navy-700 hover:bg-navy-100 dark:bg-navy-900/60 dark:text-navy-100 dark:hover:bg-navy-900",
+        /** Primary action: navy in the day edition, gold at night. */
+        default: "bg-action text-on-action hover:bg-ink hover:text-paper",
+        /** Gold, reserved for the navy spread (home finder). */
+        gold: "bg-gold text-[#0e1a2b] hover:bg-[#dcc073] hover:text-[#0e1a2b]",
+        secondary: "bg-paper-2 text-ink hover:bg-line",
+        soft: "bg-paper-2 text-ink hover:bg-line",
+        /** The ghost look: a hairline ring that firms up on hover. */
         outline:
-          "border border-border bg-card hover:border-primary/40 hover:bg-accent hover:text-accent-foreground",
-        /** For placing on the deep navy canvas. */
+          "bg-transparent text-ink shadow-[inset_0_0_0_1px_var(--c-line-2)] hover:shadow-[inset_0_0_0_1.5px_var(--c-ink)]",
+        /** The ghost ring on the navy spread. */
         onDeep:
-          "border border-white/20 bg-white/10 text-white backdrop-blur hover:border-white/35 hover:bg-white/20",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "rounded-none px-0 text-primary underline-offset-4 hover:underline",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "bg-transparent text-spread-ink shadow-[inset_0_0_0_1px_var(--c-spread-line)] hover:shadow-[inset_0_0_0_1.5px_var(--c-spread-ink)]",
+        ghost: "bg-transparent text-ink hover:bg-paper-2",
+        /** Transparent until hover (header sign-in, toolbar actions). */
+        quiet: "bg-transparent text-ink hover:bg-paper-2",
+        /** An inline link with the gold underline that grows on hover. */
+        link: [
+          "rounded-none bg-transparent text-ink",
+          "bg-[linear-gradient(var(--c-gold),var(--c-gold))] bg-size-[0%_2px] bg-bottom-left bg-no-repeat hover:bg-size-[100%_2px]",
+        ].join(" "),
+        destructive: "bg-danger text-on-status hover:bg-ink hover:text-paper",
       },
       size: {
-        default: "h-11 px-5",
-        sm: "h-9 px-4 text-[13px]",
-        lg: "h-12 px-7 text-[15px]",
+        default: "h-13 px-6 text-base",
+        sm: "h-10 px-4 text-[15px]",
+        lg: "h-14 px-7 text-[17px]",
         icon: "size-11 px-0",
         "icon-sm": "size-9 px-0",
       },
     },
+    compoundVariants: [
+      { variant: "quiet", size: ["default", "sm", "lg"], class: "px-3.5" },
+      { variant: "link", class: "h-auto px-0 py-1" },
+    ],
     defaultVariants: { variant: "default", size: "default" },
   },
 );
@@ -56,7 +75,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       {...props}
     >
       {loading ? (
-        <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        <span
+          aria-hidden="true"
+          className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none"
+        />
       ) : null}
       {children}
     </button>
