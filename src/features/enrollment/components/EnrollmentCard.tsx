@@ -6,36 +6,17 @@ import { LocaleLink } from "@/i18n/LocaleLink";
 import { useLocale, useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 import type { Enrollment, EnrollmentStatus } from "../types";
+import { coverArt, hash, type ArtKind } from "@/lib/art";
 
-/*
- * An enrolment carries no thumbnail, so the card draws the same kind of cover
- * the catalogue uses for a course without one: a navy gradient picked from a
- * fixed family by hashing the course id, with the title's initials on top.
- * The same course therefore gets the same cover on every visit.
+const KINDS: ArtKind[] = ["it", "data", "eng", "biz", "res", "build", "trans", "energy"];
+
+/**
+ * An enrolment does not say which category its course is in, so the cover's
+ * colour family is picked from the course id: the same course always gets the
+ * same cover, in the same generated style as the catalogue's.
  */
-const COVERS = [
-  "from-navy-500 via-navy-700 to-navy-950",
-  "from-navy-600 via-navy-800 to-[#0b2545]",
-  "from-[#1f6d8c] via-navy-700 to-navy-950",
-  "from-navy-400 via-navy-700 to-navy-950",
-  "from-[#2a5f7a] via-navy-800 to-navy-950",
-  "from-navy-500 via-[#123f73] to-navy-900",
-] as const;
-
-function coverFor(seed: string) {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
-  return COVERS[Math.abs(h) % COVERS.length];
-}
-
-function initialsOf(text: string) {
-  return text
-    .split(/\s+/)
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+function artKindFor(courseId: string): ArtKind {
+  return KINDS[hash(courseId) % KINDS.length];
 }
 
 const STATUS_KEYS: Record<EnrollmentStatus, string> = {
@@ -119,12 +100,16 @@ export function EnrollmentCard({
     >
       <div
         className={cn(
-          "relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-gradient-to-br",
+          "cover relative aspect-[16/10] w-full !rounded-2xl",
+          `k-${artKindFor(enrollment.courseId)}`,
           featured && "sm:aspect-auto sm:h-full sm:min-h-56",
-          coverFor(enrollment.courseId),
         )}
       >
-        <CoverArt initials={initialsOf(enrollment.courseTitle)} />
+        <span
+          aria-hidden
+          className="sx"
+          dangerouslySetInnerHTML={{ __html: coverArt(artKindFor(enrollment.courseId), enrollment.courseId) }}
+        />
         <div className="absolute left-2.5 top-2.5">
           <span
             className={cn(
@@ -203,34 +188,3 @@ export function EnrollmentCard({
   );
 }
 
-/**
- * The generated cover — the same composition as the catalogue card's: two
- * soft washes of light over the gradient, and the initials in a frosted
- * squircle.
- */
-function CoverArt({ initials }: { initials: string }) {
-  return (
-    <>
-      <span
-        aria-hidden
-        className="absolute -right-10 -top-14 size-48 rounded-full bg-[radial-gradient(circle,rgba(200,169,81,0.45)_0%,transparent_65%)] blur-2xl"
-      />
-      <span
-        aria-hidden
-        className="absolute -bottom-20 -left-12 size-56 rounded-full bg-[radial-gradient(circle,rgba(66,118,179,0.55)_0%,transparent_65%)] blur-2xl"
-      />
-      <span
-        aria-hidden
-        className="absolute inset-0 bg-[image:var(--grain)] opacity-70 mix-blend-soft-light"
-      />
-      <span
-        aria-hidden
-        className="absolute inset-0 grid place-items-center pt-4 transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transition-none"
-      >
-        <span className="grid size-12 place-items-center rounded-2xl bg-white/10 font-display text-lg text-white shadow-[inset_0_1px_0_0_rgb(255_255_255/0.25),0_16px_32px_-12px_rgb(0_6_16/0.6)] ring-1 ring-inset ring-white/20 backdrop-blur-sm @min-[17rem]:size-16 @min-[17rem]:text-2xl">
-          {initials}
-        </span>
-      </span>
-    </>
-  );
-}

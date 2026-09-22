@@ -16,14 +16,11 @@ export function SiteShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col">
       {/* The floating header sits above a lot of content on every page; the
           skip link lets keyboard users jump straight past it. */}
-      <a
-        href="#main"
-        className="sr-only z-[60] rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground elev-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
-      >
+      <a href="#main" className="skip">
         {t("nav.skipToContent")}
       </a>
       <Header />
-      <main id="main" className="flex-1">
+      <main id="main" className="flex-1 outline-none" tabIndex={-1}>
         {children}
       </main>
       <Footer />

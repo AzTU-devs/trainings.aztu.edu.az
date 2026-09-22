@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
+import { ArrowRight, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { request } from "@/lib/api/client";
 import { endpoints } from "@/lib/api/endpoints";
@@ -13,7 +14,7 @@ import { formatPrice } from "@/lib/utils/format";
 import type { ApiError } from "@/types/api";
 import type { Course } from "../types";
 
-export function EnrollCta({ course }: { course: Course }) {
+export function EnrollCta({ course, compact }: { course: Course; compact?: boolean }) {
   const router = useRouter();
   const { status } = useAuth();
   const t = useT();
@@ -80,12 +81,15 @@ export function EnrollCta({ course }: { course: Course }) {
     );
   }
 
+  // The design's primary pill; `compact` drops to the default height for the
+  // phone action bar.
+  const cls = compact ? "btn btn-primary btn-block" : "btn btn-primary btn-lg btn-block";
+
   if (status !== "authenticated") {
     return (
-      <Button
-        variant="gold"
-        className="w-full"
-        size="lg"
+      <button
+        type="button"
+        className={cls}
         onClick={() =>
           router.push(
             localeHref(locale, "/login") +
@@ -93,20 +97,25 @@ export function EnrollCta({ course }: { course: Course }) {
           )
         }
       >
+        <LogIn className="i" aria-hidden />
         {t("courseDetail.signInToEnroll")}
-      </Button>
+      </button>
     );
   }
 
   return (
-    <Button
-      variant="gold"
-      className="w-full"
-      size="lg"
-      loading={enrollFree.isPending}
+    <button
+      type="button"
+      className={cls}
+      disabled={enrollFree.isPending}
+      aria-busy={enrollFree.isPending || undefined}
       onClick={() => enrollFree.mutate()}
     >
+      {enrollFree.isPending ? (
+        <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+      ) : null}
       {t("courseDetail.enrollFree")}
-    </Button>
+      <ArrowRight className="i i-arrow" aria-hidden />
+    </button>
   );
 }

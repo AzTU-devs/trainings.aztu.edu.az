@@ -1,157 +1,98 @@
 "use client";
 
-import { Globe, Mail, ArrowUpRight } from "lucide-react";
+import Image from "next/image";
+import { ArrowUpRight } from "lucide-react";
+import { useLocale, useT } from "@/i18n/client";
 import { LocaleLink } from "@/i18n/LocaleLink";
-import { useT } from "@/i18n/client";
-import { AztuMark } from "./AztuMark";
-import { Logo } from "./Logo";
+import { locales, type Locale } from "@/i18n/config";
+import { useSwitchLocale } from "./LocaleSwitcher";
 
-const UNIVERSITY_URL = "https://aztu.edu.az";
-const SUPPORT_EMAIL = "support@aztu.edu.az";
+/** The support address shown on the site; the platform's own contact point. */
+export const SUPPORT_EMAIL = "support@aztu.edu.az";
 
 /**
- * A contained navy panel rather than a full-bleed band — the same rounded
- * object as the hero and the closing call to action, resting on the page with
- * a gutter all round.
+ * The footer: a paper band with the site map and the language switch, and the
+ * product name set as a giant outlined wordmark along the bottom edge.
  */
 export function Footer() {
   const t = useT();
+  const locale = useLocale();
+  const switchLocale = useSwitchLocale();
+  const year = new Date().getFullYear();
+  const order: Locale[] = [...locales].sort((a, b) => Number(b === "az") - Number(a === "az"));
+
   return (
-    <footer className="container-fluid mt-auto pb-3 pt-6 sm:pb-4 sm:pt-8">
-      <div className="surface-deep overflow-hidden rounded-4xl">
-        <div className="grid gap-12 px-6 pb-10 pt-12 sm:px-10 lg:grid-cols-12 lg:gap-8 lg:px-14 lg:pb-14 lg:pt-16">
+    <footer className="site-footer" aria-labelledby="site-footer-title">
+      <h2 id="site-footer-title" className="sr-only">
+        {t("ui.siteMap")}
+      </h2>
+      <div className="wrap pt-16 lg:pt-24">
+        <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <LocaleLink
-              href="/"
-              aria-label="AzTU EduPlatform"
-              className="inline-flex rounded-2xl"
-            >
-              <Logo tone="onDeep" />
+            <LocaleLink href="/" className="brand" aria-label="AzTU EduPlatform">
+              <Image className="logo-l" src="/brand/aztu-mark.png" alt="" width={18} height={34} />
+              <Image className="logo-d" src="/brand/aztu-mark-white.png" alt="" width={18} height={34} />
+              <span className="wm">
+                <small>AZTU</small>
+                <b>EduPlatform</b>
+              </span>
             </LocaleLink>
-            <p className="mt-5 max-w-sm text-[15px] leading-relaxed text-white/65">
-              {t("footer.blurb")}
-            </p>
-            <div className="mt-6 flex gap-2">
-              <IconLink href={UNIVERSITY_URL} label={t("footer.websiteLabel")} external>
-                <Globe className="size-4" />
-              </IconLink>
-              <IconLink href={`mailto:${SUPPORT_EMAIL}`} label={t("footer.emailLabel")}>
-                <Mail className="size-4" />
-              </IconLink>
+            <p className="mt-5 max-w-sm text-ink-2">{t("ui.footerBlurb")}</p>
+            <div className="seg mt-6" role="radiogroup" aria-label={t("ui.language")}>
+              {order.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  role="radio"
+                  lang={l}
+                  aria-checked={l === locale}
+                  onClick={() => switchLocale(l)}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 sm:gap-y-10 lg:col-span-7">
-            <FooterColumn title={t("footer.learn")}>
-              <FooterLink href="/courses">{t("footer.allCourses")}</FooterLink>
-              <FooterLink href="/experts">{t("nav.experts")}</FooterLink>
-              <FooterLink href="/categories">{t("nav.categories")}</FooterLink>
-            </FooterColumn>
-
-            <FooterColumn title={t("footer.account")}>
-              <FooterLink href="/login">{t("common.signIn")}</FooterLink>
-              <FooterLink href="/register">{t("common.signUp")}</FooterLink>
-              <FooterLink href="/dashboard">{t("nav.dashboard")}</FooterLink>
-            </FooterColumn>
-
-            <FooterColumn title={t("footer.university")}>
-              <ExternalLink href={UNIVERSITY_URL}>{t("footer.aboutAztu")}</ExternalLink>
-              <ExternalLink href={`mailto:${SUPPORT_EMAIL}`}>
-                {t("footer.contact")}
-              </ExternalLink>
-            </FooterColumn>
+          <div className="grid grid-cols-2 gap-8 text-[15px] sm:grid-cols-3 lg:col-span-7">
+            <div>
+              <p className="kicker mb-4">{t("ui.footerLearn")}</p>
+              <ul className="grid gap-3">
+                <li><LocaleLink className="fl" href="/courses">{t("ui.allCourses")}</LocaleLink></li>
+                <li><LocaleLink className="fl" href="/categories">{t("ui.navCategories")}</LocaleLink></li>
+                <li><LocaleLink className="fl" href="/experts">{t("ui.navExperts")}</LocaleLink></li>
+              </ul>
+            </div>
+            <div>
+              <p className="kicker mb-4">{t("ui.footerAccount")}</p>
+              <ul className="grid gap-3">
+                <li><LocaleLink className="fl" href="/login">{t("ui.signIn")}</LocaleLink></li>
+                <li><LocaleLink className="fl" href="/register">{t("ui.register")}</LocaleLink></li>
+                <li><LocaleLink className="fl" href="/register/tutor">{t("ui.applyAsExpert")}</LocaleLink></li>
+              </ul>
+            </div>
+            <div>
+              <p className="kicker mb-4">{t("ui.footerUniversity")}</p>
+              <ul className="grid gap-3">
+                <li>
+                  <a className="fl inline-flex items-center gap-1" href="https://aztu.edu.az" target="_blank" rel="noopener noreferrer">
+                    {t("ui.aboutAztu")} <ArrowUpRight className="i !size-4" aria-hidden />
+                  </a>
+                </li>
+                <li><a className="fl" href={`mailto:${SUPPORT_EMAIL}`}>{t("ui.contact")}</a></li>
+              </ul>
+            </div>
           </div>
         </div>
-
-        <div className="mx-6 flex flex-col gap-3 border-t border-white/10 py-6 text-[13px] text-white/50 sm:mx-10 sm:flex-row sm:items-center sm:justify-between lg:mx-14">
-          <div>{t("footer.rights", { year: new Date().getFullYear() })}</div>
-          <a
-            href={UNIVERSITY_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-10 items-center gap-2 self-start transition-colors hover:text-white sm:min-h-0 sm:self-auto"
-          >
-            <span aria-hidden className="inline-flex opacity-80">
-              <AztuMark tone="onDeep" className="size-4" />
-            </span>
-            {t("home.university")}
-          </a>
+        <div className="giant mt-16 translate-y-[12%] lg:mt-24" aria-hidden>
+          EduPlatform
+        </div>
+      </div>
+      <div className="relative border-t border-line bg-paper-2">
+        <div className="wrap flex flex-col justify-between gap-2 py-6 text-[13.5px] text-ink-3 sm:flex-row">
+          <p>{t("ui.copyright", { year })}</p>
+          <p>{t("ui.universityName")}</p>
         </div>
       </div>
     </footer>
-  );
-}
-
-function FooterColumn({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <h3 className="mb-1.5 flex items-center gap-2 text-[13px] font-semibold text-white sm:mb-4">
-        <span aria-hidden className="size-1.5 rounded-full bg-gold-400" />
-        {title}
-      </h3>
-      {/* On phones each link is a 40px row (the tap-target minimum) with no
-          gap between; from sm the links are text-height and spaced out. */}
-      <ul className="text-sm sm:space-y-3">{children}</ul>
-    </div>
-  );
-}
-
-function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <li>
-      <LocaleLink
-        href={href}
-        className="inline-flex min-h-10 items-center rounded-md text-white/60 transition-colors hover:text-white sm:min-h-0"
-      >
-        {children}
-      </LocaleLink>
-    </li>
-  );
-}
-
-function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
-  const external = href.startsWith("http");
-  return (
-    <li>
-      <a
-        href={href}
-        {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-        className="group inline-flex min-h-10 items-center gap-1 rounded-md text-white/60 transition-colors hover:text-white sm:min-h-0"
-      >
-        {children}
-        {external ? (
-          <ArrowUpRight className="size-3.5 opacity-50 transition-[opacity,transform] duration-200 group-hover:-translate-y-px group-hover:translate-x-px group-hover:opacity-100" />
-        ) : null}
-      </a>
-    </li>
-  );
-}
-
-function IconLink({
-  href,
-  label,
-  external,
-  children,
-}: {
-  href: string;
-  label: string;
-  external?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      aria-label={label}
-      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="grid size-11 place-items-center rounded-2xl bg-white/[0.07] text-white/75 ring-1 ring-inset ring-white/15 transition-colors hover:bg-white/15 hover:text-white hover:ring-gold-400/50"
-    >
-      {children}
-    </a>
   );
 }

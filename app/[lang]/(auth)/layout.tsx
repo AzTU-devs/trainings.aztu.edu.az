@@ -1,10 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, MonitorPlay, RefreshCcw, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
-import { Eyebrow } from "@/components/common/SectionHeading";
+import { Mosaic } from "@/components/bright/Mosaic";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
@@ -15,8 +16,8 @@ type Props = {
 };
 
 /**
- * Two objects on the grey canvas: a contained deep-navy brand panel and the
- * page's own form card. The panel only says what the platform is and does —
+ * Two objects on the paper canvas: a navy colour field with the discipline
+ * mosaic, and the page's own form card. The panel only says what the platform is and does —
  * no figures or quotes, because nothing here is backed by live data.
  */
 export default async function AuthLayout({ children, params }: Props) {
@@ -37,27 +38,32 @@ export default async function AuthLayout({ children, params }: Props) {
         {/* Brand panel — desktop only. Sticky with a fixed height so a long
             form (the expert application) scrolls past it instead of
             stretching it. */}
-        <aside className="surface-deep hidden overflow-hidden rounded-4xl dark:ring-1 dark:ring-inset dark:ring-white/10 lg:sticky lg:top-5 lg:flex lg:h-[calc(100dvh-2.5rem)] lg:min-h-[36rem] lg:flex-col lg:justify-between lg:self-start lg:p-10 xl:p-12">
-          <Link
-            href={localeHref(locale, "/")}
-            className="w-fit rounded-2xl outline-offset-4"
-          >
-            <Logo tone="onDeep" />
+        <aside className="fmt k-navy hidden !rounded-[40px] lg:sticky lg:top-5 lg:flex lg:h-[calc(100dvh-2.5rem)] lg:min-h-[36rem] lg:flex-col lg:justify-between lg:self-start lg:p-10 xl:p-12">
+          <span className="absolute -right-24 -top-28 -z-10 size-[380px] rounded-full bg-[var(--k-200)]" aria-hidden />
+          <Link href={localeHref(locale, "/")} className="brand w-fit rounded-2xl outline-offset-4" aria-label="AzTU EduPlatform">
+            <Image className="logo-l" src="/brand/aztu-mark.png" alt="" width={18} height={34} />
+            <Image className="logo-d" src="/brand/aztu-mark-white.png" alt="" width={18} height={34} />
+            <span className="wm">
+              <small>AZTU</small>
+              <b>EduPlatform</b>
+            </span>
           </Link>
 
           <div className="max-w-md">
-            <Eyebrow tone="deep">{t("home.university")}</Eyebrow>
-            <h2 className="mt-6 font-display text-balance text-4xl font-extrabold leading-[1.08] text-white xl:text-[2.75rem]">
-              {t("auth.panelTitle")}
-            </h2>
-            <p className="mt-5 text-pretty text-base leading-relaxed text-white/70">
-              {t("auth.panelSub")}
+            <div className="mb-8 w-[62%] max-w-[260px] [@media(max-height:960px)]:hidden">
+              <Mosaic />
+            </div>
+            <p className="kicker">
+              <span className="rule" />
+              {t("home.university")}
             </p>
+            <h2 className="d-md mt-5 !text-[2.4rem] xl:!text-[2.75rem]">{t("auth.panelTitle")}</h2>
+            <p className="mt-5 text-pretty text-base leading-relaxed opacity-80">{t("auth.panelSub")}</p>
 
-            <ul className="mt-9 space-y-3">
+            <ul className="mt-8 space-y-3">
               {points.map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-center gap-3.5 text-[15px] text-white/85">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/10 text-gold-200 ring-1 ring-inset ring-white/15">
+                <li key={text} className="flex items-center gap-3.5 text-[15px]">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-[var(--k-0)] text-[var(--k-700)]">
                     <Icon className="size-[18px]" aria-hidden />
                   </span>
                   {text}
@@ -66,12 +72,12 @@ export default async function AuthLayout({ children, params }: Props) {
             </ul>
           </div>
 
-          <div className="flex flex-col gap-1.5 text-xs text-white/55 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
+          <div className="flex flex-col gap-1.5 text-xs opacity-70 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
             <a
               href="https://aztu.edu.az"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex w-fit items-center gap-1 rounded-full transition-colors hover:text-white"
+              className="inline-flex w-fit items-center gap-1 rounded-full hover:underline"
             >
               aztu.edu.az
               <ArrowUpRight className="size-3.5" aria-hidden />

@@ -79,11 +79,19 @@ export const fullExpertName = (
 ) => `${e.firstName} ${e.lastName}`.trim();
 
 export function initialsOf(name: string) {
-  return name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  return (
+    name
+      .split(/\s+/)
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      // Azerbaijani dotted/dotless i, mapped by hand: toUpperCase() turns "i"
+      // into "I", and toLocaleUpperCase("az") depends on locale data that
+      // browsers may lack, which would print different text on the server and
+      // in the browser.
+      .replace(/i/g, "İ")
+      .replace(/ı/g, "I")
+      .toUpperCase()
+  );
 }

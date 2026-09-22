@@ -10,6 +10,8 @@ export function mediaSrc(path: string | null | undefined): string | null {
   if (!path) return null;
   // An absolute URL means the asset already lives elsewhere (object storage/CDN).
   if (/^https?:\/\//i.test(path)) return path;
+  // Sample images for the showcase data ship with the site itself.
+  if (path.startsWith("/showcase/")) return path;
   const base = env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 }

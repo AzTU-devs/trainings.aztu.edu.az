@@ -1,46 +1,56 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowRight,
-  Award,
-  BookOpen,
-  CalendarDays,
-  ChartNoAxesColumnIncreasing,
+  ArrowUpRight,
+  BarChart3,
+  Calendar,
   Check,
+  ChevronDown,
+  Circle,
+  CircleHelp,
   Clock,
-  Globe,
+  Eye,
+  File,
+  FileText,
+  History,
+  Languages,
+  Layers,
+  ListTree,
+  Lock,
   MapPin,
+  MessageSquare,
   MonitorPlay,
-  Star,
-  Timer,
+  PlayCircle,
+  Radio,
+  Sparkles,
   Users,
-  type LucideIcon,
+  Armchair,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { CurriculumAccordion } from "@/features/course/components/CurriculumAccordion";
+import { CourseCard, CourseCover } from "@/features/course/components/CourseCard";
+import { CourseTabs } from "@/features/course/components/CourseTabs";
 import { EnrollCta } from "@/features/course/components/EnrollCta";
+import { SampleEnrolCta } from "@/features/course/components/SampleEnrolCta";
 import { ReviewsSection } from "@/features/review/components/ReviewsSection";
-import { ExpertAvatar } from "@/features/expert/components/ExpertAvatar";
-import { Breadcrumbs } from "@/components/common/Breadcrumbs";
+import { categoryOfExpert, getCatalogIndex } from "@/features/course/catalog-index.server";
+import { courseLabels } from "@/features/course/labels";
+import { categoryLabel } from "@/features/category/label";
+import { categoryStyle } from "@/features/category/style";
+import { ExpertArch, ExpertDot } from "@/features/expert/components/ExpertArch";
+import { expertProfileSource, getCourse, listCourses } from "@/features/showcase/source.server";
+import { mockReviews } from "@/features/showcase/data";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { courseServerApi } from "@/features/course/api.server";
-import { expertServerApi } from "@/features/expert/api.server";
-import { mediaSrc } from "@/features/course/media";
-import {
-  formatCompact,
-  formatPrice,
-  formatRating,
-} from "@/lib/utils/format";
+import { Svg } from "@/components/bright/Svg";
+import { SoftEmpty, StarIcon, Stars } from "@/components/bright/bits";
+import { RailControls } from "@/components/bright/RailControls";
+import { mapSvg } from "@/lib/art";
+import { formatCompact, formatRating } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { LocaleLink } from "@/i18n/LocaleLink";
 import { getT } from "@/i18n/server";
 import type { TFunction } from "@/i18n/format";
 import { defaultLocale, isLocale, type Locale } from "@/i18n/config";
-import { localeHref } from "@/i18n/href";
 import type { ApiError } from "@/types/api";
-import type { Course, CourseLevel } from "@/features/course/types";
+import type { Course, CourseSummary, LessonContentType } from "@/features/course/types";
 import type { ExpertProfile } from "@/features/expert/types";
 
 type Props = { params: Promise<{ slug: string; lang: string }> };
@@ -48,15 +58,14 @@ type Props = { params: Promise<{ slug: string; lang: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, lang } = await params;
   try {
-    const c = await courseServerApi.bySlug(slug);
+    const { course: c, sample } = await getCourse(slug);
     return {
       title: c.title,
       description: c.subtitle ?? c.description?.slice(0, 160) ?? undefined,
-      openGraph: {
-        title: c.title,
-        description: c.subtitle ?? undefined,
-        type: "website",
-      },
+      openGraph: { title: c.title, description: c.subtitle ?? undefined, type: "website" },
+      // Sample courses are for showing the design; search engines should not
+      // list them as real courses.
+      robots: sample ? { index: false, follow: true } : undefined,
     };
   } catch {
     const t = await getT(isLocale(lang) ? lang : defaultLocale);
@@ -64,70 +73,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-const LEVEL_KEYS: Record<CourseLevel, string> = {
-  BEGINNER: "common.beginner",
-  INTERMEDIATE: "common.intermediate",
-  ADVANCED: "common.advanced",
-  ALL: "common.allLevels",
-};
-
-/** One person on the teaching roster. */
-type RosterEntry = { tutorId: string; displayName: string; authorized?: boolean };
-
 /**
- * The API sends the full teaching roster as `tutors`, which the shared
- * `Course` type does not declare yet. Read it defensively and fall back to the
- * single owning tutor, so an older API response still renders one expert.
- * The tutor who owns the course leads the list; the rest keep the API's order.
- */
-function rosterOf(course: Course): RosterEntry[] {
-  const raw = (course as Course & { tutors?: unknown }).tutors;
-  const listed = Array.isArray(raw)
-    ? (raw as Partial<RosterEntry>[]).filter(
-        (e): e is RosterEntry =>
-          typeof e?.tutorId === "string" &&
-          typeof e.displayName === "string" &&
-          e.displayName.trim() !== "",
-      )
-    : [];
-  if (!listed.length) {
-    return course.tutorId && course.tutorDisplayName
-      ? [{ tutorId: course.tutorId, displayName: course.tutorDisplayName }]
-      : [];
-  }
-  return [...listed].sort(
-    (a, b) => Number(b.tutorId === course.tutorId) - Number(a.tutorId === course.tutorId),
-  );
-}
-
-/** "3 saat 20 dəq" / "3h 20m" — formatDuration's units are English-only. */
-function durationText(seconds: number, t: TFunction) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h && m) return t("courseDetail.durationHM", { h, m });
-  if (h) return t("courseDetail.durationH", { h });
-  return t("courseDetail.durationM", { m: Math.max(m, 1) });
-}
-
-/** "Azərbaycan dili" / "Azerbaijani" from an ISO code such as "az". */
-function languageText(code: string | null | undefined, locale: Locale, t: TFunction) {
-  if (!code) return null;
-  let name = code.toUpperCase();
-  try {
-    const shown = new Intl.DisplayNames([locale], { type: "language" }).of(code);
-    if (shown && shown.toLowerCase() !== code.toLowerCase()) {
-      name = shown.charAt(0).toLocaleUpperCase(locale) + shown.slice(1);
-    }
-  } catch {
-    // An unknown or malformed code keeps its upper-cased form.
-  }
-  return t("courseDetail.languageName", { name });
-}
-
-/**
- * Outcomes and requirements are free text that authors usually write one item
- * per line, often with their own bullets or numbers. Split them into items so
- * they can be shown as a list; a single paragraph becomes a single item.
+ * Outcomes and requirements are free text authors usually write one item per
+ * line, often with their own bullets or numbers. Split them into items; a
+ * single paragraph becomes a single item.
  */
 function itemsOf(text: string | null | undefined): string[] {
   if (!text) return [];
@@ -137,16 +86,49 @@ function itemsOf(text: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-type Fact = { icon: LucideIcon; label: string; value: string };
+/** One person on the teaching roster; the owning expert leads. */
+type RosterEntry = { tutorId: string; displayName: string };
 
-const STICKY_TIERS = [
-  [720, "lg:[@media(min-height:45rem)]:sticky"],
-  [800, "lg:[@media(min-height:50rem)]:sticky"],
-  [880, "lg:[@media(min-height:55rem)]:sticky"],
-  [960, "lg:[@media(min-height:60rem)]:sticky"],
-  [1040, "lg:[@media(min-height:65rem)]:sticky"],
-  [1120, "lg:[@media(min-height:70rem)]:sticky"],
-] as const;
+function rosterOf(course: Course): RosterEntry[] {
+  const raw = (course as Course & { tutors?: unknown }).tutors;
+  const listed = Array.isArray(raw)
+    ? (raw as Partial<RosterEntry>[]).filter(
+        (e): e is RosterEntry => typeof e?.tutorId === "string" && typeof e.displayName === "string" && e.displayName.trim() !== "",
+      )
+    : [];
+  if (!listed.length) {
+    return course.tutorId && course.tutorDisplayName ? [{ tutorId: course.tutorId, displayName: course.tutorDisplayName }] : [];
+  }
+  return [...listed].sort((a, b) => Number(b.tutorId === course.tutorId) - Number(a.tutorId === course.tutorId));
+}
+
+const LESSON_ICON: Record<LessonContentType, React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>> = {
+  VIDEO: PlayCircle,
+  TEXT: FileText,
+  PDF: File,
+  QUIZ: CircleHelp,
+  LIVE_SESSION: Radio,
+};
+
+/** "12:40" for video lengths, "8 dəq" for reading time. */
+function lessonLength(type: LessonContentType, seconds: number, t: TFunction) {
+  if (!seconds) return "—";
+  if (type === "VIDEO") {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+  return t("ui.durationM", { m: Math.max(1, Math.round(seconds / 60)) });
+}
+
+/** "6 oktyabr 2026" — Azerbaijani month names by hand, so no Intl data is needed. */
+function dateText(iso: string | null | undefined, locale: Locale, t: TFunction) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const month = t(`course2.month${d.getUTCMonth() + 1}`);
+  return locale === "az" ? `${d.getUTCDate()} ${month} ${d.getUTCFullYear()}` : `${month} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+}
 
 export default async function CourseDetailPage({ params }: Props) {
   const { slug, lang } = await params;
@@ -154,557 +136,577 @@ export default async function CourseDetailPage({ params }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
-  let course;
+  let loaded;
   try {
-    course = await courseServerApi.bySlug(slug);
+    loaded = await getCourse(slug);
   } catch (err) {
     if ((err as ApiError).status === 404) notFound();
     throw err;
   }
+  const { course, sample } = loaded;
 
+  const index = await getCatalogIndex();
+  const labels = courseLabels(t, locale);
+  const category = index.categories.find((c) => course.categoryIds.includes(c.id)) ?? null;
+  const style = categoryStyle(category);
+  const catName = category ? categoryLabel(category, t, locale) : null;
+  const k = style.k;
+
+  const lessons = course.modules.flatMap((m) => m.lessons);
+  const lessonCount = lessons.length;
   const totalSeconds =
-    course.onlineDetails?.totalVideoSeconds ??
-    course.modules.reduce(
-      (s, m) => s + m.lessons.reduce((x, l) => x + (l.durationSeconds ?? 0), 0),
-      0,
-    );
-  const lessonCount = course.modules.reduce(
-    (s, m) => s + m.lessons.length,
-    0,
-  );
-
-  // The public profile adds the portrait and title to each expert card. It is
-  // an enhancement only: an expert who is not (or no longer) approved answers
-  // 404, and the card then falls back to the name the course already carries.
-  const roster = rosterOf(course);
-  const profiles = await Promise.allSettled(
-    roster.map((entry) => expertServerApi.byId(entry.tutorId)),
-  );
-  const tutors = roster.map((entry, i) => {
-    const settled = profiles[i];
-    const profile: ExpertProfile | null =
-      settled.status === "fulfilled" ? settled.value : null;
-    return { ...entry, profile };
-  });
-
-  // The detail response carries the thumbnail's media id only (the catalogue
-  // entry carries the path), so build the same anonymous media path here.
-  const cover = mediaSrc(
-    course.thumbnailMediaId
-      ? `/api/public/media/${course.thumbnailMediaId}/content`
-      : null,
-  );
-  const initials = course.title
-    .split(/\s+/)
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  const priceLabel = course.free
-    ? t("common.free")
-    : formatPrice(course.price, course.currency, locale);
-  const levelLabel = t(LEVEL_KEYS[course.level] ?? "common.allLevels");
-  const language = languageText(course.language, locale, t);
-  const numberFmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
-  const offline = course.offlineDetails;
-
-  // What the enrolment card lists. Zero lessons or zero length means "not
-  // published yet", not "an empty course", so those facts are left out rather
-  // than shown as 0.
-  const lengthSeconds = offline
-    ? Number(offline.totalHours) * 3600 || 0
-    : totalSeconds;
-  const facts: Fact[] = [];
-  if (lessonCount > 0) {
-    facts.push({
-      icon: BookOpen,
-      label: t("courseDetail.factLessons"),
-      value: t("courseDetail.lessons", { count: lessonCount }),
-    });
-  }
-  if (lengthSeconds > 0) {
-    facts.push({
-      icon: Clock,
-      label: t("courseDetail.factDuration"),
-      value: durationText(lengthSeconds, t),
-    });
-  }
-  facts.push({
-    icon: ChartNoAxesColumnIncreasing,
-    label: t("courseDetail.factLevel"),
-    value: levelLabel,
-  });
-  if (language) {
-    facts.push({ icon: Globe, label: t("courseDetail.factLanguage"), value: language });
-  }
-  if (course.onlineDetails?.hasCertificate) {
-    facts.push({
-      icon: Award,
-      label: t("courseDetail.factCertificate"),
-      value: t("courseDetail.certificate"),
-    });
-  }
-  if (offline) {
-    const place = [offline.city, offline.addressLine]
-      .map((p) => p?.trim())
-      .filter(Boolean)
-      .join(", ");
-    if (place) {
-      facts.push({ icon: MapPin, label: t("courseDetail.factLocation"), value: place });
-    }
-    // Date-only strings parse as UTC midnight; format in UTC so the day cannot
-    // shift with the server's time zone. An unparseable date is skipped, since
-    // formatting an invalid Date throws.
-    const start = offline.startDate ? new Date(offline.startDate) : null;
-    const endDate = offline.endDate ? new Date(offline.endDate) : null;
-    const end = endDate && !Number.isNaN(endDate.getTime()) && start && endDate >= start
-      ? endDate
-      : null;
-    if (start && !Number.isNaN(start.getTime())) {
-      const fmt = new Intl.DateTimeFormat(locale, {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        timeZone: "UTC",
-      });
-      facts.push({
-        icon: CalendarDays,
-        label: t("courseDetail.factDates"),
-        value: end ? fmt.formatRange(start, end) : fmt.format(start),
-      });
-    }
-    const weekly = Number(offline.weeklyHours);
-    if (weekly > 0) {
-      facts.push({
-        icon: Timer,
-        label: t("courseDetail.factWeekly"),
-        value: t("courseDetail.weeklyHours", { hours: numberFmt.format(weekly) }),
-      });
-    }
-    if (offline.studentLimit) {
-      facts.push({
-        icon: Users,
-        label: t("courseDetail.factSeats"),
-        value: t("courseDetail.seats", {
-          enrolled: offline.enrolledCount,
-          limit: offline.studentLimit,
-        }),
-      });
-    }
-  }
-
-  // The sidebar sticks only on screens tall enough to hold all of it: a sticky
-  // block taller than the viewport keeps its lower part (the experts) out of
-  // reach until the page ends. What it holds fixes its height closely enough
-  // (px, measured at desktop widths), so pick the matching min-height tier.
-  // The classes are spelled out because Tailwind only generates classes it can
-  // find in the source.
-  const sidebarPx =
-    96 + 24 + // sticky offset and breathing room below
-    (course.free ? 160 : 252) + // price and the call to action (+ paid hint)
-    (facts.length ? 75 + facts.length * 46 : 0) +
-    (tutors.length ? 20 + 99 + tutors.length * 120 : 0);
-  const stickyClass = STICKY_TIERS.find(([px]) => sidebarPx <= px)?.[1];
-
+    course.onlineDetails?.totalVideoSeconds || lessons.reduce((s, l) => s + (l.durationSeconds ?? 0), 0) || null;
+  const off = course.offlineDetails;
   const outcomes = itemsOf(course.learningOutcomes);
   const requirements = itemsOf(course.requirements);
-  const moduleCount = course.modules.length;
-  const curriculumSummary = lessonCount
+  const paragraphs = (course.description ?? "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const language = t(`languages.${course.language}`) !== `languages.${course.language}` ? t(`languages.${course.language}`) : course.language.toUpperCase();
+
+  // The roster's public profiles add titles and portraits; an expert who is
+  // not (or no longer) approved just keeps the name the course carries.
+  const roster = rosterOf(course);
+  const profiles = await Promise.all(roster.map((r) => expertProfileSource(r.tutorId)));
+  const lead = roster[0] ? { ...roster[0], profile: profiles[0] as ExpertProfile | null } : null;
+  const leadK = lead ? categoryStyle(categoryOfExpert(index, lead.tutorId) ?? category).k : k;
+
+  // Related: the same field first, then the newest others.
+  const related = await listCourses({ page: 0, size: 12 })
+    .then((p) => p.content.filter((c) => c.id !== course.id))
+    .catch(() => [] as CourseSummary[]);
+  related.sort(
+    (a, b) =>
+      Number(index.categoryOfCourse[b.id] === category?.id) - Number(index.categoryOfCourse[a.id] === category?.id),
+  );
+  const relFor = (c: CourseSummary) => {
+    const id = index.categoryOfCourse[c.id];
+    const cat = index.categories.find((x) => x.id === id);
+    return cat ? { name: categoryLabel(cat, t, locale), style: categoryStyle(cat) } : null;
+  };
+
+  const summary = course as unknown as CourseSummary;
+  const coverCourse: CourseSummary = {
+    ...summary,
+    thumbnailUrl:
+      summary.thumbnailUrl ?? (course.thumbnailMediaId ? `/api/public/media/${course.thumbnailMediaId}/content` : null),
+  };
+
+  const facts: [React.ReactNode, string, string][] = [
+    [course.courseType === "ONLINE" ? <MonitorPlay key="f" className="i" aria-hidden /> : <MapPin key="f" className="i" aria-hidden />, t("course2.format"), labels.format[course.courseType]],
+    [<BarChart3 key="l" className="i" aria-hidden />, t("course2.level"), labels.level[course.level]],
+  ];
+  if (off) {
+    const start = dateText(off.startDate, locale, t);
+    const end = dateText(off.endDate, locale, t);
+    if (start || end) facts.push([<Calendar key="d" className="i" aria-hidden />, t("course2.dates"), [start, end].filter(Boolean).join(" – ")]);
+    facts.push([<Clock key="w" className="i" aria-hidden />, t("course2.weekly"), t("course2.weeklyValue", { h: off.weeklyHours })]);
+    const left = Math.max(0, off.studentLimit - off.enrolledCount);
+    facts.push([<Armchair key="s" className="i" aria-hidden />, t("course2.seats"), t("course2.seatsLeft", { count: left })]);
+  } else {
+    facts.push([<Clock key="c" className="i" aria-hidden />, t("course2.length"), labels.duration(totalSeconds) ?? "—"]);
+    facts.push([<Layers key="n" className="i" aria-hidden />, t("course2.lessons"), lessonCount ? t("course2.lessonCount", { count: lessonCount }) : t("course2.preparing")]);
+    facts.push([<Languages key="g" className="i" aria-hidden />, t("course2.language"), language]);
+  }
+
+  const tabs = [
+    { id: "about", label: t("course2.tabAbout") },
+    { id: "curriculum", label: t("course2.tabCurriculum"), count: lessonCount || null },
+    ...(off ? [{ id: "location", label: t("course2.tabLocation") }] : []),
+    ...(lead ? [{ id: "expert", label: t("course2.tabExpert") }] : []),
+    { id: "reviews", label: t("course2.tabReviews"), count: course.ratingCount || null },
+  ];
+
+  const cta = (compact?: boolean) =>
+    sample ? <SampleEnrolCta slug={course.slug} compact={compact} /> : <EnrollCta course={course} compact={compact} />;
+
+  const includes: [React.ReactNode, string, string][] = off
     ? [
-        t("courseDetail.modules", { count: moduleCount }),
-        t("courseDetail.lessons", { count: lessonCount }),
-        totalSeconds > 0 ? durationText(totalSeconds, t) : null,
+        [<Calendar key="1" className="i" aria-hidden />, t("course2.starts"), dateText(off.startDate, locale, t) ?? "—"],
+        [<Calendar key="2" className="i" aria-hidden />, t("course2.ends"), dateText(off.endDate, locale, t) ?? "—"],
+        [<Clock key="3" className="i" aria-hidden />, t("course2.weekly"), t("course2.weeklyValue", { h: off.weeklyHours })],
+        [<MapPin key="4" className="i" aria-hidden />, t("course2.city"), off.city ?? "—"],
       ]
-        .filter(Boolean)
-        .join(" · ")
-    : null;
+    : [
+        [<MonitorPlay key="1" className="i" aria-hidden />, t("course2.format"), t("course2.selfPaced")],
+        [<Layers key="2" className="i" aria-hidden />, t("course2.lessons"), lessonCount ? t("course2.lessonCount", { count: lessonCount }) : t("course2.preparing")],
+        [<Clock key="3" className="i" aria-hidden />, t("course2.length"), labels.duration(totalSeconds) ?? "—"],
+        [<Languages key="4" className="i" aria-hidden />, t("course2.language"), language],
+      ];
+
+  const enrolCard = (
+    <div className={cn("enrol p-6 sm:p-7", k)}>
+      <div className="flex items-center justify-between gap-4">
+        <span className="price">{labels.free}</span>
+        {labels.isNewCourse(summary) ? <span className="pill pill-gold">{labels.isNew}</span> : null}
+      </div>
+      {off ? (
+        <div className="mt-5">
+          <div className="mb-2 flex justify-between text-[13.5px]">
+            <span className="text-ink-2">{t("course2.seats")}</span>
+            <span className="font-semibold">
+              {off.enrolledCount} / {off.studentLimit}
+            </span>
+          </div>
+          <div className="seats">
+            <i style={{ width: `${Math.min(100, (off.enrolledCount / Math.max(1, off.studentLimit)) * 100)}%` }} />
+          </div>
+          <p className="mt-2 text-[13px] text-ink-3">
+            {t("course2.seatsLeft", { count: Math.max(0, off.studentLimit - off.enrolledCount) })}
+          </p>
+        </div>
+      ) : null}
+      <div className="mt-6">{cta()}</div>
+      <p className="mt-3 text-center text-[13.5px] text-ink-3">{t("course2.instant")}</p>
+      <ul className="inc mt-6 border-t border-line pt-2">
+        {includes.map(([icon, l, v]) => (
+          <li key={l}>
+            {icon}
+            {l}
+            <b>{v}</b>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 
   return (
     <>
-      {/* ---- Course header: a contained deep-navy panel ------------------ */}
-      <section className="container-fluid pt-5 sm:pt-8">
-        <Breadcrumbs
-          className="mb-4 px-1 sm:mb-5"
-          items={[
-            { label: t("common.home"), href: localeHref(locale, "/") },
-            { label: t("nav.courses"), href: localeHref(locale, "/courses") },
-            { label: course.title },
-          ]}
-        />
-        <div className="surface-deep relative overflow-hidden rounded-4xl elev-3">
-          <div className="grid gap-8 p-5 sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-14 lg:p-14 xl:grid-cols-[minmax(0,1fr)_minmax(0,27rem)]">
-            <div className="min-w-0 px-1 pb-2 sm:px-0 sm:pb-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="onDeep" className="h-8 gap-1.5 px-3 text-xs">
-                  {course.courseType === "ONLINE" ? (
-                    <MonitorPlay aria-hidden className="size-3.5" />
-                  ) : (
-                    <MapPin aria-hidden className="size-3.5" />
-                  )}
-                  {course.courseType === "ONLINE"
-                    ? t("common.online")
-                    : t("common.offline")}
-                </Badge>
-                <Badge variant="onDeep" className="h-8 gap-1.5 px-3 text-xs">
-                  <ChartNoAxesColumnIncreasing aria-hidden className="size-3.5" />
-                  {levelLabel}
-                </Badge>
-                <Badge
-                  className={cn(
-                    "h-8 px-3 text-xs",
-                    course.free
-                      ? "border-transparent bg-gold-500 text-navy-950"
-                      : "border-white/20 bg-white/10 text-white",
-                  )}
-                >
-                  {priceLabel}
-                </Badge>
-              </div>
-
-              <h1 className="mt-5 font-display text-balance text-[2rem] leading-[1.08] text-white sm:mt-6 sm:text-5xl">
-                {course.title}
-              </h1>
-              {course.subtitle ? (
-                <p className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-white/75 sm:mt-5 sm:text-lg">
-                  {course.subtitle}
-                </p>
+      <div className={cn("c-page overflow-x-clip", k)}>
+        <div className="wrap grid gap-x-10 pb-20 lg:grid-cols-12 lg:pb-28">
+          {/* ============ HERO: the category's colour field, full bleed ============ */}
+          <section className="c-hero-row min-w-0 pb-20 pt-5 lg:col-span-8 lg:row-start-1 lg:pb-24 lg:pt-12" aria-labelledby="c-title">
+            <div className="mb-6 max-w-[560px] lg:hidden">
+              <CourseCover course={coverCourse} category={category ? { name: catName!, style } : null} labels={labels} pills={false} className="aspect-[16/10] !rounded-[24px]" />
+            </div>
+            <nav aria-label={t("ui.breadcrumb")} className="crumbs flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px]">
+              <LocaleLink href="/">{t("ui.home")}</LocaleLink>
+              <span aria-hidden>/</span>
+              <LocaleLink href="/courses">{t("ui.navCourses")}</LocaleLink>
+              {category ? (
+                <>
+                  <span aria-hidden>/</span>
+                  <LocaleLink href={`/courses?categoryId=${category.id}`}>{catName}</LocaleLink>
+                </>
               ) : null}
-
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2.5 text-sm text-white/75">
-                {course.ratingCount > 0 ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Star aria-hidden className="size-4 fill-gold-400 text-gold-400" />
-                    <span className="font-semibold text-white">
-                      {formatRating(course.ratingAvg, locale)}
-                    </span>
-                    <span>
-                      (
-                      {t("courseDetail.ratings", {
-                        count: course.ratingCount,
-                        shown: formatCompact(course.ratingCount, locale),
-                      })}
-                      )
-                    </span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Star aria-hidden className="size-4 text-gold-300" />
-                    {t("courseDetail.noRatings")}
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1.5">
-                  <Users aria-hidden className="size-4 text-white/60" />
-                  {t("courseDetail.participants", {
-                    count: course.enrolledCount,
-                    shown: formatCompact(course.enrolledCount, locale),
-                  })}
+            </nav>
+            {catName ? (
+              <div className="mt-6 lg:mt-8">
+                <span className="cat-label">{catName}</span>
+              </div>
+            ) : null}
+            <h1 id="c-title" className="d-lg mt-3 max-w-[48rem]">
+              {course.title}
+            </h1>
+            {course.subtitle ? (
+              <p className="sub mt-5 max-w-[44rem] text-[17px] leading-relaxed lg:text-[19px]">{course.subtitle}</p>
+            ) : null}
+            <div className="meta mt-6 !gap-x-5 !gap-y-2.5 !text-[14.5px]">
+              {course.ratingCount > 0 ? (
+                <span className="rate">
+                  <Stars value={Number(course.ratingAvg)} label={labels.starsLabel(course.ratingAvg)} />
+                  <b className="ml-1">{formatRating(course.ratingAvg, locale)}</b>
+                  <small className="!text-[14px] !text-[inherit]">({t("course2.ratingsCount", { count: course.ratingCount })})</small>
                 </span>
-                {language ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Globe aria-hidden className="size-4 text-white/60" />
-                    {language}
-                  </span>
-                ) : null}
-              </div>
-
-              {tutors.length ? (
-                <div className="mt-7 flex items-center gap-3 border-t border-white/10 pt-6">
-                  <div className="flex -space-x-2.5">
-                    {tutors.slice(0, 3).map((tutor) => (
-                      <span
-                        key={tutor.tutorId}
-                        className="rounded-full ring-2 ring-[#01234a]"
-                      >
-                        <ExpertAvatar
-                          name={tutor.displayName}
-                          avatarUrl={tutor.profile?.avatarUrl}
-                          sizes="40px"
-                          className="size-10 text-sm"
-                        />
-                      </span>
-                    ))}
-                  </div>
-                  <div className="min-w-0 text-sm">
-                    <div className="text-xs text-white/60">
-                      {tutors.length > 1
-                        ? t("courseDetail.createdByMany")
-                        : t("courseDetail.createdBy")}
-                    </div>
-                    <div className="mt-0.5 flex flex-wrap gap-x-1 font-semibold text-white">
-                      {tutors.map((tutor, i) => (
-                        <span key={tutor.tutorId}>
-                          <Link
-                            href={localeHref(locale, `/experts/${tutor.tutorId}`)}
-                            className="underline-offset-4 transition-colors hover:text-gold-200 hover:underline"
-                          >
-                            {tutor.displayName}
-                          </Link>
-                          {i < tutors.length - 1 ? "," : null}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+              ) : (
+                <span className="fresh !text-[inherit]">
+                  <Sparkles className="i" aria-hidden />
+                  {t("course2.noRatings")}
+                </span>
+              )}
+              <span>
+                <Users className="i" aria-hidden />
+                {t("landing.participants", { count: course.enrolledCount })}
+              </span>
+              <span>
+                <Languages className="i" aria-hidden />
+                {language}
+              </span>
+              {course.publishedAt ? (
+                <span>
+                  <Calendar className="i" aria-hidden />
+                  {t("course2.published", { date: dateText(course.publishedAt, locale, t) ?? "" })}
+                </span>
               ) : null}
             </div>
-
-            {/* The course media. Decorative: the title sits right beside it. */}
-            <div className="order-first rounded-3xl bg-white/[0.06] p-2 ring-1 ring-inset ring-white/15 lg:order-none">
-              <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br from-navy-400 via-navy-600 to-navy-900 sm:aspect-[16/10]">
-                {cover ? (
-                  // `unoptimized` for the same reason as CourseCard: the
-                  // optimizer would fetch the API's public hostname from inside
-                  // this server, which cannot reach it in production.
-                  <Image
-                    src={cover}
-                    alt=""
-                    fill
-                    unoptimized
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 432px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <>
-                    <span
-                      aria-hidden
-                      className="absolute -right-10 -top-16 size-56 rounded-full bg-[radial-gradient(circle,rgba(224,194,102,0.45)_0%,transparent_65%)] blur-2xl"
-                    />
-                    <span
-                      aria-hidden
-                      className="absolute -bottom-24 -left-16 size-64 rounded-full border border-white/10"
-                    />
-                    <span
-                      aria-hidden
-                      className="absolute -bottom-10 -left-4 size-40 rounded-full border border-white/10"
-                    />
-                    <span
-                      aria-hidden
-                      className="absolute inset-0 grid place-items-center font-display text-6xl tracking-tight text-white/30 sm:text-7xl"
-                    >
-                      {initials}
+            {lead ? (
+              <div className="mt-8">
+                <a href="#expert" className="group/e flex items-center gap-3">
+                  <ExpertDot name={lead.displayName} avatarUrl={lead.profile?.avatarUrl} k={leadK} className="ring-4 ring-[var(--k-50)]" />
+                  <span className="leading-tight">
+                    <span className="block text-[13px] opacity-75">{labels.expert}</span>
+                    <span className="block text-[16px] font-semibold underline-offset-4 group-hover/e:underline">
+                      {lead.displayName}
+                      {roster.length > 1 ? ` +${roster.length - 1}` : ""}
                     </span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Body: content column + enrolment sidebar --------------------- */}
-      <div className="container-fluid mt-6 flex flex-col gap-6 pb-20 sm:mt-8 lg:mt-10 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        {/* On phones the enrolment card has to follow the header directly,
-            while the experts card waits until after the content. `contents`
-            dissolves this wrapper there so `order` can interleave its children
-            with the main column; from lg up it is the sticky sidebar. */}
-        <div
-          className={cn(
-            "contents lg:col-start-2 lg:row-start-1 lg:top-24 lg:flex lg:flex-col lg:gap-5",
-            stickyClass,
-          )}
-        >
-          <section
-            aria-labelledby="course-price"
-            className="order-1 rounded-3xl border border-border/80 bg-card elev-2 lg:order-none"
-          >
-            <div className="p-6 sm:p-7">
-              <div
-                id="course-price"
-                className="font-display text-4xl leading-none tracking-tight"
-              >
-                {priceLabel}
-              </div>
-              <div className="mt-5">
-                <EnrollCta course={course} />
-              </div>
-            </div>
-            {facts.length ? (
-              <div className="border-t border-border px-6 pb-6 pt-5 sm:px-7 sm:pb-7">
-                <h2 className="text-sm font-semibold">{t("courseDetail.includes")}</h2>
-                <ul className="mt-4 space-y-2.5">
-                  {facts.map((fact) => (
-                    <li key={fact.label} className="flex items-center gap-3.5">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-2xl bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100">
-                        <fact.icon aria-hidden className="size-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-xs text-muted-foreground">{fact.label}</div>
-                        <div className="text-sm font-semibold leading-snug">{fact.value}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                  </span>
+                </a>
               </div>
             ) : null}
           </section>
 
-          {tutors.length ? (
-            <aside
-              aria-labelledby="course-experts"
-              className="order-3 rounded-3xl border border-border/80 bg-card p-6 elev-1 sm:p-7 lg:order-none"
-            >
-              <h2 id="course-experts" className="font-display text-lg leading-snug">
-                {tutors.length > 1
-                  ? t("courseDetail.aboutExperts")
-                  : t("courseDetail.aboutExpert")}
-              </h2>
-              <ul className="mt-4 divide-y divide-border">
-                {tutors.map((tutor) => {
-                  const p = tutor.profile;
-                  const affiliation = [p?.academicTitle, p?.department]
-                    .map((part) => part?.trim())
-                    .filter(Boolean)
-                    .join(" · ");
-                  const href = localeHref(locale, `/experts/${tutor.tutorId}`);
-                  return (
-                    <li key={tutor.tutorId} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
-                      <ExpertAvatar
-                        name={tutor.displayName}
-                        avatarUrl={p?.avatarUrl}
-                        sizes="52px"
-                        className="size-13 text-base"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-display text-base leading-snug">
-                          <Link href={href} className="transition-colors hover:text-primary">
-                            {tutor.displayName}
-                          </Link>
-                        </h3>
-                        {affiliation ? (
-                          <p className="mt-0.5 text-sm leading-snug text-foreground/80">
-                            {affiliation}
-                          </p>
+          {/* ============ ENROL: starts in the hero, stays beside the content ============ */}
+          <aside className="relative z-20 hidden pt-12 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1 lg:block" aria-label={t("course2.enrol")}>
+            <div className="sticky top-[84px]">
+              <div className="rounded-[32px] bg-surface p-2 shadow-[0_0_0_1px_var(--line),var(--shadow-lg)]">
+                <CourseCover course={coverCourse} category={category ? { name: catName!, style } : null} labels={labels} pills={false} className="aspect-[16/10] !rounded-[24px]" />
+                <div className="[&_.enrol]:!shadow-none">{enrolCard}</div>
+              </div>
+            </div>
+          </aside>
+
+          <div className="min-w-0 lg:col-span-8 lg:col-start-1 lg:row-start-2">
+            <div className="facts relative z-10 -mt-12" style={{ "--n": facts.length } as React.CSSProperties}>
+              {facts.map(([icon, l, v]) => (
+                <div key={l} className="fact">
+                  <span className="l">
+                    {icon}
+                    {l}
+                  </span>
+                  <span className="v">{v}</span>
+                </div>
+              ))}
+            </div>
+
+            <CourseTabs tabs={tabs} label={t("course2.sections")} />
+
+            {/* About */}
+            <section id="about" className="scroll-mt-[150px] pt-12" aria-labelledby="learn-t">
+              {outcomes.length ? (
+                <div className="outcomes p-6 sm:p-9">
+                  <h2 id="learn-t" className="d-md">
+                    {t("course2.outcomes")}
+                  </h2>
+                  <ul className="mt-7 grid gap-x-8 gap-y-4 text-[16px] leading-snug sm:grid-cols-2">
+                    {outcomes.map((o) => (
+                      <li key={o}>
+                        <span className="ck">
+                          <Check className="i" aria-hidden />
+                        </span>
+                        <span>{o}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <h2 id="learn-t" className="sr-only">
+                  {t("course2.outcomes")}
+                </h2>
+              )}
+              {paragraphs.length || requirements.length ? (
+                <div className="mt-12 grid gap-10 md:grid-cols-[1fr_280px]">
+                  <div>
+                    <h2 className="t-lg">{t("course2.about")}</h2>
+                    <div className="prose-b mt-4 max-w-[40rem] text-[16.5px] leading-[1.7] text-ink-2">
+                      {paragraphs.map((p, i) => (
+                        <p key={i}>{p}</p>
+                      ))}
+                    </div>
+                  </div>
+                  {requirements.length ? (
+                    <div>
+                      <h2 className="t-lg">{t("course2.requirements")}</h2>
+                      <ul className="mt-4 grid gap-3 text-[15.5px] text-ink-2">
+                        {requirements.map((r) => (
+                          <li key={r} className="flex items-start gap-3">
+                            <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-[var(--k-500)]" />
+                            <span>{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
+
+            {/* Curriculum */}
+            <section id="curriculum" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="cur-t">
+              <div>
+                <h2 id="cur-t" className="d-md">
+                  {t("course2.curriculum")}
+                </h2>
+                {lessonCount ? (
+                  <p className="mt-2 text-[15px] text-ink-3">
+                    {t("course2.curriculumSummary", {
+                      modules: course.modules.length,
+                      lessons: lessonCount,
+                    })}
+                    {labels.duration(totalSeconds) ? ` · ${labels.duration(totalSeconds)}` : ""}
+                  </p>
+                ) : null}
+              </div>
+              <div className="mt-7">
+                {lessonCount ? (
+                  course.modules.map((m, i) => (
+                    <details key={m.id} className="mod acc" open={i === 0}>
+                      <summary>
+                        <span className="num">{String(i + 1).padStart(2, "0")}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[16.5px] font-semibold leading-snug">{m.title}</span>
+                          <span className="mt-0.5 block text-[13.5px] text-ink-3">
+                            {t("course2.lessonCount", { count: m.lessons.length })}
+                          </span>
+                        </span>
+                        <span className="chev text-ink-3">
+                          <ChevronDown className="i" aria-hidden />
+                        </span>
+                      </summary>
+                      <ul>
+                        {m.lessons.map((l) => {
+                          const Icon = LESSON_ICON[l.contentType] ?? Circle;
+                          return (
+                            <li key={l.id} className="lesson">
+                              <span className="ti" title={t(`course2.type_${l.contentType}`)}>
+                                <Icon className="i" aria-hidden />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-ink">{l.title}</span>
+                                <span className="block text-[12.5px] text-ink-3 sm:hidden">{t(`course2.type_${l.contentType}`)}</span>
+                              </span>
+                              {l.preview ? (
+                                <span className="pv">
+                                  <Eye className="i" aria-hidden />
+                                  <span className="t">{t("course2.preview")}</span>
+                                </span>
+                              ) : l.contentType !== "LIVE_SESSION" ? (
+                                <span className="hidden text-ink-3 sm:inline" title={t("course2.lockedHint")}>
+                                  <Lock className="i !size-4" aria-hidden />
+                                </span>
+                              ) : null}
+                              <span className="du">{lessonLength(l.contentType, l.durationSeconds, t)}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </details>
+                  ))
+                ) : (
+                  <SoftEmpty icon={<ListTree className="i" aria-hidden />} title={t("course2.noCurriculum")} hint={t("course2.noCurriculumHint")} />
+                )}
+              </div>
+            </section>
+
+            {/* Location (in person) */}
+            {off ? (
+              <section id="location" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="loc-t">
+                <h2 id="loc-t" className="d-md">
+                  {t("course2.location")}
+                </h2>
+                <div className="mt-7 grid overflow-hidden rounded-[30px] bg-surface shadow-[0_0_0_1px_var(--line)] sm:grid-cols-[1.1fr_1fr]">
+                  <div className={cn("relative aspect-[5/3] sm:aspect-auto sm:min-h-[240px]", k)}>
+                    <Svg markup={mapSvg(4)} className="[&>svg]:absolute [&>svg]:inset-0 [&>svg]:size-full" />
+                  </div>
+                  <div className="flex flex-col gap-4 p-6 sm:p-8">
+                    <p className="font-display text-[21px] font-bold leading-snug tracking-tight">{off.addressLine ?? off.city}</p>
+                    <p className="text-ink-2">
+                      {[off.city, [dateText(off.startDate, locale, t), dateText(off.endDate, locale, t)].filter(Boolean).join(" – ")]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                    {off.addressLine || off.city ? (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([off.addressLine, off.city].filter(Boolean).join(", "))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link mt-auto"
+                      >
+                        {t("course2.openMap")} <ArrowUpRight className="i" aria-hidden />
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            {/* Expert */}
+            {lead ? (
+              <section id="expert" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="exp-t">
+                <h2 id="exp-t" className="d-md">
+                  {labels.expert}
+                </h2>
+                <div className="mt-7 rounded-[36px] bg-paper-2 p-6 sm:p-9">
+                  <article className="xcard group relative grid items-start gap-6 sm:grid-cols-[200px_1fr] sm:gap-9">
+                    <ExpertArch id={lead.tutorId} name={lead.displayName} avatarUrl={lead.profile?.avatarUrl} k={leadK} className="w-[160px] sm:w-full" />
+                    <div>
+                      <h3 className="t-lg">
+                        <LocaleLink href={`/experts/${lead.tutorId}`} className="underline-offset-4 hover:underline">
+                          {lead.displayName}
+                        </LocaleLink>
+                      </h3>
+                      {lead.profile ? (
+                        <p className="mt-1.5 text-ink-2">
+                          {[lead.profile.academicTitle, lead.profile.department ?? lead.profile.headline].filter(Boolean).join(" · ")}
+                        </p>
+                      ) : null}
+                      <div className="meta mt-4 text-[14px]">
+                        {lead.profile && lead.profile.ratingCount > 0 ? (
+                          <span className="rate">
+                            <StarIcon />
+                            {formatRating(lead.profile.ratingAvg, locale)}
+                          </span>
                         ) : null}
-                        {p?.headline ? (
-                          <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                            {p.headline}
-                          </p>
+                        {lead.profile?.yearsExperience ? (
+                          <span>
+                            <History className="i" aria-hidden />
+                            {t("course2.years", { count: lead.profile.yearsExperience })}
+                          </span>
                         ) : null}
-                        {p?.yearsExperience ? (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {t("experts.years", { count: p.yearsExperience })}
-                          </p>
-                        ) : null}
-                        <Link
-                          href={href}
-                          className="group mt-2.5 flex w-fit items-center gap-1.5 text-sm font-semibold text-primary"
-                        >
-                          {t("courseDetail.viewProfile")}
-                          <ArrowRight
-                            aria-hidden
-                            className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
-                          />
-                        </Link>
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </aside>
-          ) : null}
-        </div>
+                      {lead.profile?.bio ? <p className="mt-5 max-w-2xl leading-relaxed text-ink-2">{lead.profile.bio}</p> : null}
+                      {lead.profile?.languages ? (
+                        <p className="mt-4 text-[14px] text-ink-3">{t("course2.expertLanguages", { value: lead.profile.languages })}</p>
+                      ) : null}
+                      <LocaleLink href={`/experts/${lead.tutorId}`} className="link mt-6">
+                        {t("course2.expertProfile")} <ArrowUpRight className="i" aria-hidden />
+                      </LocaleLink>
+                    </div>
+                  </article>
+                </div>
+                {roster.length > 1 ? (
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {roster.slice(1).map((r, i) => (
+                      <LocaleLink key={r.tutorId} href={`/experts/${r.tutorId}`} className="chip">
+                        <ExpertDot name={r.displayName} avatarUrl={profiles[i + 1]?.avatarUrl} k={leadK} className="!size-8 text-[12px]" />
+                        {r.displayName}
+                      </LocaleLink>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
 
-        <div className="order-2 min-w-0 space-y-6 lg:order-none lg:col-start-1 lg:row-start-1">
-          {outcomes.length ? (
-            <SectionCard title={t("courseDetail.whatYouLearn")}>
-              <ul className="grid gap-x-8 gap-y-3.5 sm:grid-cols-2">
-                {outcomes.map((item, i) => (
-                  <li key={i} className="flex gap-3 text-[15px] leading-relaxed">
-                    <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300">
-                      <Check aria-hidden className="size-3.5" strokeWidth={2.5} />
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </SectionCard>
-          ) : null}
-
-          {course.description ? (
-            <SectionCard title={t("courseDetail.description")}>
-              <p className="whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">
-                {course.description}
-              </p>
-            </SectionCard>
-          ) : null}
-
-          <SectionCard title={t("courseDetail.curriculum")} meta={curriculumSummary}>
-            <CurriculumAccordion
-              modules={course.modules}
-              emptyMessage={t("courseDetail.curriculumEmpty")}
-              emptyHint={t("courseDetail.curriculumEmptyHint")}
-            />
-          </SectionCard>
-
-          {requirements.length ? (
-            <SectionCard title={t("courseDetail.requirements")}>
-              <ul className="space-y-2.5">
-                {requirements.map((item, i) => (
-                  <li key={i} className="flex gap-3 text-[15px] leading-relaxed text-muted-foreground">
-                    <span aria-hidden className="mt-[0.6rem] size-1.5 shrink-0 rounded-full bg-gold-500" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </SectionCard>
-          ) : null}
-
-          <ReviewsSection
-            courseId={course.id}
-            ratingAvg={course.ratingAvg}
-            ratingCount={course.ratingCount}
-          />
+            {/* Reviews */}
+            <section id="reviews" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="rev-t">
+              <h2 id="rev-t" className="d-md">
+                {t("course2.reviews")}
+              </h2>
+              <div className="mt-7">
+                {sample ? (
+                  <SampleReviews course={course} t={t} locale={locale} />
+                ) : (
+                  <ReviewsSection courseId={course.id} ratingAvg={course.ratingAvg} ratingCount={course.ratingCount} />
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       </div>
 
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Course",
-          name: course.title,
-          description: course.subtitle ?? course.description ?? course.title,
-          inLanguage: course.language,
-          provider: { "@type": "Organization", name: "EduPlatform" },
-          aggregateRating:
-            course.ratingCount > 0
-              ? {
-                  "@type": "AggregateRating",
-                  ratingValue: course.ratingAvg,
-                  ratingCount: course.ratingCount,
-                }
-              : undefined,
-          offers: {
-            "@type": "Offer",
-            price: course.free ? "0" : course.price,
-            priceCurrency: course.currency,
-            availability: "https://schema.org/InStock",
-          },
-        }}
-      />
+      {/* ============ RELATED: same field first ============ */}
+      {related.length ? (
+        <section className="overflow-x-clip pb-20 lg:pb-28" aria-labelledby="rel-t">
+          <div className="wrap">
+            <div className="mb-8 flex items-end justify-between gap-6">
+              <h2 id="rel-t" className="d-md">
+                {t("course2.related")}
+              </h2>
+              <RailControls target="rail-rel" prev={t("ui.prev")} next={t("ui.next")} />
+            </div>
+            <div className="scroller bleed pad-y" id="rail-rel" tabIndex={0} aria-label={t("course2.related")}>
+              {related.slice(0, 8).map((c) => (
+                <div key={c.id} className="w-[80%] max-w-[330px] sm:w-[44%] lg:w-[calc((1360px-80px-72px)/4)] lg:max-w-none">
+                  <CourseCard course={c} category={relFor(c)} labels={labels} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* Phones and tablets: the enrol action is always one thumb away. Sticky,
+          not fixed, and placed before the footer, so it parks above it. */}
+      <div className="actionbar">
+        <div className="mx-auto flex max-w-xl items-center gap-4">
+          <div className="shrink-0 leading-tight">
+            <p className="font-display text-[22px] font-extrabold tracking-tight">{labels.free}</p>
+            <p className="text-[12.5px] text-ink-3">
+              {off
+                ? t("course2.seatsLeft", { count: Math.max(0, off.studentLimit - off.enrolledCount) })
+                : labels.duration(totalSeconds) ?? labels.format[course.courseType]}
+            </p>
+          </div>
+          <div className="flex-1">{cta(true)}</div>
+        </div>
+      </div>
+
+      {!sample ? (
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "Course",
+            name: course.title,
+            description: course.subtitle ?? course.description ?? course.title,
+            inLanguage: course.language,
+            provider: { "@type": "Organization", name: "EduPlatform" },
+            aggregateRating:
+              course.ratingCount > 0
+                ? { "@type": "AggregateRating", ratingValue: course.ratingAvg, ratingCount: course.ratingCount }
+                : undefined,
+            offers: {
+              "@type": "Offer",
+              price: course.free ? "0" : course.price,
+              priceCurrency: course.currency,
+              availability: "https://schema.org/InStock",
+            },
+          }}
+        />
+      ) : null}
     </>
   );
 }
 
-/** A white content card in the main column, headed by its section title. */
-function SectionCard({
-  title,
-  meta,
-  children,
-}: {
-  title: string;
-  meta?: string | null;
-  children: ReactNode;
-}) {
+/** Reviews for a sample course: a summary panel beside the review cards. */
+function SampleReviews({ course, t, locale }: { course: Course; t: TFunction; locale: Locale }) {
+  const { histogram, reviews } = mockReviews(course.id, Number(course.ratingAvg), course.ratingCount);
+  const total = histogram.reduce((a, b) => a + b, 0);
+  if (!total) {
+    return <SoftEmpty icon={<MessageSquare className="i" aria-hidden />} title={t("course2.noReviews")} hint={t("course2.noReviewsHint")} />;
+  }
   return (
-    <section className="rounded-3xl border border-border/80 bg-card p-6 elev-1 sm:p-8">
-      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 sm:mb-6">
-        <h2 className="font-display text-xl leading-snug sm:text-2xl">{title}</h2>
-        {meta ? <p className="text-sm text-muted-foreground">{meta}</p> : null}
+    <div className="grid items-start gap-8 lg:grid-cols-[300px_1fr] lg:gap-12">
+      <div className="rounded-[28px] bg-paper-2 p-7 lg:sticky lg:top-[150px]">
+        <div className="flex items-end gap-3">
+          <span className="font-display text-[64px] font-extrabold leading-[.85] tracking-[-.04em]">
+            {formatRating(course.ratingAvg, locale)}
+          </span>
+          <span className="pb-1">
+            <Stars value={Number(course.ratingAvg)} label={t("ui.starsLabel", { value: formatRating(course.ratingAvg, locale) })} large />
+          </span>
+        </div>
+        <p className="mt-3 text-[14px] text-ink-3">{t("course2.basedOn", { count: formatCompact(total, locale) })}</p>
+        <ul className="mt-6 grid gap-2.5" aria-label={t("course2.distribution")}>
+          {histogram.map((n, i) => (
+            <li key={i} className="grid grid-cols-[34px_1fr_44px] items-center gap-3 text-[14px]">
+              <span className="inline-flex items-center gap-1 font-medium text-ink-2">
+                {5 - i}
+                <StarIcon className="size-3.5 fill-[var(--gold)]" />
+              </span>
+              <span className="hbar">
+                <i style={{ width: `${((n / total) * 100).toFixed(1)}%` }} />
+              </span>
+              <span className="mono text-right text-[12.5px] text-ink-3">{n}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-      {children}
-    </section>
+      <div className="grid gap-4">
+        {reviews.map((r) => (
+          <article key={r.name} className="review">
+            <div className="flex items-center gap-3">
+              <span className={cn("av round size-10 bg-[var(--k-200)] text-[14px]", r.k)}>
+                <span className="ini">{r.initials}</span>
+              </span>
+              <div className="leading-tight">
+                <p className="font-semibold">{r.name}</p>
+                <p className="mt-0.5 text-[13px] text-ink-3">{r.month}</p>
+              </div>
+              <span className="ml-auto">
+                <Stars value={r.stars} label={t("ui.starsLabel", { value: String(r.stars) })} />
+              </span>
+            </div>
+            <p className="mt-4 leading-relaxed text-ink-2">{r.text}</p>
+          </article>
+        ))}
+      </div>
+    </div>
   );
 }

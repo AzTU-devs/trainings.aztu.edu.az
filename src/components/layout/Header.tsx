@@ -1,759 +1,501 @@
 "use client";
 
-import {
-  ArrowRight,
-  Bell,
-  BookOpen,
-  ChevronDown,
-  ChevronRight,
-  LayoutDashboard,
-  LayoutGrid,
-  LogOut,
-  Menu,
-  Search,
-  Settings,
-  Users,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { buttonVariants } from "@/components/ui/button";
+import { Bell, ChevronDown, Globe, LogOut, Menu, Search, Settings, X, LayoutDashboard, BookOpen, ArrowRight } from "lucide-react";
 import { useAuth, useLogout } from "@/features/auth/hooks";
-import type { Category } from "@/features/category/types";
-import { categoryLabel } from "@/features/category/label";
-import { fullName, type User } from "@/types/user";
-import { useT, useLocale } from "@/i18n/client";
-import { LocaleLink } from "@/i18n/LocaleLink";
-import { isLocale } from "@/i18n/config";
-import { LocaleSwitcher } from "./LocaleSwitcher";
-import { Logo } from "./Logo";
-import { localeHref } from "@/i18n/href";
-import { request } from "@/lib/api/client";
-import { endpoints } from "@/lib/api/endpoints";
-import { qk } from "@/lib/query/keys";
-import { cn } from "@/lib/utils/cn";
 import { useUnreadCount } from "@/features/notification/hooks";
+import { useLocale, useT } from "@/i18n/client";
+import { LocaleLink } from "@/i18n/LocaleLink";
+import { locales, localeNames, type Locale } from "@/i18n/config";
+import { swatchSvg, type ArtKind } from "@/lib/art";
+import { cn } from "@/lib/utils/cn";
+import { fullName, type User } from "@/types/user";
+import { useSwitchLocale } from "./LocaleSwitcher";
 
-/** Soft navy tint that marks the page you are on, in the bar and the sheet. */
-const ACTIVE_PILL =
-  "bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100";
+/*
+ * The site header for the "Bright" design.
+ *
+ * Sticky. Over the home page's hero it starts transparent and condenses into a
+ * translucent bar once the page scrolls; everywhere else it starts in that
+ * solid state. Desktop has the categories menu (a panel of subject areas with
+ * their counts); below `lg` everything moves into a sheet that slides in from
+ * the right.
+ */
+
+type SiteCategory = {
+  id: string;
+  name: string;
+  count: number;
+  countLabel: string;
+  k: string;
+  art: ArtKind;
+};
+
+function useSiteCategories(enabled: boolean) {
+  const locale = useLocale();
+  return useQuery({
+    queryKey: ["site-categories", locale],
+    queryFn: async () => {
+      const res = await fetch(`/api/site/categories?lang=${locale}`);
+      if (!res.ok) throw new Error(String(res.status));
+      return (await res.json()) as { items: SiteCategory[]; total: number };
+    },
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+/** The path without its locale prefix, for matching nav items. */
+function logicalPath(pathname: string): string {
+  const parts = pathname.split("/");
+  if (parts[1] && (locales as readonly string[]).includes(parts[1])) parts.splice(1, 1);
+  return parts.join("/") || "/";
+}
+
+function Brand({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <LocaleLink href="/" className="brand" aria-label="AzTU EduPlatform" onClick={onNavigate}>
+      <Image className="logo-l" src="/brand/aztu-mark.png" alt="" width={18} height={34} priority />
+      <Image className="logo-d" src="/brand/aztu-mark-white.png" alt="" width={18} height={34} priority />
+      <span className="wm">
+        <small>AZTU</small>
+        <b>EduPlatform</b>
+      </span>
+    </LocaleLink>
+  );
+}
+
+function initials(user: User) {
+  const n = fullName(user) || user.email;
+  return n
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .replace(/i/g, "İ")
+    .replace(/ı/g, "I")
+    .toUpperCase();
+}
 
 export function Header() {
-  const { user, status } = useAuth();
-  const logout = useLogout();
   const t = useT();
   const locale = useLocale();
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const { data: unread } = useUnreadCount(status === "authenticated");
-  const unreadCount = unread?.count ?? 0;
-  const headerRef = useRef<HTMLElement>(null);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const sheetId = useId();
+  const path = logicalPath(pathname);
+  const isHome = path === "/";
+  const { user, status } = useAuth();
   const signedIn = status === "authenticated" && !!user;
+  const logout = useLogout();
+  const { data: unreadData } = useUnreadCount(signedIn);
+  const unread = unreadData?.count ?? 0;
+  const switchLocale = useSwitchLocale();
 
-  // The path without its locale prefix, so "/az/courses/x" matches "/courses".
-  const path = stripLocale(pathname);
-  const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
+  const [scrolled, setScrolled] = useState(false);
+  const [megaOpen, setMegaOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const megaId = useId();
+  const menuId = useId();
+  const userMenuId = useId();
+
+  const cats = useSiteCategories(megaOpen || menuOpen);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const on = () => setScrolled(window.scrollY > 8);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
   }, []);
 
-  // A route change should never leave the mobile sheet hanging open.
-  useEffect(() => {
-    if (!mobileOpen) return;
-    const onResize = () => window.innerWidth >= 1024 && setMobileOpen(false);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [mobileOpen]);
+  // Navigating closes every panel. Adjusted during render rather than in an
+  // effect, so the closed state is what the new page first renders with.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setMegaOpen(false);
+    setMenuOpen(false);
+    setUserOpen(false);
+  }
 
-  // Escape closes the sheet and hands focus back to the button that opened it.
+  // Escape and an outside click close the desktop popovers.
   useEffect(() => {
-    if (!mobileOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setMobileOpen(false);
-      menuButtonRef.current?.focus();
+    if (!megaOpen && !userOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMegaOpen(false);
+        setUserOpen(false);
+      }
     };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [mobileOpen]);
-
-  // The sheet dims the page, so it has to behave like the modal it looks
-  // like: the page underneath must not scroll while it is open. The lock is
-  // on <html> (the scrolling element) and is undone on close and unmount.
-  // Where the page has a classic scrollbar, its gutter is kept so the layout
-  // does not jump sideways when the bar disappears.
-  useEffect(() => {
-    if (!mobileOpen) return;
-    const root = document.documentElement;
-    const prev = { overflow: root.style.overflow, gutter: root.style.scrollbarGutter };
-    const hasScrollbar = window.innerWidth > root.clientWidth;
-    root.style.overflow = "hidden";
-    if (hasScrollbar) root.style.scrollbarGutter = "stable";
+    const onClick = (e: MouseEvent) => {
+      if (!headerRef.current?.contains(e.target as Node)) {
+        setMegaOpen(false);
+        setUserOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("click", onClick);
     return () => {
-      root.style.overflow = prev.overflow;
-      root.style.scrollbarGutter = prev.gutter;
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("click", onClick);
     };
-  }, [mobileOpen]);
+  }, [megaOpen, userOpen]);
 
-  const closeSheet = () => setMobileOpen(false);
-
-  // Tabbing out of the header — past the sheet's last item, into the dimmed
-  // page — closes the sheet, the same rule the popovers follow, so focus can
-  // never sit on content hidden behind an open sheet. A null relatedTarget
-  // is a click on something unfocusable; the scrim handles those.
-  const onHeaderBlur = (e: React.FocusEvent) => {
-    if (!mobileOpen) return;
-    if (e.relatedTarget && !headerRef.current?.contains(e.relatedTarget as Node)) {
-      setMobileOpen(false);
-    }
-  };
+  const navCls = (active: boolean) => cn("nav-link", active && "font-semibold");
 
   return (
-    // The header floats: a rounded bar held 12px off the top of the viewport
-    // instead of a full-width strip, so the page reads as objects on a canvas
-    // from the very first row.
-    <header ref={headerRef} onBlur={onHeaderBlur} className="sticky top-3 z-50 mt-3">
-      {mobileOpen ? (
-        <div
-          aria-hidden
-          onClick={closeSheet}
-          className="fixed inset-0 -z-10 bg-navy-950/25 backdrop-blur-[2px] lg:hidden"
-        />
-      ) : null}
+    <>
+      <header
+        ref={headerRef}
+        className={cn("site-header", (!isHome || scrolled) && "is-scrolled")}
+      >
+        <div className="wrap relative">
+          <div className="bar flex items-center gap-1">
+            <span className="mr-3 lg:mr-7">
+              <Brand />
+            </span>
 
-      <div className="container-fluid">
-        <div className="relative">
-          <div
-            className={cn(
-              "glass-bar flex h-16 items-center gap-2 rounded-full border border-border/80 pl-3 pr-2 transition-shadow duration-300 sm:pl-4 dark:border-white/10",
-              scrolled || mobileOpen ? "elev-3" : "elev-2",
-            )}
-          >
-            <LocaleLink
-              href="/"
-              aria-label="AzTU EduPlatform"
-              className="shrink-0 rounded-full pr-1"
-            >
-              <Logo />
-            </LocaleLink>
-
-            <nav aria-label={t("nav.mainNav")} className="ml-3 hidden items-center gap-1 lg:flex">
-              <NavItem href="/courses" label={t("nav.courses")} active={isActive("/courses")} />
-              <NavItem href="/experts" label={t("nav.experts")} active={isActive("/experts")} />
-              <CategoriesMenu active={isActive("/categories")} />
+            <nav aria-label={t("ui.mainNav")} className="hidden items-center gap-0.5 lg:flex">
+              <LocaleLink
+                className={navCls(path.startsWith("/courses"))}
+                aria-current={path.startsWith("/courses") ? "page" : undefined}
+                href="/courses"
+              >
+                {t("ui.navCourses")}
+              </LocaleLink>
+              <button
+                className="nav-link"
+                type="button"
+                aria-expanded={megaOpen}
+                aria-controls={megaId}
+                onClick={() => {
+                  setUserOpen(false);
+                  setMegaOpen((v) => !v);
+                }}
+              >
+                {t("ui.navCategories")} <ChevronDown className="i" aria-hidden />
+              </button>
+              <LocaleLink
+                className={navCls(path.startsWith("/experts"))}
+                aria-current={path.startsWith("/experts") ? "page" : undefined}
+                href="/experts"
+              >
+                {t("ui.navExperts")}
+              </LocaleLink>
             </nav>
 
-            <form
-              action={localeHref(locale, "/courses")}
-              role="search"
-              className="relative ml-auto hidden min-w-0 flex-1 md:block md:max-w-xs xl:max-w-sm"
-            >
-              <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                name="q"
-                placeholder={t("common.search")}
-                aria-label={t("common.search")}
-                className="h-11 w-full rounded-full border border-border/80 bg-background/70 pl-11 pr-4 text-sm transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground hover:border-primary/30 focus-visible:border-primary/40 focus-visible:bg-card focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15"
-              />
-            </form>
+            <div className="ml-auto flex items-center gap-1.5">
+              <LocaleLink
+                href="/courses"
+                className="search-trigger hidden md:inline-flex md:w-[200px] xl:w-[250px]"
+              >
+                <Search className="i" aria-hidden />
+                <span>{t("ui.searchCourses")}</span>
+              </LocaleLink>
+              <LocaleLink href="/courses" className="btn-icon md:hidden" aria-label={t("ui.searchCourses")}>
+                <Search className="i" aria-hidden />
+              </LocaleLink>
 
-            <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-1">
-              <LocaleSwitcher className="hidden sm:inline-flex" />
+              <button
+                className="nav-link hidden !px-3 lg:inline-flex"
+                type="button"
+                lang={locale === "az" ? "en" : "az"}
+                onClick={() => switchLocale(locale === "az" ? "en" : "az")}
+                aria-label={t("ui.switchLanguage")}
+              >
+                <Globe className="i" aria-hidden />
+                {locale.toUpperCase()}
+              </button>
 
               {signedIn ? (
                 <>
+                  <LocaleLink className="nav-link hidden lg:inline-flex" href="/my-courses">
+                    {t("ui.myCourses")}
+                  </LocaleLink>
                   <LocaleLink
                     href="/notifications"
-                    className={cn(
-                      "relative grid size-11 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-                      isActive("/notifications") && ACTIVE_PILL,
-                    )}
-                    aria-label={t("nav.notifications")}
+                    className="btn-icon relative"
+                    aria-label={t("ui.notifications")}
                   >
-                    <Bell className="size-[18px]" />
-                    {unreadCount > 0 ? (
-                      <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground ring-2 ring-card">
-                        {unreadCount > 9 ? "9+" : unreadCount}
+                    <Bell className="i" aria-hidden />
+                    {unread > 0 ? (
+                      <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-gold px-1 text-[10px] font-bold leading-4 text-[var(--on-gold)]">
+                        {unread > 9 ? "9+" : unread}
                       </span>
                     ) : null}
                   </LocaleLink>
-                  <UserMenu
-                    user={user}
-                    onSignOut={() => logout.mutate()}
-                    signingOut={logout.isPending}
-                    className="hidden md:block"
-                  />
+                  <div className="relative hidden lg:block">
+                    <button
+                      type="button"
+                      className="av round k-data ml-1 size-10 bg-[var(--k-200)] text-[14px]"
+                      aria-label={t("ui.accountMenu")}
+                      aria-expanded={userOpen}
+                      aria-controls={userMenuId}
+                      onClick={() => {
+                        setMegaOpen(false);
+                        setUserOpen((v) => !v);
+                      }}
+                    >
+                      <span className="ini">{initials(user)}</span>
+                    </button>
+                    {userOpen ? (
+                      <div
+                        id={userMenuId}
+                        className="mega-panel absolute right-0 top-[calc(100%+10px)] w-64 animate-pop-in"
+                      >
+                        <div className="px-3 pb-3 pt-2">
+                          <p className="truncate font-semibold">{fullName(user) || user.email}</p>
+                          <p className="truncate text-[13px] text-ink-3">{user.email}</p>
+                        </div>
+                        <div className="grid gap-0.5 border-t border-line pt-2">
+                          <UserLink href="/dashboard" icon={<LayoutDashboard className="i" aria-hidden />}>
+                            {t("ui.dashboard")}
+                          </UserLink>
+                          <UserLink href="/my-courses" icon={<BookOpen className="i" aria-hidden />}>
+                            {t("ui.myCourses")}
+                          </UserLink>
+                          <UserLink href="/settings" icon={<Settings className="i" aria-hidden />}>
+                            {t("ui.settings")}
+                          </UserLink>
+                          <button
+                            type="button"
+                            className="flex h-11 items-center gap-3 rounded-[14px] px-3 text-left text-[15px] text-ink-2 hover:bg-[color-mix(in_oklch,var(--ink)_5%,transparent)] hover:text-ink"
+                            onClick={() => logout.mutate()}
+                          >
+                            <LogOut className="i" aria-hidden />
+                            {t("ui.signOut")}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 </>
+              ) : status === "loading" || status === "idle" ? (
+                // The session is still being restored; reserve the space rather
+                // than flash "Sign in" at someone who is signed in.
+                <span className="hidden h-10 w-44 sm:inline-block" aria-hidden />
               ) : (
                 <>
-                  <LocaleLink
-                    href="/login"
-                    className={cn(
-                      buttonVariants({ variant: "ghost", size: "sm" }),
-                      "hidden h-10 sm:inline-flex",
-                    )}
-                  >
-                    {t("common.signIn")}
+                  <LocaleLink className="btn btn-quiet hidden lg:inline-flex" href="/login">
+                    {t("ui.signIn")}
                   </LocaleLink>
-                  <LocaleLink
-                    href="/register"
-                    className={cn(buttonVariants({ size: "sm" }), "hidden h-10 sm:inline-flex")}
-                  >
-                    {t("common.signUp")}
+                  <LocaleLink className="btn btn-primary btn-sm hidden sm:inline-flex" href="/register">
+                    {t("ui.register")}
                   </LocaleLink>
                 </>
               )}
 
               <button
-                ref={menuButtonRef}
+                className="btn-icon lg:hidden"
                 type="button"
-                className={cn(
-                  "grid size-11 place-items-center rounded-full transition-colors lg:hidden",
-                  mobileOpen
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent",
-                )}
-                onClick={() => setMobileOpen((v) => !v)}
-                aria-label={mobileOpen ? t("nav.closeMenu") : t("nav.menu")}
-                aria-expanded={mobileOpen}
-                aria-controls={sheetId}
+                aria-label={t("ui.menuOpen")}
+                aria-controls={menuId}
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen(true)}
               >
-                {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+                <Menu className="i" aria-hidden />
               </button>
             </div>
           </div>
 
-          {/* The mobile sheet — a rounded card that drops from the bar,
-              holding everything the bar has no room for below lg. */}
-          <div
-            id={sheetId}
-            className={cn(
-              "absolute inset-x-0 top-full mt-2 max-h-[calc(100dvh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/80 bg-popover p-3 elev-4 lg:hidden",
-              mobileOpen ? "animate-pop-in block" : "hidden",
-            )}
-          >
-            <form action={localeHref(locale, "/courses")} role="search" className="relative md:hidden">
-              <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                name="q"
-                placeholder={t("common.search")}
-                aria-label={t("common.search")}
-                className="h-12 w-full rounded-full border border-border bg-background pl-11 pr-4 text-[15px] placeholder:text-muted-foreground focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15"
-              />
-            </form>
-
-            <nav aria-label={t("nav.mainNav")} className="mt-2 grid gap-1 md:mt-0">
-              <SheetLink
+          <div className={cn("mega hidden lg:block", megaOpen && "open")} id={megaId}>
+            <div className="mega-panel grid grid-cols-[1fr_300px] gap-3">
+              <div>
+                <p className="kicker px-3 pb-3 pt-2">
+                  <span className="rule" />
+                  {t("ui.megaKicker")}
+                </p>
+                <div className="grid grid-cols-2 gap-1 xl:grid-cols-4">
+                  {cats.data?.items.map((c) => (
+                    <LocaleLink
+                      key={c.id}
+                      href={`/courses?categoryId=${c.id}`}
+                      className={cn("mega-item", c.k)}
+                    >
+                      <span
+                        className="sw-sq"
+                        aria-hidden
+                        dangerouslySetInnerHTML={{ __html: swatchSvg(c.art) }}
+                      />
+                      <span>
+                        <b className="block text-[15px] font-semibold leading-tight">{c.name}</b>
+                        <small className="mt-1 block text-[13px] text-ink-3">{c.countLabel}</small>
+                      </span>
+                    </LocaleLink>
+                  ))}
+                  {cats.isError ? (
+                    <p className="col-span-full px-3 py-4 text-[14px] text-ink-3">{t("ui.categoriesUnavailable")}</p>
+                  ) : null}
+                </div>
+              </div>
+              <LocaleLink
                 href="/courses"
-                icon={BookOpen}
-                active={isActive("/courses")}
-                onClick={closeSheet}
+                className="group relative flex flex-col overflow-hidden rounded-[22px] bg-navy-tint p-6"
               >
-                {t("nav.courses")}
-              </SheetLink>
-              <SheetLink
-                href="/experts"
-                icon={Users}
-                active={isActive("/experts")}
-                onClick={closeSheet}
-              >
-                {t("nav.experts")}
-              </SheetLink>
-              <SheetLink
-                href="/categories"
-                icon={LayoutGrid}
-                active={isActive("/categories")}
-                onClick={closeSheet}
-              >
-                {t("nav.categories")}
-              </SheetLink>
-            </nav>
-
-            {signedIn ? (
-              <div className="mt-2 border-t border-border pt-2">
-                <div className="flex items-center gap-3 px-3 py-2.5">
-                  <Initials user={user} className="size-10 text-sm" />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{fullName(user)}</div>
-                    <div className="truncate text-xs text-muted-foreground">{user.email}</div>
-                  </div>
-                </div>
-                <div className="grid gap-1">
-                  <SheetLink
-                    href="/dashboard"
-                    icon={LayoutDashboard}
-                    active={isActive("/dashboard")}
-                    onClick={closeSheet}
-                  >
-                    {t("nav.dashboard")}
-                  </SheetLink>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left text-[15px] font-semibold text-destructive transition-colors hover:bg-destructive/10"
-                    onClick={() => {
-                      setMobileOpen(false);
-                      logout.mutate();
-                    }}
-                  >
-                    <span className="grid size-10 place-items-center rounded-xl bg-destructive/10">
-                      <LogOut className="size-[18px]" />
-                    </span>
-                    {t("common.signOut")}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-muted/70 py-1.5 pl-4 pr-1.5">
-              <span className="text-sm font-medium text-muted-foreground">{t("nav.language")}</span>
-              <LocaleSwitcher variant="segmented" className="bg-background/80" />
+                <span className="kicker">{t("ui.megaCatalogKicker")}</span>
+                <span className="mt-3 font-display text-[26px] font-extrabold leading-tight tracking-tight">
+                  {t("ui.megaCatalogTitle")}
+                </span>
+                <span className="mt-2 text-[14px] text-ink-2">{t("ui.megaCatalogText")}</span>
+                <span className="link mt-auto pt-6">
+                  {t("ui.megaCatalogLink")} <ArrowRight className="i" aria-hidden />
+                </span>
+              </LocaleLink>
             </div>
-
-            {!signedIn ? (
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:hidden">
-                <LocaleLink
-                  href="/login"
-                  onClick={closeSheet}
-                  className={buttonVariants({ variant: "outline" })}
-                >
-                  {t("common.signIn")}
-                </LocaleLink>
-                <LocaleLink href="/register" onClick={closeSheet} className={buttonVariants()}>
-                  {t("common.signUp")}
-                </LocaleLink>
-              </div>
-            ) : null}
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <MobileMenu
+        id={menuId}
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        categories={cats.data?.items ?? []}
+        signedIn={signedIn}
+        onSignOut={() => logout.mutate()}
+        onLocale={(l) => switchLocale(l)}
+      />
+    </>
   );
 }
 
-function stripLocale(pathname: string): string {
-  const segments = pathname.split("/");
-  if (segments[1] && isLocale(segments[1])) segments.splice(1, 1);
-  const rest = segments.join("/");
-  return rest === "" ? "/" : rest;
-}
-
-const PILL =
-  "inline-flex h-10 items-center gap-1 rounded-full px-4 text-sm font-semibold transition-colors duration-200";
-
-function NavItem({ href, label, active }: { href: string; label: string; active: boolean }) {
+function UserLink({ href, icon, children }: { href: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <LocaleLink
       href={href}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        PILL,
-        active ? ACTIVE_PILL : "text-muted-foreground hover:bg-accent hover:text-foreground",
-      )}
+      className="flex h-11 items-center gap-3 rounded-[14px] px-3 text-[15px] text-ink-2 hover:bg-[color-mix(in_oklch,var(--ink)_5%,transparent)] hover:text-ink"
     >
-      {label}
-    </LocaleLink>
-  );
-}
-
-/**
- * Shared behaviour for the two header popovers: outside press and Escape
- * close it (Escape also returns focus to the trigger), and tabbing out of it
- * closes it so a keyboard user never leaves a panel open behind them.
- */
-function usePopover() {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const panelId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpen(false);
-      triggerRef.current?.focus();
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  const items = () =>
-    Array.from(
-      panelRef.current?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])") ?? [],
-    );
-
-  // Arrow keys walk the panel's links, so a long list needs no tabbing.
-  const onPanelKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    const list = items();
-    if (!list.length) return;
-    e.preventDefault();
-    const i = list.indexOf(document.activeElement as HTMLElement);
-    const next = e.key === "ArrowDown" ? (i + 1) % list.length : (i - 1 + list.length) % list.length;
-    list[next]?.focus();
-  };
-
-  // ArrowDown on the trigger opens the panel straight onto its first link.
-  const onTriggerKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== "ArrowDown") return;
-    e.preventDefault();
-    setOpen(true);
-    requestAnimationFrame(() => items()[0]?.focus());
-  };
-
-  const onBlur = (e: React.FocusEvent) => {
-    // A null relatedTarget is a click on something unfocusable — the outside
-    // press handler decides those, so a click inside the panel's padding
-    // does not close it.
-    if (e.relatedTarget && !rootRef.current?.contains(e.relatedTarget as Node)) {
-      setOpen(false);
-    }
-  };
-
-  return {
-    open,
-    setOpen,
-    rootRef,
-    triggerRef,
-    panelRef,
-    panelId,
-    onBlur,
-    onPanelKeyDown,
-    onTriggerKeyDown,
-  };
-}
-
-function CategoriesMenu({ active }: { active: boolean }) {
-  const t = useT();
-  const locale = useLocale();
-  const {
-    open,
-    setOpen,
-    rootRef,
-    triggerRef,
-    panelRef,
-    panelId,
-    onBlur,
-    onPanelKeyDown,
-    onTriggerKeyDown,
-  } = usePopover();
-  // Categories are only fetched once someone shows interest in the menu —
-  // hovering or focusing the trigger warms the cache before the click.
-  const [wanted, setWanted] = useState(false);
-  const { data, isPending, isError } = useQuery({
-    queryKey: qk.categories.all(),
-    queryFn: () => request<Category[]>({ url: endpoints.public.categories, method: "GET" }),
-    enabled: wanted || open,
-    staleTime: 5 * 60_000,
-  });
-  const categories = (data ?? [])
-    .filter((c) => c.active)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .slice(0, 10);
-
-  const close = () => setOpen(false);
-
-  return (
-    // Deliberately not `relative`: the panel positions against the whole bar,
-    // so it lines up under the navigation rather than hanging off one pill.
-    <div ref={rootRef} onBlur={onBlur}>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((v) => !v)}
-        onKeyDown={onTriggerKeyDown}
-        onPointerEnter={() => setWanted(true)}
-        onFocus={() => setWanted(true)}
-        className={cn(
-          PILL,
-          active || open
-            ? ACTIVE_PILL
-            : "text-muted-foreground hover:bg-accent hover:text-foreground",
-        )}
-      >
-        {t("nav.categories")}
-        <ChevronDown
-          aria-hidden
-          className={cn(
-            "size-3.5 opacity-70 transition-transform duration-200",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-
-      <div
-        id={panelId}
-        ref={panelRef}
-        onKeyDown={onPanelKeyDown}
-        className={cn(
-          "absolute left-0 top-full mt-3 w-[46rem] max-w-full rounded-3xl border border-border/80 bg-popover p-2 text-popover-foreground elev-4",
-          open ? "animate-pop-in grid grid-cols-[15rem_1fr] gap-2" : "hidden",
-        )}
-      >
-        <div className="surface-deep flex flex-col justify-between gap-6 rounded-2xl p-5">
-          <span className="grid size-11 place-items-center rounded-2xl bg-white/10 text-gold-200 ring-1 ring-inset ring-white/15">
-            <LayoutGrid className="size-5" aria-hidden />
-          </span>
-          <div>
-            <div className="font-display text-lg leading-snug text-white">
-              {t("nav.categories")}
-            </div>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-white/65">
-              {t("categoriesPage.subtitle")}
-            </p>
-            <LocaleLink
-              href="/categories"
-              onClick={close}
-              className="group mt-4 inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-white/10 pl-4 pr-3 text-[13px] font-semibold text-white ring-1 ring-inset ring-white/20 transition-colors hover:bg-white/20"
-            >
-              {t("nav.allCategories")}
-              <ArrowRight
-                aria-hidden
-                className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
-              />
-            </LocaleLink>
-          </div>
-        </div>
-
-        <div className="p-2">
-          <div className="flex items-center gap-2 px-2 pb-2 text-xs font-semibold text-muted-foreground">
-            <span aria-hidden className="size-1.5 rounded-full bg-gold-500" />
-            {t("nav.browseByTopic")}
-          </div>
-          {isPending ? (
-            <div className="grid grid-cols-2 gap-1" aria-busy>
-              {Array.from({ length: 6 }, (_, i) => (
-                <div key={i} className="h-11 animate-pulse rounded-xl bg-muted" />
-              ))}
-            </div>
-          ) : isError || categories.length === 0 ? (
-            <p className="px-2 py-3 text-sm text-muted-foreground">
-              {t("nav.categoriesUnavailable")}
-            </p>
-          ) : (
-            <ul className="grid grid-cols-2 gap-1">
-              {categories.map((c) => (
-                <li key={c.id}>
-                  <LocaleLink
-                    href={`/courses?categoryId=${c.id}`}
-                    onClick={close}
-                    className="group flex min-h-11 items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-medium leading-snug transition-colors hover:bg-accent focus-visible:bg-accent"
-                  >
-                    <span className="line-clamp-2">{categoryLabel(c, t, locale)}</span>
-                    <ChevronRight
-                      aria-hidden
-                      className="size-4 shrink-0 text-muted-foreground opacity-0 transition-[opacity,transform] duration-200 group-hover:translate-x-0.5 group-hover:opacity-100"
-                    />
-                  </LocaleLink>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function UserMenu({
-  user,
-  onSignOut,
-  signingOut,
-  className,
-}: {
-  user: User;
-  onSignOut: () => void;
-  signingOut: boolean;
-  className?: string;
-}) {
-  const t = useT();
-  const {
-    open,
-    setOpen,
-    rootRef,
-    triggerRef,
-    panelRef,
-    panelId,
-    onBlur,
-    onPanelKeyDown,
-    onTriggerKeyDown,
-  } = usePopover();
-  const close = () => setOpen(false);
-
-  return (
-    <div ref={rootRef} onBlur={onBlur} className={className}>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((v) => !v)}
-        onKeyDown={onTriggerKeyDown}
-        className={cn(
-          "flex h-11 items-center gap-2 rounded-full border border-border/80 pl-1 pr-3 transition-colors",
-          open ? "bg-accent" : "bg-card/60 hover:bg-accent",
-        )}
-      >
-        <Initials user={user} className="size-9 text-xs" />
-        {/* The name is the button's accessible label at every width; it is
-            only shown once the bar is wide enough to hold it. */}
-        <span className="sr-only xl:hidden">{fullName(user)}</span>
-        <span className="hidden max-w-[12ch] truncate text-sm font-semibold xl:block">
-          {fullName(user)}
-        </span>
-        <ChevronDown
-          aria-hidden
-          className={cn(
-            "size-3.5 text-muted-foreground transition-transform duration-200",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-
-      <div
-        id={panelId}
-        ref={panelRef}
-        onKeyDown={onPanelKeyDown}
-        aria-label={t("nav.accountMenu")}
-        role="group"
-        className={cn(
-          "absolute right-0 top-full mt-3 w-72 rounded-3xl border border-border/80 bg-popover p-2 text-popover-foreground elev-4",
-          open ? "animate-pop-in block" : "hidden",
-        )}
-      >
-        <div className="flex items-center gap-3 rounded-2xl bg-muted/70 p-3">
-          <Initials user={user} className="size-10 text-sm" />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">{fullName(user)}</div>
-            <div className="truncate text-xs text-muted-foreground">{user.email}</div>
-          </div>
-        </div>
-        <div className="mt-1 grid gap-0.5">
-          <MenuLink href="/dashboard" icon={LayoutDashboard} onClick={close}>
-            {t("nav.dashboard")}
-          </MenuLink>
-          <MenuLink href="/my-courses" icon={BookOpen} onClick={close}>
-            {t("nav.myCourses")}
-          </MenuLink>
-          <MenuLink href="/settings" icon={Settings} onClick={close}>
-            {t("nav.settings")}
-          </MenuLink>
-        </div>
-        <div aria-hidden className="mx-2 my-1.5 h-px bg-border" />
-        <button
-          type="button"
-          onClick={() => {
-            close();
-            onSignOut();
-          }}
-          disabled={signingOut}
-          aria-busy={signingOut || undefined}
-          className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
-        >
-          {signingOut ? (
-            <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <LogOut aria-hidden className="size-4" />
-          )}
-          {t("common.signOut")}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function MenuLink({
-  href,
-  icon: Icon,
-  onClick,
-  children,
-}: {
-  href: string;
-  icon: LucideIcon;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <LocaleLink
-      href={href}
-      onClick={onClick}
-      className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent focus-visible:bg-accent"
-    >
-      <Icon aria-hidden className="size-4 text-muted-foreground" />
+      {icon}
       {children}
     </LocaleLink>
   );
 }
 
-function Initials({ user, className }: { user: User; className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-navy-500 to-navy-800 font-semibold text-white",
-        className,
-      )}
-    >
-      {user.firstName?.[0]}
-      {user.lastName?.[0]}
-    </span>
-  );
-}
-
-function SheetLink({
-  href,
-  icon: Icon,
-  active,
-  onClick,
-  children,
+function MobileMenu({
+  id,
+  open,
+  onOpenChange,
+  categories,
+  signedIn,
+  onSignOut,
+  onLocale,
 }: {
-  href: string;
-  icon: LucideIcon;
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
+  id: string;
+  open: boolean;
+  /** The state setter itself: stable, so the effect below runs only on open/close. */
+  onOpenChange: (open: boolean) => void;
+  categories: SiteCategory[];
+  signedIn: boolean;
+  onSignOut: () => void;
+  onLocale: (l: Locale) => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onClose = () => onOpenChange(false);
+
+  useEffect(() => {
+    if (!open) return;
+    panelRef.current?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onOpenChange(false);
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onOpenChange]);
+
+  const order: Locale[] = [...locales].sort((a, b) => Number(b === "az") - Number(a === "az"));
+
   return (
-    <LocaleLink
-      href={href}
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "group flex items-center gap-3 rounded-2xl px-2 py-2 text-[15px] font-semibold transition-colors",
-        active ? ACTIVE_PILL : "hover:bg-accent",
-      )}
+    <div
+      className={cn("sheet right lg:hidden", open && "open")}
+      id={id}
+      aria-hidden={!open}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("ui.menu")}
+      inert={!open}
     >
-      <span
-        className={cn(
-          "grid size-10 place-items-center rounded-xl",
-          active
-            ? "bg-card text-navy-700 dark:bg-navy-950/60 dark:text-navy-100"
-            : "bg-navy-50 text-navy-700 dark:bg-navy-900/60 dark:text-navy-100",
-        )}
-      >
-        <Icon aria-hidden className="size-[18px]" />
-      </span>
-      <span className="flex-1">{children}</span>
-      <ChevronRight aria-hidden className="size-4 text-muted-foreground" />
-    </LocaleLink>
+      <div className="scrim" onClick={onClose} />
+      <div className="panel outline-none" tabIndex={-1} ref={panelRef}>
+        <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-line px-5">
+          <Brand onNavigate={onClose} />
+          <button className="btn-icon" type="button" onClick={onClose} aria-label={t("ui.menuClose")}>
+            <X className="i" aria-hidden />
+          </button>
+        </div>
+        <nav className="flex flex-col px-5 py-4" aria-label={t("ui.mobileNav")}>
+          <LocaleLink href="/courses" onClick={onClose} className="py-2.5 font-display text-[28px] font-bold tracking-tight">
+            {t("ui.navCourses")}
+          </LocaleLink>
+          <LocaleLink href="/experts" onClick={onClose} className="py-2.5 font-display text-[28px] font-bold tracking-tight">
+            {t("ui.navExperts")}
+          </LocaleLink>
+          {signedIn ? (
+            <LocaleLink href="/dashboard" onClick={onClose} className="py-2.5 font-display text-[28px] font-bold tracking-tight">
+              {t("ui.dashboard")}
+            </LocaleLink>
+          ) : null}
+          <p className="kicker mb-2 mt-6">
+            <span className="rule" />
+            {t("ui.navCategories")}
+          </p>
+          {categories.map((c) => (
+            <LocaleLink
+              key={c.id}
+              href={`/courses?categoryId=${c.id}`}
+              onClick={onClose}
+              className={cn("flex items-center gap-3 py-2", c.k)}
+            >
+              <span
+                className="sw-sq !size-10 !rounded-[12px]"
+                aria-hidden
+                dangerouslySetInnerHTML={{ __html: swatchSvg(c.art) }}
+              />
+              <span className="text-[15px] font-medium">{c.name}</span>
+              <span className="ml-auto text-[13px] text-ink-3">{c.count || ""}</span>
+            </LocaleLink>
+          ))}
+        </nav>
+        <div className="mt-auto grid shrink-0 gap-3 border-t border-line p-5">
+          <div className="seg full" role="radiogroup" aria-label={t("ui.language")}>
+            {order.map((l) => (
+              <button
+                key={l}
+                type="button"
+                role="radio"
+                lang={l}
+                aria-checked={l === locale}
+                onClick={() => onLocale(l)}
+              >
+                {localeNames[l]}
+              </button>
+            ))}
+          </div>
+          {signedIn ? (
+            <button type="button" className="btn btn-ghost" onClick={onSignOut}>
+              <LogOut className="i" aria-hidden />
+              {t("ui.signOut")}
+            </button>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <LocaleLink href="/login" onClick={onClose} className="btn btn-ghost">
+                {t("ui.signIn")}
+              </LocaleLink>
+              <LocaleLink href="/register" onClick={onClose} className="btn btn-primary">
+                {t("ui.register")}
+              </LocaleLink>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

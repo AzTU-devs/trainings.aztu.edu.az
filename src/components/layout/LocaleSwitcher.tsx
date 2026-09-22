@@ -16,7 +16,7 @@ const DISPLAY_ORDER: readonly Locale[] = [...locales].sort(
 );
 
 /** Swaps the locale segment of the current URL and remembers the choice. */
-function useSwitchLocale() {
+export function useSwitchLocale() {
   const router = useRouter();
   const pathname = usePathname();
   const current = useLocale();
