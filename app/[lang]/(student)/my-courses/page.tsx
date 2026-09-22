@@ -6,6 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/common/EmptyState";
 import { EnrollmentCard } from "@/features/enrollment/components/EnrollmentCard";
 import { enrollmentServerApi } from "@/features/enrollment/api.server";
+import { courseSlugsById } from "@/features/course/slugs.server";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
@@ -26,7 +27,10 @@ export default async function MyCoursesPage({ params }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
-  const enrollments = await enrollmentServerApi.mine().catch(() => []);
+  const [enrollments, slugs] = await Promise.all([
+    enrollmentServerApi.mine().catch(() => []),
+    courseSlugsById(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -61,7 +65,7 @@ export default async function MyCoursesPage({ params }: Props) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {enrollments.map((e) => (
-            <EnrollmentCard key={e.id} enrollment={e} />
+            <EnrollmentCard key={e.id} enrollment={e} courseSlug={slugs.get(e.courseId)} />
           ))}
         </div>
       )}

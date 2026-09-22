@@ -4,6 +4,7 @@ import { Activity, ArrowRight, Award, BookOpen, Compass } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/common/EmptyState";
 import { EnrollmentCard } from "@/features/enrollment/components/EnrollmentCard";
+import { courseSlugsById } from "@/features/course/slugs.server";
 import type { Enrollment } from "@/features/enrollment/types";
 import { getT } from "@/i18n/server";
 import type { Locale } from "@/i18n/config";
@@ -27,6 +28,7 @@ export async function DashboardView({
 }) {
   const t = await getT(locale);
 
+  const slugs = await courseSlugsById();
   const active = enrollments.filter((e) => e.status === "ACTIVE");
   const completed = enrollments.filter((e) => e.status === "COMPLETED");
   const totalProgress = active.length
@@ -128,11 +130,11 @@ export async function DashboardView({
           />
         ) : (
           <div className="space-y-4">
-            <EnrollmentCard enrollment={resume} featured />
+            <EnrollmentCard enrollment={resume} courseSlug={slugs.get(resume.courseId)} featured />
             {others.length ? (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {others.map((e) => (
-                  <EnrollmentCard key={e.id} enrollment={e} />
+                  <EnrollmentCard key={e.id} enrollment={e} courseSlug={slugs.get(e.courseId)} />
                 ))}
               </div>
             ) : null}

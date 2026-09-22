@@ -1,5 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { courseServerApi } from "@/features/course/api.server";
+import { courseSlugsById } from "@/features/course/slugs.server";
+import type { ApiError } from "@/types/api";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { isLocale, type Locale } from "@/i18n/config";
 import { localeHref } from "@/i18n/href";
 
@@ -10,7 +14,17 @@ export default async function LearnCourseRoot({ params }: Props) {
   if (!isLocale(lang)) notFound();
   const locale = lang as Locale;
 
-  const course = await courseServerApi.bySlug(courseSlug);
+  let course;
+  try {
+    course = await courseServerApi.bySlug(courseSlug);
+  } catch (err) {
+    if ((err as ApiError).status !== 404) throw err;
+    // Older links (and bookmarks) address the player by course id. Send them to
+    // the slug when the course is in the catalogue; otherwise back to the
+    // participant's own course list rather than an error page.
+    const slug = UUID.test(courseSlug) ? (await courseSlugsById()).get(courseSlug) : undefined;
+    redirect(localeHref(locale, slug ? `/learn/${slug}` : "/my-courses"));
+  }
   const firstLesson = course.modules
     .flatMap((m) => m.lessons)
     .find((l) => l.id);
