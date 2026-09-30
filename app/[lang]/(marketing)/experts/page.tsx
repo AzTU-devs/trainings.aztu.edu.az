@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowRight, Layers, Users } from "lucide-react";
-import { categoryOfExpert, getCatalogIndex } from "@/features/course/catalog-index.server";
-import { categoryLabel } from "@/features/category/label";
+import { categoryOfExpert, indexFor } from "@/features/course/catalog-index.server";
 import { categoryStyle } from "@/features/category/style";
+import { expertAreas } from "@/features/expert/areas";
+import { ExpertAreaLabels } from "@/features/expert/components/ExpertAreas";
 import { ExpertArch } from "@/features/expert/components/ExpertArch";
+import { SHOWCASE_EXPERTS } from "@/features/showcase/flag";
 import { listExpertsSource } from "@/features/showcase/source.server";
 import { StarIcon } from "@/components/bright/bits";
 import { formatCompact, formatRating } from "@/lib/utils/format";
@@ -31,9 +33,10 @@ export default async function ExpertsPage({ params }: Props) {
   if (!isLocale(lang)) notFound();
   const locale = lang as Locale;
   const t = await getT(locale);
-  const [experts, index] = await Promise.all([listExpertsSource().catch(() => []), getCatalogIndex()]);
-
-  const catOf = (id: string) => categoryOfExpert(index, id);
+  // The experts are real (unless SHOWCASE_EXPERTS brings back the samples), so
+  // their areas are matched against the real categories, never the sample
+  // catalogue's: a real expert's category ids exist only there.
+  const [experts, index] = await Promise.all([listExpertsSource().catch(() => []), indexFor(SHOWCASE_EXPERTS)]);
 
   return (
     <>
@@ -64,12 +67,13 @@ export default async function ExpertsPage({ params }: Props) {
         {experts.length ? (
           <div className="grid grid-cols-2 gap-x-6 gap-y-12 lg:grid-cols-4">
             {experts.map((e) => {
-              const cat = catOf(e.id);
+              const main = categoryOfExpert(index, e);
+              const { picked, own } = expertAreas(index.categories, e, t, locale, { fallback: main });
               return (
                 <article key={e.id} className="xcard group relative">
-                  <ExpertArch id={e.id} name={e.displayName} avatarUrl={e.avatarUrl} k={categoryStyle(cat).k} />
+                  <ExpertArch id={e.id} name={e.displayName} avatarUrl={e.avatarUrl} k={categoryStyle(main).k} />
                   <div className="px-1 pt-4">
-                    {cat ? <span className={`cat-label ${categoryStyle(cat).k}`}>{categoryLabel(cat, t, locale)}</span> : null}
+                    <ExpertAreaLabels picked={picked} own={own} ownTitle={t("expertsPage.ownArea")} />
                     <h2 className="t-md mt-2">
                       <LocaleLink href={`/experts/${e.id}`} className="stretched">
                         {e.displayName}

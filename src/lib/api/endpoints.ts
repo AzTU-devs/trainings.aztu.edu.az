@@ -22,6 +22,8 @@ export const endpoints = {
       `/api/public/courses/${courseId}/reviews`,
     categories: "/api/public/categories",
     categoryChildren: (id: string) => `/api/public/categories/${id}/children`,
+    /** Approved experts, by name (paged); see expert/directory.server.ts. */
+    tutors: "/api/public/tutors",
     tutorById: (id: string) => `/api/public/tutors/${id}`,
   },
   portal: {

@@ -1,11 +1,12 @@
 import Image from "next/image";
-import { Clock, MapPin, MonitorPlay, Sparkles } from "lucide-react";
+import { Clock, Sparkles } from "lucide-react";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { Svg } from "@/components/bright/Svg";
 import { LevelMeter, StarIcon } from "@/components/bright/bits";
 import { coverArt } from "@/lib/art";
 import { cn } from "@/lib/utils/cn";
 import type { CategoryStyle } from "@/features/category/style";
+import { FORMAT_ICON } from "../format-icons";
 import { mediaSrc } from "../media";
 import type { CourseLabels } from "../labels";
 import type { CourseSummary } from "../types";
@@ -27,7 +28,8 @@ type CardProps = {
 };
 
 function FormatIcon({ type }: { type: CourseSummary["courseType"] }) {
-  return type === "ONLINE" ? <MonitorPlay className="i" aria-hidden /> : <MapPin className="i" aria-hidden />;
+  const Icon = FORMAT_ICON[type] ?? FORMAT_ICON.OFFLINE;
+  return <Icon className="i" aria-hidden />;
 }
 
 export function CourseCover({

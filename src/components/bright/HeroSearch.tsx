@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, MapPin, MonitorPlay, Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
+import { FORMAT_ICON } from "@/features/course/format-icons";
+import { COURSE_TYPES, type CourseType } from "@/features/course/types";
 import { useLocale } from "@/i18n/client";
 import { localeHref } from "@/i18n/href";
 
-type Format = "" | "ONLINE" | "OFFLINE";
+type Format = "" | CourseType;
 
 /**
  * The hero search: format tabs sitting on the field like index tabs on a
@@ -16,14 +18,16 @@ type Format = "" | "ONLINE" | "OFFLINE";
 export function HeroSearch({
   labels,
 }: {
-  labels: { all: string; online: string; inPerson: string; format: string; placeholder: string; field: string; submit: string };
+  labels: { all: string; formats: Record<CourseType, string>; format: string; placeholder: string; field: string; submit: string };
 }) {
   const locale = useLocale();
   const [type, setType] = useState<Format>("");
   const tabs: [Format, string, React.ReactNode][] = [
     ["", labels.all, null],
-    ["ONLINE", labels.online, <MonitorPlay key="o" className="i" aria-hidden />],
-    ["OFFLINE", labels.inPerson, <MapPin key="p" className="i" aria-hidden />],
+    ...COURSE_TYPES.map((v): [Format, string, React.ReactNode] => {
+      const Icon = FORMAT_ICON[v];
+      return [v, labels.formats[v], <Icon key={v} className="i" aria-hidden />];
+    }),
   ];
   return (
     <form className="hsearch mt-9 max-w-[36rem] lg:mt-11" role="search" action={localeHref(locale, "/courses")}>

@@ -37,6 +37,8 @@ environment**.
 | `REVALIDATE_SECRET` | Shared secret for on-demand revalidation. |
 | `SENTRY_DSN` | Optional. An empty `SENTRY_DSN=` (the `.env.example` default) is the same as leaving it out. |
 | `PORT` / `HOSTNAME` | Preset to `3000` / `0.0.0.0` in the image. |
+| `SHOWCASE_DATA` | Optional. Unset or `on`: the public catalogue (courses, categories, classrooms, the sample certificate) is sample content. `off`: the real courses. |
+| `SHOWCASE_EXPERTS` | Optional. Unset or `off`: the experts pages show the real, approved experts. `on`: the sample experts, which needs `SHOWCASE_DATA` on. |
 
 `src/lib/env.ts` validates every variable above, and every `NEXT_PUBLIC_*`,
 **on its own**. An empty value means unset. An invalid value is logged once as

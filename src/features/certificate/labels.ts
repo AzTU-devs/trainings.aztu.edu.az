@@ -1,6 +1,7 @@
 import type { Locale } from "@/i18n/config";
 import type { TFunction } from "@/i18n/format";
 import { hash } from "@/lib/art";
+import { formatNumber } from "@/lib/utils/format";
 
 /**
  * Every word the certificate prints, in the page's language, built once on the
@@ -96,9 +97,18 @@ export function certificateId(seed: string, year: string | number): string {
  * The course's length as the certificate states it: in-person courses carry
  * their contact hours, online courses the length of their lessons.
  */
-export function hoursText(t: TFunction, input: { totalHours?: string | number | null; seconds?: number | null }): string | null {
+export function hoursText(
+  t: TFunction,
+  locale: Locale,
+  input: { totalHours?: string | number | null; seconds?: number | null },
+): string | null {
   const total = Number(input.totalHours);
-  if (Number.isFinite(total) && total > 0) return t("certificate.hoursValue", { h: total });
+  if (Number.isFinite(total) && total > 0) {
+    // A one-time training's hours come from its time slot, so a fraction is
+    // common; it is written the page's way ("3,5 saat"). Whole hours stay a
+    // number, which the English plural needs.
+    return t("certificate.hoursValue", { h: Number.isInteger(total) ? total : formatNumber(total, locale, 1) });
+  }
   const s = input.seconds ?? 0;
   if (s <= 0) return null;
   // Round to whole minutes first, so 2 h 59 min 45 s reads "3 hours", not

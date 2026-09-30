@@ -1,12 +1,13 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowRight, BookOpenCheck, CheckCircle2, Clock, Hash, Hourglass, Layers, Mail, MapPin, MonitorPlay, PenLine, Plus, Search, Sparkles, UserRound, Users } from "lucide-react";
+import { ArrowRight, BookOpenCheck, CheckCircle2, Clock, Hash, Hourglass, Layers, Mail, PenLine, Plus, Search, Sparkles, UserRound, Users } from "lucide-react";
 import { listCourses, listExpertsSource } from "@/features/showcase/source.server";
-import { SHOWCASE } from "@/features/showcase/flag";
+import { SHOWCASE, SHOWCASE_EXPERTS } from "@/features/showcase/flag";
 import { CertificateStage } from "@/features/certificate/CertificateStage";
 import { courseCertificate } from "@/features/certificate/course";
 import { bakuDateISO } from "@/features/certificate/date";
-import { categoryOf, categoryOfExpert, getCatalogIndex, type CatalogIndex } from "@/features/course/catalog-index.server";
+import { categoryOf, categoryOfExpert, getCatalogIndex, indexFor, type CatalogIndex } from "@/features/course/catalog-index.server";
+import { FORMAT_ICON } from "@/features/course/format-icons";
 import { courseLabels } from "@/features/course/labels";
 import { CourseCard, CourseCover, WideCourseCard } from "@/features/course/components/CourseCard";
 import { categoryLabel } from "@/features/category/label";
@@ -58,11 +59,14 @@ export default async function HomePage({ params }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
-  const [index, newest, experts] = await Promise.all([
+  const [index, newest, experts, expertIndex] = await Promise.all([
     getCatalogIndex(),
     // The API lists newest first when no sort is given.
     listCourses({ page: 0, size: 8 }).catch(() => null),
     listExpertsSource().catch(() => [] as ExpertSummary[]),
+    // Experts are coloured by their own (real) categories, which the sample
+    // catalogue's index does not have. The same index when both are real.
+    indexFor(SHOWCASE_EXPERTS),
   ]);
 
   const labels = courseLabels(t, locale);
@@ -79,6 +83,7 @@ export default async function HomePage({ params }: Props) {
     return cat ? { name: categoryLabel(cat, t, locale), style: categoryStyle(cat) } : null;
   };
   const lead = courses[0];
+  const LeadIcon = lead ? FORMAT_ICON[lead.courseType] ?? FORMAT_ICON.OFFLINE : null;
 
   // The certificate section fills the template in with one sample course and
   // renders only while the site shows sample content (SHOWCASE), which is where
@@ -132,8 +137,7 @@ export default async function HomePage({ params }: Props) {
             <HeroSearch
               labels={{
                 all: t("landing.formatAll"),
-                online: labels.format.ONLINE,
-                inPerson: labels.format.OFFLINE,
+                formats: labels.format,
                 format: t("landing.formatLabel"),
                 placeholder: t("landing.searchPlaceholder"),
                 field: t("ui.searchCourses"),
@@ -178,7 +182,7 @@ export default async function HomePage({ params }: Props) {
                     </div>
                     <div className="meta mt-1.5 !text-[13px]">
                       <span>
-                        {lead.courseType === "ONLINE" ? <MonitorPlay className="i" aria-hidden /> : <MapPin className="i" aria-hidden />}
+                        {LeadIcon ? <LeadIcon className="i" aria-hidden /> : null}
                         {labels.format[lead.courseType]}
                       </span>
                       {labels.duration(lead.totalDurationSec) ? (
@@ -299,6 +303,13 @@ export default async function HomePage({ params }: Props) {
             href="/courses?type=OFFLINE"
             none={t("landing.noInPerson")}
             art={<InPersonArt />}
+            // One-time trainings are in person too, but have their own
+            // catalogue filter; this field's count and button stay OFFLINE's.
+            extra={
+              index.oneTime > 0
+                ? { label: t("landing.oneTimeLink", { count: index.oneTime }), href: "/courses?type=ONE_TIME" }
+                : undefined
+            }
           />
         </div>
       </section>
@@ -422,7 +433,7 @@ export default async function HomePage({ params }: Props) {
 
       {/* ============ 6. EXPERTS: sticky intro + arch portraits ============ */}
       {experts.length ? (
-        <ExpertsSection experts={experts} index={index} t={t} locale={locale} />
+        <ExpertsSection experts={experts} index={expertIndex} t={t} locale={locale} />
       ) : null}
 
       {/* ============ 7. FAQ ============ */}
@@ -525,6 +536,7 @@ function FormatField({
   none,
   primary,
   art,
+  extra,
 }: {
   k: string;
   word: string;
@@ -537,6 +549,8 @@ function FormatField({
   none: string;
   primary?: boolean;
   art: React.ReactNode;
+  /** A second, smaller way in, e.g. the in-person field's one-time trainings. */
+  extra?: { label: string; href: string };
 }) {
   return (
     <article className={`fmt ${k} flex flex-col p-7 sm:p-10 lg:p-12`}>
@@ -566,6 +580,13 @@ function FormatField({
             {none}
           </p>
         )}
+        {extra ? (
+          <div className="mt-5">
+            <LocaleLink className="link" href={extra.href}>
+              {extra.label} <ArrowRight className="i" aria-hidden />
+            </LocaleLink>
+          </div>
+        ) : null}
       </div>
     </article>
   );
@@ -634,7 +655,7 @@ function ExpertsSection({
   t: TFunction;
   locale: Locale;
 }) {
-  const kOf = (id: string) => categoryStyle(categoryOfExpert(index, id)).k;
+  const kOf = (e: ExpertSummary) => categoryStyle(categoryOfExpert(index, e)).k;
   const shown = experts.slice(0, 6);
   const invite = (
     <div className="k-gold relative isolate overflow-hidden rounded-[30px] bg-[var(--k-100)] p-7 text-[var(--k-900)]">
@@ -671,7 +692,7 @@ function ExpertsSection({
             <div className="grid grid-cols-2 gap-x-6 gap-y-12 lg:grid-cols-3">
               {shown.map((e) => (
                 <article key={e.id} className="xcard group relative">
-                  <ExpertArch id={e.id} name={e.displayName} avatarUrl={e.avatarUrl} k={kOf(e.id)} />
+                  <ExpertArch id={e.id} name={e.displayName} avatarUrl={e.avatarUrl} k={kOf(e)} />
                   <div className="px-1 pt-4">
                     <h3 className="t-md">
                       <LocaleLink href={`/experts/${e.id}`} className="stretched">
@@ -706,7 +727,7 @@ function ExpertsSection({
                   key={e.id}
                   className="xcard group relative grid items-end gap-6 rounded-[40px] bg-paper-2 p-6 sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-10 sm:p-10"
                 >
-                  <ExpertArch id={e.id} name={e.displayName} avatarUrl={e.avatarUrl} k={kOf(e.id)} className="max-w-[15rem]" />
+                  <ExpertArch id={e.id} name={e.displayName} avatarUrl={e.avatarUrl} k={kOf(e)} className="max-w-[15rem]" />
                   <div className="pb-2">
                     <h3 className="d-md">
                       <LocaleLink href={`/experts/${e.id}`} className="stretched">

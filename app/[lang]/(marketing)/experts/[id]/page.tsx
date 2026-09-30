@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, BookOpen, GraduationCap, History, Languages, Layers, ScrollText, Users } from "lucide-react";
-import { categoryOf, getCatalogIndex } from "@/features/course/catalog-index.server";
+import { categoryOf, categoryOfExpert, indexFor } from "@/features/course/catalog-index.server";
 import { courseLabels } from "@/features/course/labels";
+import { mediaSrc } from "@/features/course/media";
 import { CourseCard } from "@/features/course/components/CourseCard";
 import { categoryLabel } from "@/features/category/label";
 import { categoryStyle } from "@/features/category/style";
+import { expertAreas } from "@/features/expert/areas";
+import { ExpertAreaChips } from "@/features/expert/components/ExpertAreas";
 import { ExpertArch } from "@/features/expert/components/ExpertArch";
 import { externalHref, orcidHref } from "@/features/expert/links";
 import { fullExpertName, type ExpertProfile } from "@/features/expert/types";
-import { coursesByExpertSource, expertProfileSource } from "@/features/showcase/source.server";
+import { SHOWCASE } from "@/features/showcase/flag";
+import { coursesByExpertSource, expertProfileSource, isSampleExpert } from "@/features/showcase/source.server";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { StarIcon } from "@/components/bright/bits";
+import { env } from "@/lib/env";
 import { formatCompact, formatRating } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { LocaleLink } from "@/i18n/LocaleLink";
@@ -26,12 +32,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const expert = await expertProfileSource(id);
   if (!expert) {
     const t = await getT(isLocale(lang) ? lang : defaultLocale);
-    return { title: t("experts.metaFallback") };
+    // The page is a "not found" notice; nothing there for a search engine.
+    return { title: t("experts.metaFallback"), robots: { index: false, follow: true } };
   }
   const affiliation = [expert.academicTitle, expert.department].filter(Boolean).join(", ");
   return {
     title: fullExpertName(expert),
     description: expert.headline || affiliation || expert.bio?.slice(0, 160) || undefined,
+    // A sample expert's page exists only for the sample courses that name
+    // them; like those courses, search engines should not list it.
+    robots: isSampleExpert(id) ? { index: false, follow: true } : undefined,
   };
 }
 
@@ -48,10 +58,14 @@ export default async function PublicExpertPage({ params }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
+  // A real expert is matched against the real categories and courses even
+  // while the catalogue shows samples; a sample expert (reached from a sample
+  // course) against the sample ones. Their ids exist only on their own side.
+  const sample = isSampleExpert(id);
   const [expert, courses, index] = await Promise.all([
     expertProfileSource(id).catch((): ExpertProfile | null => null),
     coursesByExpertSource(id).catch(() => []),
-    getCatalogIndex(),
+    indexFor(sample),
   ]);
 
   // An unknown, pending or rejected expert: a notice with a way back, rather
@@ -72,9 +86,20 @@ export default async function PublicExpertPage({ params }: Props) {
   }
 
   const name = fullExpertName(expert);
-  const expertise = index.categories.filter((c) => expert.expertiseCategoryIds.includes(c.id));
-  const main = expertise[0] ?? (courses[0] ? categoryOf(index, courses[0].id) : null);
+  const main = categoryOfExpert(index, expert) ?? (courses[0] ? categoryOf(index, courses[0].id) : null);
   const k = categoryStyle(main).k;
+  // A category chip filters the catalogue by that category, which only works
+  // when the catalogue lists the same side as this expert: a real expert's
+  // category ids match nothing in the sample catalogue, so while it shows,
+  // their chips stay plain labels.
+  const catalogueMatches = sample || !SHOWCASE;
+  const { picked, own } = expertAreas(index.categories, expert, t, locale, {
+    href: catalogueMatches ? (c) => `/courses?categoryId=${c.id}` : undefined,
+  });
+  // The label above the name shows one area (or a course's category when
+  // they picked none); the chips list them all once that leaves any out.
+  const labelIsArea = main ? picked.some((p) => p.id === main.id) : own.length > 0;
+  const showAreas = picked.length + own.length > (labelIsArea ? 1 : 0);
   const labels = courseLabels(t, locale);
   const enrolled = courses.reduce((s, c) => s + c.enrolledCount, 0);
 
@@ -110,6 +135,12 @@ export default async function PublicExpertPage({ params }: Props) {
               {main ? (
                 <div className="mt-5">
                   <span className="cat-label">{categoryLabel(main, t, locale)}</span>
+                </div>
+              ) : own[0] ? (
+                <div className="mt-5">
+                  <span className="own-label" title={t("expertsPage.ownArea")}>
+                    {own[0]}
+                  </span>
                 </div>
               ) : null}
               <h1 id="x-title" className="d-lg mt-3">
@@ -161,14 +192,8 @@ export default async function PublicExpertPage({ params }: Props) {
               <p className="mt-5 max-w-2xl text-[16.5px] leading-[1.7] text-ink-2">
                 {expert.bio || expert.headline || t("expertsPage.noBio")}
               </p>
-              {expertise.length > 1 ? (
-                <div className="mt-8 flex flex-wrap gap-2">
-                  {expertise.map((c) => (
-                    <LocaleLink key={c.id} href={`/courses?categoryId=${c.id}`} className={cn("chip plain", categoryStyle(c).k)}>
-                      {categoryLabel(c, t, locale)}
-                    </LocaleLink>
-                  ))}
-                </div>
+              {showAreas ? (
+                <ExpertAreaChips className="mt-8" picked={picked} own={own} ownTitle={t("expertsPage.ownArea")} />
               ) : null}
             </div>
             {details.length ? (
@@ -220,6 +245,25 @@ export default async function PublicExpertPage({ params }: Props) {
         )}
         <p className="mt-10 text-[14px] text-ink-3">{t("expertsPage.participantsNote", { count: formatCompact(enrolled, locale) })}</p>
       </section>
+
+      {/* Real experts only, like the course page's Course data. Every value is
+          plain text: names and areas are plain by construction, and JsonLd
+          escapes what could close its <script>. */}
+      {!sample ? (
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "Person",
+            name,
+            url: `${env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")}/${locale}/experts/${expert.id}`,
+            image: mediaSrc(expert.avatarUrl) ?? undefined,
+            jobTitle: expert.academicTitle || undefined,
+            description: expert.headline || undefined,
+            knowsAbout: [...picked.map((c) => c.name), ...own],
+            sameAs: links.length ? links.map(([, href]) => href) : undefined,
+          }}
+        />
+      ) : null}
     </>
   );
 }

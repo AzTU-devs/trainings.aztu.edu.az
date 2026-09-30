@@ -358,6 +358,12 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
 .chip.on { background: var(--k-100, var(--navy-tint)); box-shadow: inset 0 0 0 1.5px var(--k-500, var(--navy)); color: var(--k-900, var(--ink)); }
 .chip .x { width: 16px; height: 16px; color: var(--ink-3); }
 .chip.sm { height: 36px; font-size: 13.5px; gap: 6px; padding: 0 10px 0 14px; }
+/* An area of expertise: a category's colour square, or (.own) an area the
+   expert typed themselves, outlined because nothing is filed under it. */
+.chip .sq { width: 8px; height: 8px; border-radius: 3px; background: var(--k-500); flex: none; }
+.chip.static:hover { box-shadow: inset 0 0 0 1px var(--line); transform: none; }
+.chip.own { background: transparent; box-shadow: none; border: 1.5px dashed var(--line-2); color: var(--ink-2); }
+.chip.own:hover { box-shadow: none; transform: none; }
 
 .pill { display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 11px; border-radius:999px; font: 600 12.5px/1 var(--f-sans); white-space:nowrap; }
 .pill svg.i { width:14px; height:14px; stroke-width: 2; }
@@ -373,6 +379,11 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
 /* category label (dot + name), used above card titles */
 .cat-label { font: 600 12.5px/1.2 var(--f-sans); letter-spacing: .005em; color: var(--k-700); display:inline-flex; align-items:center; gap:8px; }
 .cat-label::before { content:""; width:8px; height:8px; border-radius:3px; background: var(--k-500); flex: none; }
+/* an area an expert typed themselves: the same label with a hollow square */
+.own-label { font: 600 12.5px/1.2 var(--f-sans); letter-spacing: .005em; color: var(--ink-2); display:inline-flex; align-items:center; gap:8px; }
+.own-label::before { content:""; width:8px; height:8px; border-radius:3px; box-shadow: inset 0 0 0 1.5px var(--ink-3); flex: none; }
+.areas { display:flex; flex-wrap:wrap; align-items:center; gap: 6px 14px; }
+.areas .more { font: 600 12px/1.2 var(--f-mono); color: var(--ink-3); }
 
 /* Level meter: three rising bars, filled by level (ALL = all bars, softer) */
 .lvl { display:inline-flex; align-items:flex-end; gap:2px; height:12px; }
@@ -394,6 +405,11 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
 .seg [aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px oklch(0 0 0 / .08), 0 0 0 1px var(--line); }
 .seg.full { display: flex; } .seg.full button { flex: 1; }
 .seg.lg button { height: 40px; }
+/* Four options in a narrow column: two rows of two. The icons go first when
+   even that is tight (the filter column at 1024px). */
+.seg.quad { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 22px; container-type: inline-size; }
+.seg.quad button { padding: 0 10px; }
+@container (max-width: 250px) { .seg.quad button svg.i { display: none; } }
 
 /* hero search: format tabs sit ON the field, like index tabs on a folder */
 .hsearch { position: relative; }
@@ -417,6 +433,15 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
   .hsearch input { height: 48px; font-size: 16px; }
   .hsearch .go { height: 48px; width: 48px; padding: 0; border-radius: 16px; }
   .hsearch .go .t { display:none; }
+}
+/* Four format tabs: below 480px they drop their icons, and on the narrowest
+   phones the row scrolls rather than overflow (the 2px keeps the active
+   tab's top edge clear of the scroll clip). */
+@media (max-width: 479px) {
+  .hsearch .tabs-f { gap: 0; padding: 2px 0 0 8px; overflow-x: auto; scrollbar-width: none; }
+  .hsearch .tabs-f::-webkit-scrollbar { display: none; }
+  .hsearch .tabs-f button { padding: 0 9px; flex: none; }
+  .hsearch .tabs-f button svg.i { display: none; }
 }
 
 /* flat search field (catalogue) */
@@ -725,6 +750,11 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
 .mod summary { display:flex; align-items:center; gap: 16px; padding: 18px 20px; }
 .mod summary:hover { background: color-mix(in oklch, var(--ink) 2.5%, transparent); }
 .mod .num { font: 600 13px/1 var(--f-mono); color: var(--k-700); width: 42px; height: 42px; border-radius: 13px; background: var(--k-100); display:grid; place-items:center; flex:none; }
+/* the programme, topic by topic: numbered like the modules, always open */
+.syl { display: grid; gap: 10px; }
+.syl > li { display:flex; align-items:flex-start; gap: 16px; padding: 18px 20px; border-radius: 22px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+.syl .num { font: 600 13px/1 var(--f-mono); color: var(--k-700); width: 42px; height: 42px; border-radius: 13px; background: var(--k-100); display:grid; place-items:center; flex:none; }
+@media (max-width: 639px) { .syl > li { padding: 16px; gap: 12px; } }
 .lesson { display:flex; align-items:center; gap: 14px; padding: 13px 20px; border-top: 1px solid var(--line); font-size: 15px; color: var(--ink-2); }
 .lesson .ti { width: 42px; display:grid; place-items:center; flex: none; color: var(--ink-3); }
 .lesson .ti svg.i { width: 18px; height: 18px; }
@@ -772,6 +802,66 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
    (the class used to carry the weight), and a utility such as font-extrabold
    still overrides it. */
 .font-display { font-weight: 700; letter-spacing: -0.025em; }
+
+/* ---------- 22. Rich text (src/components/common/RichText.tsx) ----------
+   What authors write in the dashboard's editor — course and lesson
+   descriptions, requirements, outcomes, syllabus items — once
+   src/lib/rich-text.server.ts has reduced it to the allowlist, so exactly
+   those tags are styled. The wrapper sets the size and colour; headings and
+   code step from it in em, so one block reads right in a card and in a page.
+   Also used by the participant area, hence tokens only. */
+.rich { overflow-wrap: anywhere; }
+.rich > :first-child { margin-top: 0; }
+.rich > :last-child { margin-bottom: 0; }
+.rich p, .rich ul, .rich ol, .rich blockquote, .rich pre { margin: 0 0 .85em; }
+.rich h2, .rich h3, .rich h4 { font-family: var(--f-display); color: var(--ink); letter-spacing: -.015em; line-height: 1.25; margin: 1.35em 0 .5em; }
+.rich h2 { font-weight: 750; font-size: 1.32em; }
+.rich h3 { font-weight: 700; font-size: 1.16em; }
+.rich h4 { font-weight: 700; font-size: 1.04em; }
+.rich strong, .rich b { font-weight: 650; color: var(--ink); }
+.rich ul, .rich ol { padding-left: 1.3em; }
+.rich ul { list-style: disc; }
+.rich ol { list-style: decimal; }
+.rich li { padding-left: .2em; }
+.rich li + li { margin-top: .35em; }
+.rich li > p, .rich li > ul, .rich li > ol { margin: 0; }
+.rich ul > li::marker { color: var(--k-500, var(--gold)); }
+.rich ol > li::marker { color: var(--ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+.rich blockquote { padding: .1em 0 .1em 1em; border-left: 3px solid var(--gold); color: var(--ink-2); font-style: italic; }
+.rich a { color: var(--ink); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1.5px; text-decoration-color: var(--line-2); text-underline-offset: 4px; transition: text-decoration-color .2s; }
+.rich a:hover { text-decoration-color: var(--gold); }
+.rich a:not([href]) { color: inherit; font-weight: inherit; text-decoration: none; }
+.rich code { font: 500 .9em/1.4 var(--f-mono); background: var(--paper-2); padding: .1em .35em; border-radius: 6px; }
+.rich pre { font: 500 .88em/1.6 var(--f-mono); background: var(--paper-2); padding: 14px 16px; border-radius: 14px; overflow-x: auto; white-space: pre; }
+.rich pre code { background: none; padding: 0; font-size: inherit; }
+.rich hr { border: 0; border-top: 1px solid var(--line); margin: 1.35em 0; }
+.rich mark { background: var(--gold-tint); color: inherit; padding: 0 .15em; border-radius: 3px; }
+.rich u { text-underline-offset: 3px; }
+
+/* Outcomes and requirements written in the editor keep the look a plain-text
+   list gets: each item of a top-level list — or, when the author wrote no
+   list, each paragraph — is a ticked (.rich-check) or dotted (.rich-dots)
+   item. Anything else (an intro paragraph, a heading) runs full width. */
+.rich-check { --ck-mark: #fff; display: grid; gap: 16px 32px; }
+:root[data-theme="dark"] .rich-check { --ck-mark: var(--k-50); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rich-check { --ck-mark: var(--k-50); } }
+.rich.rich-check > * { margin: 0; }
+.rich-check > * { grid-column: 1 / -1; }
+.rich-check > :is(ul, ol) { display: grid; gap: inherit; padding: 0; }
+@media (min-width: 640px) { .rich-check, .rich-check > :is(ul, ol) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rich-check:not(:has(> :is(ul, ol))) > p { grid-column: auto; }
+.rich-check > :is(ul, ol) > li,
+.rich-check:not(:has(> :is(ul, ol))) > p { position: relative; display: block; margin: 0; padding-left: 36px; list-style: none; }
+.rich-check > :is(ul, ol) > li::before,
+.rich-check:not(:has(> :is(ul, ol))) > p::before { content: ""; position: absolute; left: 0; top: 1px; width: 24px; height: 24px; border-radius: 99px; background: var(--k-500); }
+.rich-check > :is(ul, ol) > li::after,
+.rich-check:not(:has(> :is(ul, ol))) > p::after { content: ""; position: absolute; left: 9px; top: 6px; width: 6px; height: 11px; border: solid var(--ck-mark); border-width: 0 2.4px 2.4px 0; transform: rotate(45deg); }
+.rich-dots > :is(ul, ol) { display: grid; gap: 12px; padding: 0; }
+.rich-dots > :is(ul, ol) > li,
+.rich-dots:not(:has(> :is(ul, ol))) > p { position: relative; margin: 0; padding-left: 18px; list-style: none; }
+.rich-dots:not(:has(> :is(ul, ol))) > p + p { margin-top: 12px; }
+.rich-dots > :is(ul, ol) > li::before,
+.rich-dots:not(:has(> :is(ul, ol))) > p::before { content: ""; position: absolute; left: 0; top: .62em; width: 6px; height: 6px; border-radius: 99px; background: var(--k-500); }
 
 /* ---------- 23. Inlined art (src/components/bright/Svg.tsx) ----------
    Generated drawings arrive wrapped in a `display: contents` span, so the

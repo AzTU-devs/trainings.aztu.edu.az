@@ -109,27 +109,28 @@ Should require the user to be enrolled in the course (or the lesson must be `pre
 
 ---
 
-## 5 · Public tutor profile (MISSING)
+## 5 · Public experts (PARTIAL)
 
-Only `/api/portal/tutor/me` (self) and admin endpoints exist. The course detail page
-links to `/tutors/{tutorId}` but there's no public read endpoint.
-
-**Wanted**
+These now exist:
 
 ```
-GET /api/public/tutors/{tutorId}
-→ TutorProfileDto
+GET /api/public/tutors?page=&size=     → Page<TutorPublicProfileDto>  (approved experts, by name)
+GET /api/public/tutors/{tutorId}       → TutorPublicProfileDto        (404 unless APPROVED)
+```
 
+The experts directory ([directory.server.ts](../src/features/expert/directory.server.ts))
+lists everyone from the first, so an approved expert shows up before they publish a
+course; the numbers on each card are still counted from the published catalogue.
+
+**Still wanted**
+
+```
 GET /api/public/tutors/{tutorId}/courses
 → Page<CourseSummaryDto>
 ```
 
-`TutorProfileDto` already exists and is suitable — just expose it (and only when
-`approvalStatus = APPROVED`).
-
-**Frontend impact**: [app/[lang]/(marketing)/tutors/[id]/page.tsx](../app/[lang]/(marketing)/tutors/[id]/page.tsx)
-is a placeholder right now. Once the route exists, switch it to the real fetch and
-render `TutorProfileCard` + a `CourseGrid` of the tutor's published courses.
+An expert's page walks the published catalogue for their courses (capped at 1,000
+courses), which also misses courses where they are on the roster but not the editor.
 
 ---
 

@@ -1,5 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { RichText } from "@/components/common/RichText";
+import { hasRichText } from "@/lib/rich-text.server";
 import { LearningClient } from "@/features/learning/components/LearningClient";
 import { courseServerApi } from "@/features/course/api.server";
 import { enrollmentServerApi } from "@/features/enrollment/api.server";
@@ -35,10 +37,10 @@ export default async function LearnLessonPage({ params }: Props) {
 
   const course = await courseServerApi.bySlug(courseSlug);
 
-  const lessonExists = course.modules.some((m) =>
-    m.lessons.some((l) => l.id === lessonId),
-  );
-  if (!lessonExists) notFound();
+  const lesson = course.modules
+    .flatMap((m) => m.lessons)
+    .find((l) => l.id === lessonId);
+  if (!lesson) notFound();
 
   let isEnrolled = false;
   try {
@@ -56,11 +58,21 @@ export default async function LearnLessonPage({ params }: Props) {
     savedProgress.map((p) => [p.lessonId, p]),
   );
 
+  // The description is rich text, sanitized here on the server: the player
+  // is a client component and gets it already rendered.
   return (
     <LearningClient
       course={course}
       currentLessonId={lessonId}
       initialProgress={initialProgress}
+      lessonDescription={
+        hasRichText(lesson.description) ? (
+          <RichText
+            value={lesson.description}
+            className="max-w-3xl text-[15px] leading-relaxed text-muted-foreground"
+          />
+        ) : null
+      }
     />
   );
 }

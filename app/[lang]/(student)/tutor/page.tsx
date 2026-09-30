@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { GraduationCap } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
+import { categoryServerApi } from "@/features/category/api.server";
+import { expertAreas } from "@/features/expert/areas";
 import { ExpertProfileCard } from "@/features/expert/components/ExpertProfileCard";
 import { expertServerApi } from "@/features/expert/api.server";
 import { getT } from "@/i18n/server";
@@ -26,7 +28,22 @@ export default async function MyExpertProfilePage({ params }: Props) {
   const locale = lang as Locale;
   const t = await getT(locale);
 
-  const profile = await expertServerApi.myProfile().catch(() => null);
+  const [profile, categories] = await Promise.all([
+    expertServerApi.myProfile().catch(() => null),
+    categoryServerApi.list().catch(() => null),
+  ]);
+  // The areas by name: the categories they picked, in the catalogue's order,
+  // then the ones they added themselves. Without the categories (the API did
+  // not answer) the card falls back to counting them.
+  const areas =
+    profile && categories
+      ? expertAreas(
+          [...categories].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+          profile,
+          t,
+          locale,
+        )
+      : null;
 
   return (
     <div className="space-y-8">
@@ -45,12 +62,24 @@ export default async function MyExpertProfilePage({ params }: Props) {
             reviews: t("experts.reviews", { count: profile.ratingCount }),
             years: t("experts.years", { count: profile.yearsExperience ?? 0 }),
             specialties: t("experts.specialties", {
-              count: profile.expertiseCategoryIds.length,
+              count: profile.expertiseCategoryIds.length + (profile.customExpertise?.length ?? 0),
             }),
             about: t("experts.about"),
             website: t("experts.website"),
             linkedin: t("experts.linkedin"),
           }}
+          expertise={
+            areas
+              ? {
+                  title: t("experts.expertise"),
+                  areas: [
+                    ...areas.picked.map((a) => ({ id: a.id, name: a.name })),
+                    ...areas.own.map((name) => ({ id: `own:${name}`, name, own: true })),
+                  ],
+                  ownTitle: t("expertsPage.ownArea"),
+                }
+              : undefined
+          }
         />
       ) : (
         <EmptyState

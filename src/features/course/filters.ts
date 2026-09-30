@@ -1,15 +1,14 @@
 import { PAYMENTS_ENABLED } from "./payments";
-import type {
-  CourseLevel,
-  CourseListParams,
-  CourseType,
-  DurationBucket,
+import {
+  COURSE_TYPES,
+  type CourseLevel,
+  type CourseListParams,
+  type DurationBucket,
 } from "./types";
 
 /** A catalogue query with the page window already resolved. */
 export type CatalogParams = CourseListParams & { page: number; size: number };
 
-const COURSE_TYPES: readonly CourseType[] = ["ONLINE", "OFFLINE"];
 const LEVELS: readonly CourseLevel[] = [
   "BEGINNER",
   "INTERMEDIATE",

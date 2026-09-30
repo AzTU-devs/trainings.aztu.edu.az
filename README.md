@@ -48,6 +48,11 @@ See `.env.example`. Key variables:
 - `NEXT_PUBLIC_SITE_URL` — canonical origin (used for metadata, `sitemap.ts`, `robots.ts`).
 - `NEXT_PUBLIC_PORTAL_URL` — tutor/admin portal, where non-student accounts are sent.
 - `NEXT_PUBLIC_WS_URL` — STOMP/WebSocket endpoint for live notifications.
+- `SHOWCASE_DATA` — `on` (default) shows the sample catalogue (courses, categories,
+  classrooms, the sample certificate) on the public pages; `off` shows the real one.
+- `SHOWCASE_EXPERTS` — `off` (default) shows the real, approved experts even while the
+  catalogue is sample content; `on` brings back the sample experts (needs `SHOWCASE_DATA`
+  on). Both are server-side and read at runtime; see `src/features/showcase/flag.ts`.
 
 ## Auth model
 
@@ -65,7 +70,7 @@ Authentication goes through a thin **BFF** under `app/api/auth/*`:
 ```
 app/                 App Router routes (grouped: (marketing), (auth), (student), checkout)
   api/auth/          BFF session routes (login/register/refresh/logout)
-  sitemap.ts         Generated sitemap (static routes + published courses)
+  sitemap.ts         Generated sitemap (static routes, published courses, approved experts)
   robots.ts          Robots policy (private areas disallowed)
 src/
   lib/api/           server fetch, axios client, endpoint map

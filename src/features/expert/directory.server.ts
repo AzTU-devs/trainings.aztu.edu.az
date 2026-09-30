@@ -2,21 +2,21 @@ import "server-only";
 import { courseServerApi } from "@/features/course/api.server";
 import type { CourseSummary } from "@/features/course/types";
 import { expertServerApi } from "./api.server";
-import type { ExpertSummary } from "./types";
+import { fullExpertName, type ExpertProfile, type ExpertSummary } from "./types";
 
 /**
- * The expert directory, aggregated from the published catalogue.
+ * The expert directory: every approved expert, from `GET /api/public/tutors`,
+ * with the numbers on each card (courses, rating, enrolments, formats) counted
+ * from the published catalogue.
  *
- * The backend exposes `GET /api/public/tutors/{id}` but has no endpoint that
- * lists tutors, so there is nothing to page over directly. Every published
- * course already carries `tutorId` and `tutorDisplayName`, which is enough to
- * build the directory: an expert is someone with at least one published course,
- * which is also exactly who a visitor can usefully click through to.
+ * It used to be built from the catalogue alone, which made an expert someone
+ * with at least one published course. While the catalogue shows sample content
+ * that left out nearly every real expert, so the list now comes from the API
+ * and an expert with nothing published yet is shown with zeros. Against an API
+ * that predates the list endpoint the directory falls back to the catalogue.
  *
- * The trade-off is that this walks the catalogue. It is bounded (see MAX_PAGES)
- * and the underlying fetch is cached for 60s by `courseServerApi.list`, but a
- * dedicated `GET /api/public/tutors` endpoint is the right fix once the
- * catalogue outgrows the cap.
+ * Walking the catalogue is bounded (see MAX_PAGES) and cached for 60s by
+ * `courseServerApi.list`.
  */
 
 const PAGE_SIZE = 100;
@@ -81,6 +81,7 @@ function aggregate(courses: CourseSummary[]): ExpertSummary[] {
       acc.ratingSum += avg * c.ratingCount;
       acc.ratingCount += c.ratingCount;
     }
+    // OFFLINE and ONE_TIME both count as in person.
     if (c.courseType === "ONLINE") acc.online = true;
     else acc.offline = true;
 
@@ -101,11 +102,11 @@ function aggregate(courses: CourseSummary[]): ExpertSummary[] {
 }
 
 /**
- * Adds the avatar and affiliation from each expert's public profile, which the
- * catalogue does not carry. The fetch is the same cached `byId` the profile
- * page uses, so the directory and the page share cache entries. A profile that
- * fails to load (a non-APPROVED expert 404s) leaves its entry as the
- * catalogue built it, and the card falls back to initials.
+ * Adds the avatar, affiliation and areas of expertise from each expert's public
+ * profile, which the catalogue does not carry. The fetch is the same cached
+ * `byId` the profile page uses, so the directory and the page share cache
+ * entries. A profile that fails to load (a non-APPROVED expert 404s) leaves
+ * its entry as the catalogue built it, and the card falls back to initials.
  */
 async function withProfiles(experts: ExpertSummary[]): Promise<ExpertSummary[]> {
   const out = [...experts];
@@ -123,6 +124,9 @@ async function withProfiles(experts: ExpertSummary[]): Promise<ExpertSummary[]> 
           academicTitle: profile.academicTitle ?? null,
           department: profile.department ?? null,
           headline: profile.headline ?? null,
+          expertiseCategoryIds: profile.expertiseCategoryIds ?? [],
+          customExpertise: profile.customExpertise ?? [],
+          approved: true,
         };
       }
     }
@@ -134,10 +138,60 @@ async function withProfiles(experts: ExpertSummary[]): Promise<ExpertSummary[]> 
   return out;
 }
 
-/** Every expert with at least one published course. Empty on API failure. */
+/** Every approved expert, a page of 100 at a time up to MAX_PAGES. */
+async function allApprovedExperts(): Promise<ExpertProfile[]> {
+  const first = await expertServerApi.list(0, PAGE_SIZE);
+  const out = [...first.content];
+  const pages = Math.min(first.totalPages, MAX_PAGES);
+  if (pages > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: pages - 1 }, (_, i) => expertServerApi.list(i + 1, PAGE_SIZE)),
+    );
+    for (const p of rest) out.push(...p.content);
+  }
+  return out;
+}
+
+/** Same order as `aggregate`: most enrolled first, the not-yet-published by name at the end. */
+const byStanding = (a: ExpertSummary, b: ExpertSummary) =>
+  b.enrolledCount - a.enrolledCount ||
+  b.courseCount - a.courseCount ||
+  a.displayName.localeCompare(b.displayName);
+
+/**
+ * Every approved expert, published courses or not. Empty when the API is
+ * unreachable; catalogue-only (the old behaviour) when it has no list endpoint.
+ */
 export async function listExperts(): Promise<ExpertSummary[]> {
-  const courses = await allPublishedCourses().catch(() => null);
-  return courses ? withProfiles(aggregate(courses)) : [];
+  const [courses, profiles] = await Promise.all([
+    allPublishedCourses().catch(() => null),
+    allApprovedExperts().catch(() => null),
+  ]);
+  if (!profiles) return courses ? withProfiles(aggregate(courses)) : [];
+
+  const stats = new Map(aggregate(courses ?? []).map((e) => [e.id, e]));
+  return profiles
+    .map((p): ExpertSummary => {
+      const s = stats.get(p.id);
+      return {
+        id: p.id,
+        displayName: fullExpertName(p) || s?.displayName || "",
+        courseCount: s?.courseCount ?? 0,
+        ratingAvg: s?.ratingAvg ?? 0,
+        ratingCount: s?.ratingCount ?? 0,
+        enrolledCount: s?.enrolledCount ?? 0,
+        online: s?.online ?? false,
+        offline: s?.offline ?? false,
+        avatarUrl: p.avatarUrl ?? null,
+        academicTitle: p.academicTitle ?? null,
+        department: p.department ?? null,
+        headline: p.headline ?? null,
+        expertiseCategoryIds: p.expertiseCategoryIds ?? [],
+        customExpertise: p.customExpertise ?? [],
+        approved: true,
+      };
+    })
+    .sort(byStanding);
 }
 
 /** The published courses of one expert. Empty on API failure. */

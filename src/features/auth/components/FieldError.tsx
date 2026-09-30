@@ -20,7 +20,7 @@ const SCHEMA_MESSAGE_KEYS: Record<string, string> = {
   "Must contain a digit": "auth.errPasswordDigit",
   "Passwords do not match": "auth.errPasswordMatch",
   "Enter a valid URL": "auth.errUrl",
-  "Pick at least one expertise area": "auth.errExpertise",
+  "Choose at least one area of expertise or add your own": "auth.errExpertise",
   "Enter the 6-digit code": "auth.errOtp",
 };
 

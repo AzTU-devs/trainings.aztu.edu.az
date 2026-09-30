@@ -26,7 +26,15 @@ export type ExpertProfile = {
   approvedAt?: string | null;
   ratingAvg: string;
   ratingCount: number;
+  /** Areas of expertise picked from the catalogue's categories. May be empty when customExpertise is not. */
   expertiseCategoryIds: string[];
+  /**
+   * Areas the expert typed themselves: plain-text labels, not categories. The
+   * API normalises them (trimmed, no repeats, none equal to a picked
+   * category's name). An API from before the field omits it; read it through
+   * ownAreas() in ./areas.ts, which treats absent as none.
+   */
+  customExpertise?: string[] | null;
   avatarMediaId?: string | null;
   /**
    * Media path (`/api/public/media/{id}/content`); resolve with `mediaSrc()`.
@@ -61,7 +69,7 @@ export type ExpertSummary = {
   ratingAvg: number;
   ratingCount: number;
   enrolledCount: number;
-  /** Distinct subject areas, derived from course titles' course types. */
+  /** Whether any of their courses is online, or in person (OFFLINE or ONE_TIME). */
   online: boolean;
   offline: boolean;
   /**
@@ -72,6 +80,15 @@ export type ExpertSummary = {
   academicTitle?: string | null;
   department?: string | null;
   headline?: string | null;
+  /** The profile's areas, for the card's labels and colour. */
+  expertiseCategoryIds?: string[];
+  customExpertise?: string[] | null;
+  /**
+   * True once the public profile loaded, which the API allows only while the
+   * expert is APPROVED. Anyone else's page is a "not found" notice, so the
+   * sitemap leaves them out.
+   */
+  approved?: boolean;
 };
 
 export const fullExpertName = (

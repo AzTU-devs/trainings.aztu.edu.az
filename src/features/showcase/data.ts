@@ -1,5 +1,5 @@
 import type { Category } from "@/features/category/types";
-import type { Course, CourseLevel, CourseModule, CourseSummary, CourseType, LessonContentType } from "@/features/course/types";
+import type { Course, CourseLevel, CourseModule, CourseSummary, CourseType, LessonContentType, SyllabusItem } from "@/features/course/types";
 
 /*
  * SAMPLE CONTENT — not real courses, experts or reviews.
@@ -7,8 +7,10 @@ import type { Course, CourseLevel, CourseModule, CourseSummary, CourseType, Less
  * The owner asked for the new design to be shown with the prototype's sample
  * catalogue for now, instead of the platform's real data. Everything here is
  * shaped exactly like the API's responses, so the pages render it with the
- * same components they use for real data, and switching back is one flag
- * (see ./flag.ts). Nothing in this file is sent to or stored by the API.
+ * same components they use for real data, and switching back is one flag per
+ * half (see ./flag.ts). The experts are real by default; the sample experts
+ * below remain for the sample courses that name them. Nothing in this file is
+ * sent to or stored by the API.
  */
 
 // ---------------------------------------------------------------- categories
@@ -53,20 +55,22 @@ export type MockExpert = {
   years: number;
   bio?: string;
   languages?: string;
+  /** Areas the expert typed themselves, beside the category they picked. */
+  custom?: string[];
 };
 
 export const MOCK_EXPERTS: MockExpert[] = [
-  { id: "e1", firstName: "Aynur", lastName: "Məmmədova", title: "Dosent, t.e.n.", department: "Kompüter mühəndisliyi kafedrası", headline: "Məlumat elmi və maşın öyrənməsi", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000002", years: 12,
+  { id: "e1", firstName: "Aynur", lastName: "Məmmədova", title: "Dosent, t.e.n.", department: "Kompüter mühəndisliyi kafedrası", headline: "Məlumat elmi və maşın öyrənməsi", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000002", years: 12, custom: ["Böyük verilənlərin emalı"],
     bio: "Məlumat elmi üzrə 12 illik tədris və tədqiqat təcrübəsi. Kurslarında hər mövzunu açıq məlumat dəstləri üzərində kiçik, tamamlanmış tapşırıqlarla möhkəmləndirir.", languages: "Azərbaycan, ingilis, rus" },
-  { id: "e2", firstName: "Elçin", lastName: "Hüseynov", title: "Professor", department: "İnformasiya texnologiyaları kafedrası", headline: "Süni intellekt və robototexnika", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000002", years: 21 },
-  { id: "e3", firstName: "Günel", lastName: "Əliyeva", title: "Baş müəllim", department: "İqtisadiyyat və idarəetmə kafedrası", headline: "Layihə idarəetməsi və maliyyə", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000004", years: 9 },
-  { id: "e4", firstName: "Tural", lastName: "Abbasov", title: "Dosent", department: "Mexanika kafedrası", headline: "Mühəndis qrafikası və CAD", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000003", years: 15,
+  { id: "e2", firstName: "Elçin", lastName: "Hüseynov", title: "Professor", department: "İnformasiya texnologiyaları kafedrası", headline: "Süni intellekt və robototexnika", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000002", years: 21, custom: ["Robototexnika"] },
+  { id: "e3", firstName: "Günel", lastName: "Əliyeva", title: "Baş müəllim", department: "İqtisadiyyat və idarəetmə kafedrası", headline: "Layihə idarəetməsi və maliyyə", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000004", years: 9, custom: ["Agile metodologiyaları"] },
+  { id: "e4", firstName: "Tural", lastName: "Abbasov", title: "Dosent", department: "Mexanika kafedrası", headline: "Mühəndis qrafikası və CAD", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000003", years: 15, custom: ["Texniki sənədləşmə"],
     bio: "Mühəndis qrafikası və avtomatlaşdırılmış layihələndirmə üzrə 15 illik təcrübə. Sənaye müəssisələri üçün texniki sənədləşmə layihələrində iştirak edib.", languages: "Azərbaycan, rus" },
-  { id: "e5", firstName: "Rəşad", lastName: "Quliyev", title: "Baş müəllim", department: "Proqram mühəndisliyi kafedrası", headline: "Veb və backend proqramlaşdırma", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000001", years: 8,
+  { id: "e5", firstName: "Rəşad", lastName: "Quliyev", title: "Baş müəllim", department: "Proqram mühəndisliyi kafedrası", headline: "Veb və backend proqramlaşdırma", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000001", years: 8, custom: ["API dizaynı"],
     bio: "Veb və backend proqramlaşdırma üzrə 8 illik təcrübə. Kurslarında nəzəriyyəni kiçik, real layihələrlə birləşdirir.", languages: "Azərbaycan, ingilis" },
-  { id: "e6", firstName: "Nigar", lastName: "Səfərova", title: "Dosent, PhD", department: "Elmi tədqiqatlar şöbəsi", headline: "Akademik yazı və metodologiya", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000005", years: 11 },
-  { id: "e7", firstName: "Kamran", lastName: "İsmayılov", title: "Baş müəllim", department: "Memarlıq və inşaat kafedrası", headline: "BIM və konstruksiyaların modelləşdirilməsi", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000006", years: 7 },
-  { id: "e8", firstName: "Leyla", lastName: "Həsənova", title: "Dosent", department: "Nəqliyyat logistikası kafedrası", headline: "Təchizat zənciri və nəqliyyat planlaşdırması", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000007", years: 13 },
+  { id: "e6", firstName: "Nigar", lastName: "Səfərova", title: "Dosent, PhD", department: "Elmi tədqiqatlar şöbəsi", headline: "Akademik yazı və metodologiya", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000005", years: 11, custom: ["Elmi redaktə"] },
+  { id: "e7", firstName: "Kamran", lastName: "İsmayılov", title: "Baş müəllim", department: "Memarlıq və inşaat kafedrası", headline: "BIM və konstruksiyaların modelləşdirilməsi", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000006", years: 7, custom: ["Yaşıl tikinti"] },
+  { id: "e8", firstName: "Leyla", lastName: "Həsənova", title: "Dosent", department: "Nəqliyyat logistikası kafedrası", headline: "Təchizat zənciri və nəqliyyat planlaşdırması", categoryId: "0a2e7c00-5e0c-4a5e-8000-000000000007", years: 13, custom: ["Anbar avtomatlaşdırılması"] },
 ];
 
 export const expertName = (e: MockExpert) => `${e.firstName} ${e.lastName}`;
@@ -111,6 +115,8 @@ const SEEDS: Seed[] = [
   { id: "urban", slug: "seher-neqliyyatinin-planlasdirilmasi", title: "Şəhər nəqliyyatının planlaşdırılması", sub: "Şəhər nəqliyyat şəbəkəsinin təhlilini və planlaşdırılmasını Bakı nümunələri üzərində öyrənin.", cat: "0a2e7c00-5e0c-4a5e-8000-000000000007", type: "OFFLINE", level: "ADVANCED", minutes: h(18), rating: 0, ratings: 0, enrolled: 8, expert: "e8", age: 5 },
   { id: "stat", slug: "tedqiqat-metodologiyasi-ve-statistika", title: "Tədqiqat metodologiyası və statistika", sub: "Tədqiqatı planlaşdırmağı, məlumat toplamağı və nəticələri statistik üsullarla yoxlamağı öyrənin.", cat: "0a2e7c00-5e0c-4a5e-8000-000000000005", type: "ONLINE", level: "ALL", minutes: h(10), rating: 4.7, ratings: 11, enrolled: 120, expert: "e6", age: 130 },
   { id: "eff", slug: "binalarda-enerji-semereliliyi", title: "Binalarda enerji səmərəliliyi", sub: "Binaların enerji istehlakını qiymətləndirməyi və səmərəlilik tədbirlərini seçməyi öyrənin.", cat: "0a2e7c00-5e0c-4a5e-8000-000000000008", type: "ONLINE", level: "BEGINNER", minutes: h(5), rating: 4.6, ratings: 6, enrolled: 64, expert: "e7", age: 140 },
+  { id: "scopus", slug: "scopus-ve-web-of-science-ile-elmi-axtaris", title: "Scopus və Web of Science ilə elmi axtarış", sub: "Elmi bazalarda ədəbiyyat axtarmağı, jurnal seçməyi və sitat göstəricilərini oxumağı bir seminarda öyrənin.", cat: "0a2e7c00-5e0c-4a5e-8000-000000000005", type: "ONE_TIME", level: "ALL", minutes: h(3, 30), rating: 0, ratings: 0, enrolled: 12, expert: "e6", age: 3 },
+  { id: "iot", slug: "arduino-ile-iot-prototipleri", title: "Arduino ilə IoT prototipləşdirmə: bir günlük emalatxana", sub: "Sensorları qoşmağı, ölçmələri buluda göndərməyi və ilk işlək prototipi bir gündə qurmağı öyrənin.", cat: "0a2e7c00-5e0c-4a5e-8000-000000000003", type: "ONE_TIME", level: "BEGINNER", minutes: h(6), rating: 0, ratings: 0, enrolled: 9, expert: "e2", age: 9 },
   { id: "struct", slug: "demir-beton-konstruksiyalar", title: "Dəmir-beton konstruksiyaların hesablanması", sub: "Dəmir-beton elementlərin normativlərə uyğun hesablanmasını praktik nümunələrlə öyrənin.", cat: "0a2e7c00-5e0c-4a5e-8000-000000000006", type: "ONLINE", level: "ADVANCED", minutes: h(15, 20), rating: 4.8, ratings: 7, enrolled: 52, expert: "e7", age: 150 },
 ];
 
@@ -199,11 +205,29 @@ const PLANS: Record<string, M[]> = {
   ],
 };
 
-const DETAILS: Record<string, { outcomes: string[]; desc: string[]; reqs: string[]; modules?: M[] }> = {
+/**
+ * Rich-text fields. A string is HTML, as the dashboard's editor now writes it;
+ * an array is an older course's plain text, one entry per line. The samples
+ * use both, so the course page shows both ways a real course can arrive.
+ */
+type Text = string | string[];
+const text = (value: Text, separator = "\n") => (Array.isArray(value) ? value.join(separator) : value);
+
+/** A programme: [title, description (HTML, may be empty)] in order. */
+type Syllabus = [string, string][];
+
+const DETAILS: Record<string, { outcomes: Text; desc: Text; reqs: Text; modules?: M[]; syllabus?: Syllabus }> = {
   python: {
     outcomes: ["Python-da məlumatla işləmək üçün iş mühitini qurmaq", "pandas ilə cədvəl məlumatını oxumaq, təmizləmək və birləşdirmək", "NumPy ilə vektor hesablamaları aparmaq", "Matplotlib və seaborn ilə aydın qrafiklər qurmaq", "Təsviri statistika ilə qanunauyğunluqları tapmaq", "Kiçik analitik layihəni başdan sona hazırlamaq"],
-    desc: ["Bu kurs proqramlaşdırma təcrübəsi olmayanlar üçün hazırlanıb. İlk dərsdə iş mühitini quraşdırır, sonrakı modullarda isə Python-un analitik işlər üçün lazım olan hissəsini addım-addım öyrənirsiniz.", "Hər modul açıq məlumat dəstləri üzərində praktik tapşırıqla bitir. Kursun sonunda Bakı nəqliyyat məlumatı əsasında kiçik analitik hesabat hazırlayacaqsınız."],
+    desc: "<p>Bu kurs proqramlaşdırma təcrübəsi olmayanlar üçün hazırlanıb. İlk dərsdə iş mühitini quraşdırır, sonrakı modullarda isə Python-un analitik işlər üçün lazım olan hissəsini addım-addım öyrənirsiniz.</p><p>Hər modul açıq məlumat dəstləri üzərində <strong>praktik tapşırıqla</strong> bitir. Kursun sonunda Bakı nəqliyyat məlumatı əsasında kiçik analitik hesabat hazırlayacaqsınız.</p>",
     reqs: ["Kompüterlə əsas iş bacarığı", "Proqramlaşdırma təcrübəsi tələb olunmur", "Python quraşdırmaq üçün kompüter (quraşdırma dərsdə göstərilir)"],
+    syllabus: [
+      ["Giriş və iş mühiti", "<p>Python, Jupyter və kitabxanaların quraşdırılması; ilk notebook.</p>"],
+      ["Python əsasları", "<p>Dəyişənlər, siyahılar və lüğətlər, şərtlər və dövrlər, funksiyalar.</p>"],
+      ["pandas ilə məlumat", "<ul><li><p>CSV və Excel fayllarını oxumaq</p></li><li><p>Boş və təkrarlanan qiymətləri təmizləmək</p></li><li><p>Qruplaşdırma və birləşdirmə</p></li></ul>"],
+      ["Vizuallaşdırma", "<p><strong>Matplotlib</strong> və <strong>seaborn</strong> ilə aydın qrafiklər: hansı məlumata hansı qrafik yaraşır.</p>"],
+      ["Yekun layihə", "<p>Bakı nəqliyyat məlumatı əsasında kiçik analitik hesabat.</p>"],
+    ],
     modules: [
       ["Giriş və iş mühiti", [["VIDEO", "Kursa xoş gəlmisiniz", 4, true], ["VIDEO", "Python və Jupyter-in quraşdırılması", 13, true], ["TEXT", "İlk notebook", 8], ["QUIZ", "Yoxlama testi", 5]]],
       ["Python əsasları", [["VIDEO", "Dəyişənlər və tiplər", 14], ["VIDEO", "Siyahılar və lüğətlər", 18], ["VIDEO", "Şərtlər və dövrlər", 16], ["VIDEO", "Funksiyalar", 21], ["PDF", "Praktik tapşırıq", 0]]],
@@ -216,6 +240,13 @@ const DETAILS: Record<string, { outcomes: string[]; desc: string[]; reqs: string
     outcomes: ["Layihənin məqsədini, əhatəsini və nəticələrini dəqiq müəyyənləşdirmək", "İş bölgüsü strukturu (WBS) və təqvim planı qurmaq", "Gantt diaqramı ilə tapşırıqları və asılılıqları idarə etmək", "Riskləri qiymətləndirmək və cavab planı hazırlamaq", "Maraqlı tərəflərlə ünsiyyət planı qurmaq", "Layihəni bağlamaq və nəticələri təhlil etmək"],
     desc: ["Kurs auditoriyada, kiçik qrupla keçirilir. Hər mövzu real layihə nümunəsi üzərində, qrup tapşırıqları ilə möhkəmləndirilir.", "Layihə komandalarında çalışan və ya ilk layihəsinə rəhbərlik edəcək mütəxəssislər, həmçinin yuxarı kurs tələbələri üçün uyğundur."],
     reqs: ["Xüsusi hazırlıq tələb olunmur", "Dərslərə noutbukla gəlmək tövsiyə olunur", "Binaya giriş üçün şəxsiyyət vəsiqəsi"],
+    syllabus: [
+      ["Layihə və onun həyat dövrü", "<p>Məqsəd, əhatə və məhdudiyyətlər; layihə nizamnaməsi.</p>"],
+      ["Planlaşdırma", "<p>İş bölgüsü strukturu (WBS), təqvim planı və Gantt diaqramı.</p>"],
+      ["Risklər və keyfiyyət", "<p>Risk reyestri, ehtimal–təsir matrisi və cavab planı.</p>"],
+      ["Komanda və ünsiyyət", "<p>Rolların bölgüsü (RACI) və maraqlı tərəflərlə ünsiyyət planı.</p>"],
+      ["Yekun layihə", "<p>Qrup layihələrinin təqdimatı və rəy.</p>"],
+    ],
     modules: [
       ["Layihə və onun həyat dövrü", [["LIVE_SESSION", "Layihə nədir: məqsəd, əhatə, məhdudiyyətlər", 180], ["PDF", "Layihə nizamnaməsi şablonu", 0]]],
       ["Planlaşdırma", [["LIVE_SESSION", "İş bölgüsü strukturu (WBS)", 180], ["LIVE_SESSION", "Təqvim planı və Gantt diaqramı", 180], ["TEXT", "Qiymətləndirmə üsulları", 15]]],
@@ -224,14 +255,88 @@ const DETAILS: Record<string, { outcomes: string[]; desc: string[]; reqs: string
       ["Yekun layihə", [["LIVE_SESSION", "Qrup layihələrinin təqdimatı", 180]]],
     ],
   },
+  scopus: {
+    outcomes: "<ul><li><p>Açar sözlər və məntiqi operatorlarla dəqiq axtarış sorğusu qurmaq</p></li><li><p>Nəticələri il, sahə və sənəd növünə görə süzmək</p></li><li><p>Jurnalın kvartilini və indeksləndiyi bazanı yoxlamaq</p></li><li><p>h-indeks və sitat göstəricilərini düzgün oxumaq</p></li><li><p>Tapılan mənbələri Zotero-ya köçürmək</p></li></ul>",
+    desc: "<p>Tədqiqatçılar, magistrantlar və doktorantlar üçün <strong>üç saat yarımlıq praktik seminar</strong>. Hər iştirakçı öz mövzusu üzrə axtarış aparır və seminardan hazır ədəbiyyat siyahısı ilə ayrılır.</p><p>Seminar AzTU-nun Scopus və Web of Science abunəliyi üzərində keçirilir; universitet şəbəkəsindən kənarda bazalara necə daxil olmaq da göstərilir.</p>",
+    reqs: "<ul><li><p>Öz tədqiqat mövzunuz</p></li><li><p>Noutbuk: seminar otağında kompüter yoxdur</p></li><li><p>AzTU e-poçt ünvanı, bazalara giriş üçün</p></li></ul>",
+    syllabus: [
+      ["Axtarış strategiyası", "<p>Tədqiqat sualından açar sözlərə: sinonimlər, <strong>AND / OR / NOT</strong> operatorları və ifadə axtarışı.</p>"],
+      ["Scopus və Web of Science-də iş", "<p>İki bazanın fərqləri, süzgəclər, nəticələrin ixracı və axtarışın yadda saxlanması.</p>"],
+      ["Jurnal seçimi", "<p>Kvartillər, impakt-faktor və CiteScore; <em>yırtıcı jurnalları</em> tanımağın əlamətləri.</p>"],
+      ["Mənbələrin idarə olunması", "<p>Zotero ilə kitabxana qurmaq və məqalədə istinadları avtomatik tərtib etmək.</p>"],
+    ],
+  },
+  iot: {
+    outcomes: "<ul><li><p>Arduino IDE-ni quraşdırıb lövhəyə ilk proqramı yükləmək</p></li><li><p>Sensorları maket lövhəsində düzgün qoşmaq</p></li><li><p>Ölçmələri oxumaq və emal etmək</p></li><li><p>ESP32 ilə məlumatı Wi-Fi üzərindən buluda göndərmək</p></li><li><p>Nəticələri sadə veb paneldə izləmək</p></li></ul>",
+    desc: "<p>Bir gündə sıfırdan işlək qurğuya: <strong>temperatur və rütubət ölçən</strong>, məlumatı Wi-Fi ilə buluda göndərən kiçik stansiya yığırsınız.</p><p>Bütün avadanlığı laboratoriya verir; qurğunu emalatxanadan sonra özünüzlə apara bilərsiniz.</p><blockquote><p>Lehimləmə tələb olunmur: hər şey maket lövhəsində (breadboard) yığılır.</p></blockquote>",
+    reqs: ["Proqramlaşdırma təcrübəsi tələb olunmur", "Öz noutbukunuz (Windows, macOS və ya Linux)", "Avadanlığı laboratoriya verir"],
+    syllabus: [
+      ["10:00 — Arduino ilə tanışlıq", "<p>Lövhə, pinlər və ilk proqram: LED-i yandırıb-söndürmək.</p>"],
+      ["11:30 — Sensorlar", "<p>Temperatur, rütubət və işıq sensorlarının qoşulması, ölçmələrin oxunması.</p>"],
+      ["13:00 — Nahar fasiləsi", ""],
+      ["13:30 — Buluda göndərmə", "<p><strong>ESP32</strong> ilə Wi-Fi bağlantısı və ölçmələrin <a href=\"https://thingspeak.mathworks.com\">ThingSpeak</a> xidmətinə göndərilməsi.</p>"],
+      ["15:00 — Layihələrin təqdimatı", "<p>Hər komanda öz stansiyasını göstərir; sual-cavab.</p>"],
+    ],
+  },
 };
 
-const OFFLINE: Record<string, { start: string; end: string; weekly: string; total: string; seats: number; room: string }> = {
-  pm: { start: "2026-10-06", end: "2026-11-24", weekly: "3", total: "24", seats: 40, room: "AzTU əsas korpusu, H. Cavid prospekti 25, 214-cü otaq" },
+/** The programme of every sample course without its own, per subject. */
+const SYLLABI: Record<string, Syllabus> = {
+  "0a2e7c00-5e0c-4a5e-8000-000000000001": [
+    ["Giriş və iş mühiti", "<p>Alətlərin quraşdırılması və ilk addımlar.</p>"],
+    ["Əsas anlayışlar", "<p>Struktur, sintaksis və praktik nümunələr.</p>"],
+    ["Layihə", "<p>Öyrəndiklərinizi kiçik, tamamlanmış layihədə tətbiq edirsiniz.</p>"],
+  ],
+  "0a2e7c00-5e0c-4a5e-8000-000000000002": [
+    ["Giriş və iş mühiti", "<p>Python, Jupyter və lazımi kitabxanalar.</p>"],
+    ["Məlumatla iş", "<p>Məlumatı oxumaq, təmizləmək və qruplaşdırmaq.</p>"],
+    ["Model və nəticə", "<p>Modelin qurulması və nəticələrin <strong>düzgün qiymətləndirilməsi</strong>.</p>"],
+  ],
+  "0a2e7c00-5e0c-4a5e-8000-000000000003": [
+    ["Əsaslar", "<p>Standartlar, qaydalar və terminlər.</p>"],
+    ["Praktika", "<p>Laboratoriya məşğələləri və nümunə məsələlər.</p>"],
+    ["Yekun iş", "<p>Fərdi tapşırıq və onun təqdimatı.</p>"],
+  ],
+  "0a2e7c00-5e0c-4a5e-8000-000000000004": [
+    ["Əsaslar", "<p>Əsas anlayışlar və iş şablonları.</p>"],
+    ["Planlaşdırma", "<p>Plan, büdcə və risklər.</p>"],
+    ["Tətbiq", "<p>Real keys üzərində müzakirə və yekun tapşırıq.</p>"],
+  ],
+  "0a2e7c00-5e0c-4a5e-8000-000000000005": [
+    ["Tədqiqatın qurulması", "<p>Tədqiqat sualının və hipotezin qoyulması.</p>"],
+    ["Metodlar", "<p>Məlumat toplama və statistik yoxlama.</p>"],
+    ["Nəşr", "<p>Məqalənin strukturu və jurnal seçimi.</p>"],
+  ],
+  "0a2e7c00-5e0c-4a5e-8000-000000000006": [
+    ["Giriş", "<p>Normativlər və terminlər.</p>"],
+    ["Modelləşdirmə", "<p>Praktik məşğələ və nümunə layihə.</p>"],
+    ["Yekun layihə", "<p>Layihələrin hazırlanması və təqdimatı.</p>"],
+  ],
+  "0a2e7c00-5e0c-4a5e-8000-000000000007": [
+    ["Giriş", "<p>Təchizat zəncirinin və nəqliyyatın əsas anlayışları.</p>"],
+    ["Planlaşdırma", "<p>Tələbin proqnozu, marşrut və anbar.</p>"],
+    ["Keyslər", "<p>Bakı nümunələri üzərində təhlil.</p>"],
+  ],
+  "0a2e7c00-5e0c-4a5e-8000-000000000008": [
+    ["Giriş", "<p>Enerji balansı və əsas anlayışlar.</p>"],
+    ["Hesablamalar", "<p>Sistemlərin hesablanması və hesablama cədvəli.</p>"],
+    ["Layihə", "<p>Praktik məşğələ və yekun tapşırıq.</p>"],
+  ],
+};
+
+/**
+ * In-person schedules. A ONE_TIME training has one date and a time slot (its
+ * `end` is its `start`, and it has no weekly load); an OFFLINE course may give
+ * its class hours too.
+ */
+const OFFLINE: Record<string, { start: string; end: string; from?: string; to?: string; weekly?: string; total: string; seats: number; room: string }> = {
+  pm: { start: "2026-10-06", end: "2026-11-24", from: "18:30", to: "21:30", weekly: "3", total: "24", seats: 40, room: "AzTU əsas korpusu, H. Cavid prospekti 25, 214-cü otaq" },
   autocad: { start: "2026-10-13", end: "2026-12-15", weekly: "4", total: "30", seats: 40, room: "AzTU əsas korpusu, H. Cavid prospekti 25, kompüter zalı 3" },
   bim: { start: "2026-10-20", end: "2027-01-19", weekly: "3", total: "36", seats: 30, room: "AzTU tədris korpusu, H. Cavid prospekti 25, 402-ci otaq" },
   solar: { start: "2026-11-03", end: "2026-12-22", weekly: "3", total: "20", seats: 24, room: "AzTU enerji laboratoriyası, H. Cavid prospekti 25" },
   urban: { start: "2026-11-10", end: "2027-01-12", weekly: "2", total: "18", seats: 20, room: "AzTU əsas korpusu, H. Cavid prospekti 25, 118-ci otaq" },
+  scopus: { start: "2026-10-17", end: "2026-10-17", from: "10:00", to: "13:30", total: "3.5", seats: 20, room: "Kitabxana-informasiya mərkəzi, H. Cavid prospekti 25, elmi seminar otağı 307" },
+  iot: { start: "2026-10-24", end: "2026-10-24", from: "10:00", to: "16:00:00", total: "6", seats: 18, room: "Mühəndislik korpusu, H. Cavid prospekti 25, robototexnika laboratoriyası 210" },
 };
 
 function modulesFrom(plan: M[], courseId: string): CourseModule[] {
@@ -260,26 +365,42 @@ export function mockCourse(slug: string, now: number = Date.now()): Course | nul
   const base = summary(s, now);
   const d = DETAILS[s.id];
   const off = OFFLINE[s.id];
+  const oneTime = s.type === "ONE_TIME";
+  const syllabusItems: SyllabusItem[] = (d?.syllabus ?? SYLLABI[s.cat] ?? []).map(([title, description]) => ({ title, description }));
   return {
     ...base,
-    description: (d?.desc ?? [s.sub]).join("\n\n"),
-    requirements: (d?.reqs ?? ["Xüsusi hazırlıq tələb olunmur", "Kompüter və internet bağlantısı"]).join("\n"),
-    learningOutcomes: (d?.outcomes ?? [
+    description: text(d?.desc ?? [s.sub], "\n\n"),
+    requirements: text(d?.reqs ?? ["Xüsusi hazırlıq tələb olunmur", "Kompüter və internet bağlantısı"]),
+    learningOutcomes: text(d?.outcomes ?? [
       "Mövzunun əsas anlayışlarını aydın başa düşmək",
       "Öyrəndiklərini praktik tapşırıqlarda tətbiq etmək",
       "Kiçik yekun layihəni müstəqil hazırlamaq",
       "Növbəti səviyyə üçün öyrənmə yolunu müəyyənləşdirmək",
-    ]).join("\n"),
+    ]),
     syllabus: null,
+    syllabusItems,
     thumbnailMediaId: null,
     trailerMediaId: null,
     categoryIds: [s.cat],
     tagIds: [],
     onlineDetails: s.type === "ONLINE" ? { totalVideoSeconds: s.minutes * 60, hasCertificate: false, dripEnabled: false } : null,
     offlineDetails: off
-      ? { startDate: off.start, endDate: off.end, weeklyHours: off.weekly, totalHours: off.total, studentLimit: off.seats, enrolledCount: s.enrolled, city: "Bakı", addressLine: off.room }
+      ? {
+          startDate: off.start,
+          endDate: oneTime ? off.start : off.end,
+          startTime: off.from ?? null,
+          endTime: off.to ?? null,
+          weeklyHours: oneTime ? null : off.weekly ?? null,
+          totalHours: off.total,
+          studentLimit: off.seats,
+          enrolledCount: s.enrolled,
+          city: "Bakı",
+          addressLine: off.room,
+        }
       : null,
-    modules: modulesFrom(d?.modules ?? PLANS[s.cat] ?? PLANS["0a2e7c00-5e0c-4a5e-8000-000000000001"], s.id),
+    // A one-time training is a single session in a room: its programme is the
+    // syllabus, and it has no online lessons.
+    modules: oneTime ? [] : modulesFrom(d?.modules ?? PLANS[s.cat] ?? PLANS["0a2e7c00-5e0c-4a5e-8000-000000000001"], s.id),
   };
 }
 

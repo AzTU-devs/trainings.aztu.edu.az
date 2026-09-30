@@ -23,6 +23,7 @@ import {
   PlayCircle,
   Radio,
   Sparkles,
+  Timer,
   Users,
   Armchair,
 } from "lucide-react";
@@ -34,14 +35,17 @@ import { CertificateStage } from "@/features/certificate/CertificateStage";
 import { certificateDate, courseCertificate } from "@/features/certificate/course";
 import { bakuDateISO } from "@/features/certificate/date";
 import { ReviewsSection } from "@/features/review/components/ReviewsSection";
-import { categoryOfExpert, getCatalogIndex } from "@/features/course/catalog-index.server";
+import { categoryOfExpert, indexFor } from "@/features/course/catalog-index.server";
+import { FORMAT_ICON } from "@/features/course/format-icons";
 import { courseLabels } from "@/features/course/labels";
 import { categoryLabel } from "@/features/category/label";
 import { categoryStyle } from "@/features/category/style";
 import { ExpertArch, ExpertDot } from "@/features/expert/components/ExpertArch";
-import { expertProfileSource, getCourse, listCourses } from "@/features/showcase/source.server";
+import { expertProfileSource, getCourse, listCoursesFor } from "@/features/showcase/source.server";
 import { mockReviews } from "@/features/showcase/data";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { RichText } from "@/components/common/RichText";
+import { hasRichText, plainExcerpt, richTextToPlain } from "@/lib/rich-text.server";
 import { Svg } from "@/components/bright/Svg";
 import { SoftEmpty, StarIcon, Stars } from "@/components/bright/bits";
 import { RailControls } from "@/components/bright/RailControls";
@@ -53,7 +57,7 @@ import { getT } from "@/i18n/server";
 import type { TFunction } from "@/i18n/format";
 import { defaultLocale, isLocale, type Locale } from "@/i18n/config";
 import type { ApiError } from "@/types/api";
-import type { Course, CourseSummary, LessonContentType } from "@/features/course/types";
+import type { Course, CourseSummary, LessonContentType, OfflineDetails } from "@/features/course/types";
 import type { ExpertProfile } from "@/features/expert/types";
 
 type Props = { params: Promise<{ slug: string; lang: string }> };
@@ -62,10 +66,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, lang } = await params;
   try {
     const { course: c, sample } = await getCourse(slug);
+    // The description is rich text; metadata takes it as plain text only.
+    const description = c.subtitle || plainExcerpt(c.description) || undefined;
     return {
       title: c.title,
-      description: c.subtitle ?? c.description?.slice(0, 160) ?? undefined,
-      openGraph: { title: c.title, description: c.subtitle ?? undefined, type: "website" },
+      description,
+      openGraph: { title: c.title, description, type: "website" },
       // Sample courses are for showing the design; search engines should not
       // list them as real courses.
       robots: sample ? { index: false, follow: true } : undefined,
@@ -77,9 +83,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Outcomes and requirements are free text authors usually write one item per
- * line, often with their own bullets or numbers. Split them into items; a
- * single paragraph becomes a single item.
+ * Outcomes and requirements written as plain text (older courses) hold one
+ * item per line, often with the author's own bullets or numbers. Split them
+ * into items; a single paragraph becomes a single item. Rich-text values are
+ * laid out by `.rich-check` / `.rich-dots` instead (globals.css).
  */
 function itemsOf(text: string | null | undefined): string[] {
   if (!text) return [];
@@ -124,6 +131,19 @@ function lessonLength(type: LessonContentType, seconds: number, t: TFunction) {
   return t("ui.durationM", { m: Math.max(1, Math.round(seconds / 60)) });
 }
 
+/** "10:00" from "10:00" or "10:00:00"; null for anything else. */
+function hhmm(time: string | null | undefined): string | null {
+  const m = /^(\d{1,2}):(\d{2})/.exec(time?.trim() ?? "");
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : null;
+}
+
+/** "10:00 – 13:30" when both ends are known. */
+function timeRange(off: Pick<OfflineDetails, "startTime" | "endTime">): string | null {
+  const start = hhmm(off.startTime);
+  const end = hhmm(off.endTime);
+  return start && end ? `${start} – ${end}` : null;
+}
+
 /** "6 oktyabr 2026" — Azerbaijani month names by hand, so no Intl data is needed. */
 function dateText(iso: string | null | undefined, locale: Locale, t: TFunction) {
   if (!iso) return null;
@@ -148,7 +168,10 @@ export default async function CourseDetailPage({ params }: Props) {
   }
   const { course, sample } = loaded;
 
-  const index = await getCatalogIndex();
+  // A real course (reached by its link while the catalogue shows samples, e.g.
+  // from a real expert's page) is shown against the real categories, and
+  // suggests real courses; a sample course against the sample ones.
+  const index = await indexFor(sample);
   const labels = courseLabels(t, locale);
   const category = index.categories.find((c) => course.categoryIds.includes(c.id)) ?? null;
   const style = categoryStyle(category);
@@ -160,9 +183,19 @@ export default async function CourseDetailPage({ params }: Props) {
   const totalSeconds =
     course.onlineDetails?.totalVideoSeconds || lessons.reduce((s, l) => s + (l.durationSeconds ?? 0), 0) || null;
   const off = course.offlineDetails;
-  const outcomes = itemsOf(course.learningOutcomes);
-  const requirements = itemsOf(course.requirements);
-  const paragraphs = (course.description ?? "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const oneTime = course.courseType === "ONE_TIME";
+  const time = off ? timeRange(off) : null;
+  // A one-time training happens on one day: its date is the start date.
+  const day = off ? dateText(off.startDate ?? off.endDate, locale, t) : null;
+  const dates = off ? [dateText(off.startDate, locale, t), dateText(off.endDate, locale, t)].filter(Boolean).join(" – ") : "";
+  const weekly = off?.weeklyHours != null && off.weeklyHours !== "" ? t("course2.weeklyValue", { h: off.weeklyHours }) : null;
+  const classroomSeconds = off?.totalHours != null ? Number(off.totalHours) * 3600 : null;
+  const hasOutcomes = hasRichText(course.learningOutcomes);
+  const hasRequirements = hasRichText(course.requirements);
+  const hasDescription = hasRichText(course.description);
+  // The programme: its items in order, or an older course's free text.
+  const syllabusItems = (course.syllabusItems ?? []).filter((item) => item?.title?.trim());
+  const legacySyllabus = !syllabusItems.length && hasRichText(course.syllabus) ? course.syllabus : null;
   const language = t(`languages.${course.language}`) !== `languages.${course.language}` ? t(`languages.${course.language}`) : course.language.toUpperCase();
 
   // The roster's public profiles add titles and portraits; an expert who is
@@ -170,10 +203,12 @@ export default async function CourseDetailPage({ params }: Props) {
   const roster = rosterOf(course);
   const profiles = await Promise.all(roster.map((r) => expertProfileSource(r.tutorId)));
   const lead = roster[0] ? { ...roster[0], profile: profiles[0] as ExpertProfile | null } : null;
-  const leadK = lead ? categoryStyle(categoryOfExpert(index, lead.tutorId) ?? category).k : k;
+  const leadK = lead
+    ? categoryStyle(categoryOfExpert(index, { id: lead.tutorId, expertiseCategoryIds: lead.profile?.expertiseCategoryIds }) ?? category).k
+    : k;
 
   // Related: the same field first, then the newest others.
-  const related = await listCourses({ page: 0, size: 12 })
+  const related = await listCoursesFor(sample, { page: 0, size: 12 })
     .then((p) => p.content.filter((c) => c.id !== course.id))
     .catch(() => [] as CourseSummary[]);
   related.sort(
@@ -193,15 +228,21 @@ export default async function CourseDetailPage({ params }: Props) {
       summary.thumbnailUrl ?? (course.thumbnailMediaId ? `/api/public/media/${course.thumbnailMediaId}/content` : null),
   };
 
+  const FormatIcon = FORMAT_ICON[course.courseType] ?? MapPin;
   const facts: [React.ReactNode, string, string][] = [
-    [course.courseType === "ONLINE" ? <MonitorPlay key="f" className="i" aria-hidden /> : <MapPin key="f" className="i" aria-hidden />, t("course2.format"), labels.format[course.courseType]],
+    [<FormatIcon key="f" className="i" aria-hidden />, t("course2.format"), labels.format[course.courseType] ?? course.courseType],
     [<BarChart3 key="l" className="i" aria-hidden />, t("course2.level"), labels.level[course.level]],
   ];
   if (off) {
-    const start = dateText(off.startDate, locale, t);
-    const end = dateText(off.endDate, locale, t);
-    if (start || end) facts.push([<Calendar key="d" className="i" aria-hidden />, t("course2.dates"), [start, end].filter(Boolean).join(" – ")]);
-    facts.push([<Clock key="w" className="i" aria-hidden />, t("course2.weekly"), t("course2.weeklyValue", { h: off.weeklyHours })]);
+    if (oneTime) {
+      // One day, one time slot: the date and the hours replace the date range
+      // and the weekly load.
+      if (day) facts.push([<Calendar key="d" className="i" aria-hidden />, t("course2.date"), day]);
+      if (time) facts.push([<Clock key="t" className="i" aria-hidden />, t("course2.time"), time]);
+    } else {
+      if (dates) facts.push([<Calendar key="d" className="i" aria-hidden />, t("course2.dates"), dates]);
+      if (weekly) facts.push([<Clock key="w" className="i" aria-hidden />, t("course2.weekly"), weekly]);
+    }
     const left = Math.max(0, off.studentLimit - off.enrolledCount);
     facts.push([<Armchair key="s" className="i" aria-hidden />, t("course2.seats"), t("course2.seatsLeft", { count: left })]);
   } else {
@@ -212,7 +253,7 @@ export default async function CourseDetailPage({ params }: Props) {
 
   const tabs = [
     { id: "about", label: t("course2.tabAbout") },
-    { id: "curriculum", label: t("course2.tabCurriculum"), count: lessonCount || null },
+    { id: "curriculum", label: t("course2.tabCurriculum"), count: lessonCount || syllabusItems.length || null },
     ...(off ? [{ id: "location", label: t("course2.tabLocation") }] : []),
     ...(lead ? [{ id: "expert", label: t("course2.tabExpert") }] : []),
     ...(sample ? [{ id: "certificate", label: t("certificate.tab") }] : []),
@@ -223,12 +264,21 @@ export default async function CourseDetailPage({ params }: Props) {
     sample ? <SampleEnrolCta slug={course.slug} compact={compact} /> : <EnrollCta course={course} compact={compact} />;
 
   const includes: [React.ReactNode, string, string][] = off
-    ? [
-        [<Calendar key="1" className="i" aria-hidden />, t("course2.starts"), dateText(off.startDate, locale, t) ?? "—"],
-        [<Calendar key="2" className="i" aria-hidden />, t("course2.ends"), dateText(off.endDate, locale, t) ?? "—"],
-        [<Clock key="3" className="i" aria-hidden />, t("course2.weekly"), t("course2.weeklyValue", { h: off.weeklyHours })],
-        [<MapPin key="4" className="i" aria-hidden />, t("course2.city"), off.city ?? "—"],
-      ]
+    ? oneTime
+      ? [
+          [<Calendar key="1" className="i" aria-hidden />, t("course2.date"), day ?? "—"],
+          [<Clock key="2" className="i" aria-hidden />, t("course2.time"), time ?? "—"],
+          [<Timer key="3" className="i" aria-hidden />, t("course2.length"), labels.duration(classroomSeconds) ?? "—"],
+          [<MapPin key="4" className="i" aria-hidden />, t("course2.city"), off.city ?? "—"],
+        ]
+      : [
+          [<Calendar key="1" className="i" aria-hidden />, t("course2.starts"), dateText(off.startDate, locale, t) ?? "—"],
+          [<Calendar key="2" className="i" aria-hidden />, t("course2.ends"), dateText(off.endDate, locale, t) ?? "—"],
+          ...(weekly ? [[<Clock key="3" className="i" aria-hidden />, t("course2.weekly"), weekly] as [React.ReactNode, string, string]] : []),
+          // An in-person course may also give its class hours.
+          ...(time ? [[<Timer key="5" className="i" aria-hidden />, t("course2.time"), time] as [React.ReactNode, string, string]] : []),
+          [<MapPin key="4" className="i" aria-hidden />, t("course2.city"), off.city ?? "—"],
+        ]
     : [
         [<MonitorPlay key="1" className="i" aria-hidden />, t("course2.format"), t("course2.selfPaced")],
         [<Layers key="2" className="i" aria-hidden />, t("course2.lessons"), lessonCount ? t("course2.lessonCount", { count: lessonCount }) : t("course2.preparing")],
@@ -374,48 +424,77 @@ export default async function CourseDetailPage({ params }: Props) {
 
             {/* About */}
             <section id="about" className="scroll-mt-[150px] pt-12" aria-labelledby="learn-t">
-              {outcomes.length ? (
+              {hasOutcomes ? (
                 <div className="outcomes p-6 sm:p-9">
                   <h2 id="learn-t" className="d-md">
                     {t("course2.outcomes")}
                   </h2>
-                  <ul className="mt-7 grid gap-x-8 gap-y-4 text-[16px] leading-snug sm:grid-cols-2">
-                    {outcomes.map((o) => (
-                      <li key={o}>
-                        <span className="ck">
-                          <Check className="i" aria-hidden />
-                        </span>
-                        <span>{o}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <RichText
+                    value={course.learningOutcomes}
+                    className="rich-check mt-7 text-[16px] leading-snug"
+                    plain={(text) => (
+                      <ul className="mt-7 grid gap-x-8 gap-y-4 text-[16px] leading-snug sm:grid-cols-2">
+                        {itemsOf(text).map((o) => (
+                          <li key={o}>
+                            <span className="ck">
+                              <Check className="i" aria-hidden />
+                            </span>
+                            <span>{o}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  />
                 </div>
               ) : (
                 <h2 id="learn-t" className="sr-only">
                   {t("course2.outcomes")}
                 </h2>
               )}
-              {paragraphs.length || requirements.length ? (
+              {hasDescription || hasRequirements ? (
                 <div className="mt-12 grid gap-10 md:grid-cols-[1fr_280px]">
+                  {/* Kept even when empty: it holds the first grid column. */}
                   <div>
-                    <h2 className="t-lg">{t("course2.about")}</h2>
-                    <div className="prose-b mt-4 max-w-[40rem] text-[16.5px] leading-[1.7] text-ink-2">
-                      {paragraphs.map((p, i) => (
-                        <p key={i}>{p}</p>
-                      ))}
-                    </div>
+                    {hasDescription ? (
+                      <>
+                        <h2 className="t-lg">{t("course2.about")}</h2>
+                        <RichText
+                          value={course.description}
+                          className="mt-4 max-w-[40rem] text-[16.5px] leading-[1.7] text-ink-2"
+                          plain={(text) => (
+                            <div className="prose-b mt-4 max-w-[40rem] text-[16.5px] leading-[1.7] text-ink-2">
+                              {text
+                                .split(/\n\s*\n/)
+                                .map((p) => p.trim())
+                                .filter(Boolean)
+                                .map((p, i) => (
+                                  <p key={i} className="whitespace-pre-line">
+                                    {p}
+                                  </p>
+                                ))}
+                            </div>
+                          )}
+                        />
+                      </>
+                    ) : null}
                   </div>
-                  {requirements.length ? (
+                  {hasRequirements ? (
                     <div>
                       <h2 className="t-lg">{t("course2.requirements")}</h2>
-                      <ul className="mt-4 grid gap-3 text-[15.5px] text-ink-2">
-                        {requirements.map((r) => (
-                          <li key={r} className="flex items-start gap-3">
-                            <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-[var(--k-500)]" />
-                            <span>{r}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <RichText
+                        value={course.requirements}
+                        className="rich-dots mt-4 text-[15.5px] text-ink-2"
+                        plain={(text) => (
+                          <ul className="mt-4 grid gap-3 text-[15.5px] text-ink-2">
+                            {itemsOf(text).map((r) => (
+                              <li key={r} className="flex items-start gap-3">
+                                <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-[var(--k-500)]" />
+                                <span>{r}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      />
                     </div>
                   ) : null}
                 </div>
@@ -436,9 +515,35 @@ export default async function CourseDetailPage({ params }: Props) {
                     })}
                     {labels.duration(totalSeconds) ? ` · ${labels.duration(totalSeconds)}` : ""}
                   </p>
+                ) : syllabusItems.length ? (
+                  <p className="mt-2 text-[15px] text-ink-3">{t("course2.topicCount", { count: syllabusItems.length })}</p>
                 ) : null}
               </div>
-              <div className="mt-7">
+              {/* The programme the expert wrote, topic by topic (or an older
+                  course's free text), then the lessons themselves. */}
+              {syllabusItems.length ? (
+                <ol className="syl mt-7">
+                  {syllabusItems.map((item, i) => (
+                    <li key={i}>
+                      <span className="num" aria-hidden>
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <div className="min-w-0 flex-1 pt-2">
+                        <h3 className="text-[16.5px] font-semibold leading-snug">{item.title}</h3>
+                        <RichText value={item.description} className="mt-2 text-[15px] leading-relaxed text-ink-2" />
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              ) : legacySyllabus ? (
+                <div className="mt-7 rounded-[22px] bg-surface p-6 shadow-[0_0_0_1px_var(--line)] sm:p-7">
+                  <RichText value={legacySyllabus} className="text-[15.5px] leading-relaxed text-ink-2" />
+                </div>
+              ) : null}
+              {lessonCount && (syllabusItems.length || legacySyllabus) ? (
+                <h3 className="t-md mt-10">{t("course2.lessons")}</h3>
+              ) : null}
+              <div className={syllabusItems.length || legacySyllabus ? "mt-4" : "mt-7"}>
                 {lessonCount ? (
                   course.modules.map((m, i) => (
                     <details key={m.id} className="mod acc" open={i === 0}>
@@ -483,7 +588,7 @@ export default async function CourseDetailPage({ params }: Props) {
                       </ul>
                     </details>
                   ))
-                ) : (
+                ) : syllabusItems.length || legacySyllabus ? null : (
                   <SoftEmpty icon={<ListTree className="i" aria-hidden />} title={t("course2.noCurriculum")} hint={t("course2.noCurriculumHint")} />
                 )}
               </div>
@@ -502,9 +607,7 @@ export default async function CourseDetailPage({ params }: Props) {
                   <div className="flex flex-col gap-4 p-6 sm:p-8">
                     <p className="font-display text-[21px] font-bold leading-snug tracking-tight">{off.addressLine ?? off.city}</p>
                     <p className="text-ink-2">
-                      {[off.city, [dateText(off.startDate, locale, t), dateText(off.endDate, locale, t)].filter(Boolean).join(" – ")]
-                        .filter(Boolean)
-                        .join(" · ")}
+                      {[off.city, oneTime ? day : dates, time].filter(Boolean).join(" · ")}
                     </p>
                     {off.addressLine || off.city ? (
                       <a
@@ -666,7 +769,9 @@ export default async function CourseDetailPage({ params }: Props) {
             "@context": "https://schema.org",
             "@type": "Course",
             name: course.title,
-            description: course.subtitle ?? course.description ?? course.title,
+            // Plain text only: the description is rich text, and markup has no
+            // place in JSON-LD (see JsonLd for the XSS this once let through).
+            description: course.subtitle || richTextToPlain(course.description) || course.title,
             inLanguage: course.language,
             provider: { "@type": "Organization", name: "EduPlatform" },
             aggregateRating:

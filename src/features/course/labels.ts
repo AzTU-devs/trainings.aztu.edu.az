@@ -23,6 +23,7 @@ export function courseLabels(t: TFunction, locale: string, now: number = Date.no
   const format: Record<CourseType, string> = {
     ONLINE: t("ui.online"),
     OFFLINE: t("ui.inPerson"),
+    ONE_TIME: t("ui.oneTime"),
   };
   return {
     level,

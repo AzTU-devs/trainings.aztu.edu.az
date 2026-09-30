@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,11 @@ type Props = {
   course: Course;
   currentLessonId: string;
   initialProgress: Record<string, LessonProgress>;
+  /**
+   * The current lesson's description, rendered on the server by <RichText>
+   * (it may be HTML, which is sanitized there). Null when it has none.
+   */
+  lessonDescription?: ReactNode;
 };
 
 const SAVE_INTERVAL_MS = 10_000;
@@ -35,6 +40,7 @@ export function LearningClient({
   course,
   currentLessonId,
   initialProgress,
+  lessonDescription,
 }: Props) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -234,14 +240,12 @@ export function LearningClient({
               ) : null}
             </div>
 
-            {currentLesson?.description ? (
+            {lessonDescription ? (
               <div className="mt-7 border-t border-border/80 pt-6">
                 <h2 className="text-sm font-semibold text-foreground">
                   {t("learn.aboutLesson")}
                 </h2>
-                <p className="mt-2 max-w-3xl whitespace-pre-line text-[15px] leading-relaxed text-muted-foreground">
-                  {currentLesson.description}
-                </p>
+                <div className="mt-2">{lessonDescription}</div>
               </div>
             ) : null}
           </section>

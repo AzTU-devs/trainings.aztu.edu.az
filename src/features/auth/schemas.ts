@@ -28,6 +28,18 @@ export const registerSchema = z
   });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+/**
+ * The API's limits on the areas an expert types themselves: at most ten, each
+ * 2 to 60 characters once trimmed and its inner spaces collapsed, plain text.
+ * The form applies them as each area is added (TutorRegisterForm), so the
+ * schema only has to guard the list as a whole.
+ */
+export const OWN_AREA_MAX = 10;
+export const OWN_AREA_MIN_LENGTH = 2;
+export const OWN_AREA_MAX_LENGTH = 60;
+/** `<`, `>` and control characters; the API rejects an area with any of them. */
+export const OWN_AREA_FORBIDDEN = /[<>\p{Cc}]/u;
+
 export const tutorRegisterSchema = z
   .object({
     firstName: z.string().min(1, "First name is required").max(80),
@@ -48,11 +60,25 @@ export const tutorRegisterSchema = z
     yearsExperience: z.number().int().min(0).max(80).optional(),
     websiteUrl: z.string().url("Enter a valid URL").max(255).optional().or(z.literal("")),
     linkedinUrl: z.string().url("Enter a valid URL").max(255).optional().or(z.literal("")),
-    categoryIds: z.array(z.string().uuid()).min(1, "Pick at least one expertise area"),
+    // At least one area in total: a picked category, or one of their own.
+    categoryIds: z.array(z.string().uuid()),
+    customExpertise: z
+      .array(
+        z
+          .string()
+          .min(OWN_AREA_MIN_LENGTH)
+          .max(OWN_AREA_MAX_LENGTH)
+          .refine((v) => !OWN_AREA_FORBIDDEN.test(v)),
+      )
+      .max(OWN_AREA_MAX),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
+  })
+  .refine((d) => d.categoryIds.length > 0 || d.customExpertise.length > 0, {
+    message: "Choose at least one area of expertise or add your own",
+    path: ["categoryIds"],
   });
 export type TutorRegisterInput = z.infer<typeof tutorRegisterSchema>;
 

@@ -63,11 +63,13 @@ export type ExpertFact = { icon: LucideIcon; label: string };
 /**
  * The expert's subject areas, resolved to names by the caller: the profile
  * carries only category ids, and naming them takes a request this card should
- * not make.
+ * not make. `own` marks an area the expert typed themselves rather than a
+ * category; it is drawn outlined, with `ownTitle` as its tooltip.
  */
 export type ExpertExpertise = {
   title: string;
-  areas: { id: string; name: string; href?: string }[];
+  areas: { id: string; name: string; href?: string; own?: boolean }[];
+  ownTitle?: string;
 };
 
 type ProfileLinkItem = { href: string | null; icon: LucideIcon; label: string };
@@ -170,7 +172,7 @@ export function ExpertProfileCard({
     },
     // The count stands in for the expertise card when the caller could not
     // name the areas.
-    ...(!areas.length && expert.expertiseCategoryIds.length > 0
+    ...(!areas.length && expert.expertiseCategoryIds.length + (expert.customExpertise?.length ?? 0) > 0
       ? [{ icon: Award, label: labels.specialties }]
       : []),
   ];
@@ -184,7 +186,11 @@ export function ExpertProfileCard({
         <ul className="flex flex-wrap gap-2">
           {areas.map((area) => (
             <li key={area.id}>
-              {area.href ? (
+              {area.own ? (
+                <span className={OWN_CHIP} title={expertise?.ownTitle}>
+                  {area.name}
+                </span>
+              ) : area.href ? (
                 <LocaleLink
                   href={area.href}
                   className="inline-flex h-9 items-center rounded-full border border-border bg-card px-4 text-sm font-medium transition-colors duration-200 hover:border-primary/40 hover:text-primary"
@@ -411,6 +417,10 @@ type DetailSection = { title: string; icon: LucideIcon; body: ReactNode };
 
 const CHIP =
   "inline-flex h-9 items-center rounded-full bg-navy-50 px-4 text-sm font-medium text-navy-700 dark:bg-navy-900/60 dark:text-navy-100";
+
+/** An area the expert typed themselves: outlined, since it is not a category. */
+const OWN_CHIP =
+  "inline-flex h-9 items-center rounded-full border border-dashed border-input px-4 text-sm font-medium text-muted-foreground";
 
 /** Education and certifications are stored one entry per line. */
 function linesOf(text: string | null | undefined): string[] {

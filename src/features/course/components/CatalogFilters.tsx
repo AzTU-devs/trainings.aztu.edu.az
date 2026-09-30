@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Info, MapPin, MonitorPlay, SlidersHorizontal, X } from "lucide-react";
+import { Info, SlidersHorizontal, X } from "lucide-react";
 import { useT } from "@/i18n/client";
 import { cn } from "@/lib/utils/cn";
 import { LevelMeter, Stars } from "@/components/bright/bits";
-import type { CourseLevel } from "../types";
+import { FORMAT_ICON } from "../format-icons";
+import { COURSE_TYPES, type CourseLevel, type CourseType } from "../types";
 
 /*
  * The catalogue's filters. Every control maps to a server-side filter in the
@@ -54,6 +55,8 @@ function useCatalogParams() {
 }
 
 const LEVELS: CourseLevel[] = ["BEGINNER", "INTERMEDIATE", "ADVANCED", "ALL"];
+/** The same words as courseLabels().format, which is built on the server. */
+const FORMAT_KEY: Record<CourseType, string> = { ONLINE: "ui.online", OFFLINE: "ui.inPerson", ONE_TIME: "ui.oneTime" };
 const DURATIONS = ["lt2", "2to6", "6to17", "gt17"] as const;
 const RATINGS = ["4.5", "4", "3.5"] as const;
 
@@ -71,19 +74,20 @@ function Panel({ categories, inSheet }: { categories: Category[]; inSheet?: bool
     <>
       <div className="fgroup">
         <h3>{t("catalog.format")}</h3>
-        <div className="seg full lg" role="radiogroup" aria-label={t("catalog.format")}>
-          {(
-            [
-              ["", t("catalog.all"), null],
-              ["ONLINE", t("ui.online"), <MonitorPlay key="o" className="i" aria-hidden />],
-              ["OFFLINE", t("ui.inPerson"), <MapPin key="p" className="i" aria-hidden />],
-            ] as const
-          ).map(([v, label, icon]) => (
-            <button key={v || "all"} type="button" role="radio" aria-checked={type === v} onClick={() => set("type", v || null)}>
-              {icon}
-              {label}
-            </button>
-          ))}
+        {/* Four choices do not fit one row of the column, so two rows of two. */}
+        <div className="seg full lg quad" role="radiogroup" aria-label={t("catalog.format")}>
+          <button type="button" role="radio" aria-checked={type === ""} onClick={() => set("type", null)}>
+            {t("catalog.all")}
+          </button>
+          {COURSE_TYPES.map((v) => {
+            const Icon = FORMAT_ICON[v];
+            return (
+              <button key={v} type="button" role="radio" aria-checked={type === v} onClick={() => set("type", v)}>
+                <Icon className="i" aria-hidden />
+                {t(FORMAT_KEY[v])}
+              </button>
+            );
+          })}
         </div>
       </div>
 

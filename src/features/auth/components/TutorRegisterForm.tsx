@@ -5,8 +5,12 @@ import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Check, MailCheck } from "lucide-react";
+import { Check, MailCheck, Plus, X } from "lucide-react";
 import {
+  OWN_AREA_FORBIDDEN,
+  OWN_AREA_MAX,
+  OWN_AREA_MAX_LENGTH,
+  OWN_AREA_MIN_LENGTH,
   tutorRegisterSchema,
   tutorOtpSchema,
   type TutorRegisterInput,
@@ -14,6 +18,7 @@ import {
 } from "../schemas";
 import { useTutorRegisterStart, useTutorRegisterVerify } from "../hooks";
 import { FieldError } from "./FieldError";
+import { FormError } from "@/components/common/FormError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +27,7 @@ import { localeHref } from "@/i18n/href";
 import { cn } from "@/lib/utils/cn";
 import type { ApiError } from "@/types/api";
 import type { Category } from "@/features/category/types";
+import { sameArea } from "@/features/expert/areas";
 
 export function TutorRegisterForm({ categories }: { categories: Category[] }) {
   const router = useRouter();
@@ -48,6 +54,7 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
       websiteUrl: "",
       linkedinUrl: "",
       categoryIds: [],
+      customExpertise: [],
     },
   });
 
@@ -57,6 +64,9 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
   });
 
   const selected = useWatch({ control: form.control, name: "categoryIds" });
+  const ownAreas = useWatch({ control: form.control, name: "customExpertise" });
+  const [ownDraft, setOwnDraft] = useState("");
+  const [ownProblem, setOwnProblem] = useState<string | null>(null);
 
   const toggleCategory = (id: string) => {
     const next = selected.includes(id)
@@ -68,7 +78,42 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
     });
   };
 
+  // "At least one area" counts both lists, and its message sits under the
+  // categories, so a change to the own areas re-checks it there too.
+  const setOwnAreas = (next: string[]) => {
+    form.setValue("customExpertise", next, { shouldValidate: true, shouldDirty: true });
+    if (form.formState.errors.categoryIds) void form.trigger("categoryIds");
+  };
+
+  // The API's rules for an own area, checked as it is added so the problem
+  // shows at the input instead of as a rejected application.
+  const addOwnArea = () => {
+    const area = ownDraft.trim().replace(/\s+/g, " ");
+    if (!area) return;
+    const problem =
+      ownAreas.length >= OWN_AREA_MAX
+        ? "auth.errOwnAreaLimit"
+        : OWN_AREA_FORBIDDEN.test(area)
+          ? "auth.errOwnAreaChars"
+          : area.length < OWN_AREA_MIN_LENGTH || area.length > OWN_AREA_MAX_LENGTH
+            ? "auth.errOwnAreaLength"
+            : ownAreas.some((a) => sameArea(a, area))
+              ? "auth.errOwnAreaDuplicate"
+              : categories.some((c) => sameArea(c.name, area))
+                ? "auth.errOwnAreaCategory"
+                : null;
+    if (problem) {
+      setOwnProblem(t(problem));
+      return;
+    }
+    setOwnAreas([...ownAreas, area]);
+    setOwnDraft("");
+    setOwnProblem(null);
+  };
+
   const onStart = (values: TutorRegisterInput) => {
+    // customExpertise goes as it is, [] included: the API reads an empty
+    // list as "none", and an API from before the field ignores it.
     const payload: TutorRegisterInput = {
       ...values,
       phone: values.phone || undefined,
@@ -376,6 +421,75 @@ export function TutorRegisterForm({ categories }: { categories: Category[] }) {
             )}
           </div>
           <FieldError error={errors.categoryIds} />
+        </div>
+
+        {/* Areas that are not in the list: free text, kept on the profile
+            only. They never become categories. */}
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="ownArea">{t("auth.ownArea")}</Label>
+          <div className="flex gap-2">
+            <Input
+              id="ownArea"
+              value={ownDraft}
+              placeholder={t("auth.ownAreaPlaceholder")}
+              autoComplete="off"
+              maxLength={OWN_AREA_MAX_LENGTH * 2}
+              disabled={ownAreas.length >= OWN_AREA_MAX}
+              aria-invalid={ownProblem ? true : undefined}
+              aria-describedby="ownArea-note"
+              className={invalidField}
+              onChange={(e) => {
+                setOwnDraft(e.target.value);
+                if (ownProblem) setOwnProblem(null);
+              }}
+              onKeyDown={(e) => {
+                // Enter adds the area instead of submitting the application.
+                if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                e.preventDefault();
+                addOwnArea();
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 shrink-0"
+              disabled={!ownDraft.trim() || ownAreas.length >= OWN_AREA_MAX}
+              onClick={addOwnArea}
+            >
+              <Plus aria-hidden />
+              {t("auth.ownAreaAdd")}
+            </Button>
+          </div>
+          <div id="ownArea-note">
+            {ownProblem ? (
+              <FormError message={ownProblem} />
+            ) : ownAreas.length >= OWN_AREA_MAX ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">{t("auth.errOwnAreaLimit")}</p>
+            ) : (
+              <p className="text-xs leading-relaxed text-muted-foreground">{t("auth.ownAreaHint")}</p>
+            )}
+          </div>
+          {ownAreas.length ? (
+            <ul className="flex flex-wrap gap-2">
+              {ownAreas.map((area) => (
+                <li
+                  key={area}
+                  className="inline-flex h-10 items-center gap-1 rounded-full border border-dashed border-input bg-card pl-4 pr-1.5 text-sm font-medium"
+                >
+                  {area}
+                  <button
+                    type="button"
+                    onClick={() => setOwnAreas(ownAreas.filter((a) => a !== area))}
+                    aria-label={t("auth.ownAreaRemove", { area })}
+                    className="grid size-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    <X className="size-4" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <FieldError error={errors.customExpertise} />
         </div>
       </FormSection>
 

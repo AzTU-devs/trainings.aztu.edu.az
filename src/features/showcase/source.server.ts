@@ -1,17 +1,18 @@
 import "server-only";
 import { courseServerApi } from "@/features/course/api.server";
-import type { Course, CourseListParams, CourseSummary } from "@/features/course/types";
+import { isInPerson, type Course, type CourseListParams, type CourseSummary } from "@/features/course/types";
 import { expertServerApi } from "@/features/expert/api.server";
 import { coursesByExpert as realCoursesByExpert, listExperts as realListExperts } from "@/features/expert/directory.server";
 import type { ExpertProfile, ExpertSummary } from "@/features/expert/types";
 import type { Page } from "@/types/api";
-import { SHOWCASE } from "./flag";
-import { MOCK_CATEGORIES, MOCK_EXPERTS, expertName, mockCategoryOf, mockCourse, mockCourses } from "./data";
+import { SHOWCASE, SHOWCASE_EXPERTS } from "./flag";
+import { MOCK_CATEGORIES, MOCK_EXPERTS, expertName, mockCategoryOf, mockCourse, mockCourses, type MockExpert } from "./data";
 
 /*
- * The one place the public pages get catalogue data from. With the showcase
- * flag on it answers from the sample content; otherwise it is a thin pass-
- * through to the real API, with exactly the calls the pages made before.
+ * The one place the public pages get catalogue and expert data from. Each half
+ * follows its own flag (./flag.ts): on, it answers from the sample content;
+ * off, it is a thin pass-through to the real API, with exactly the calls the
+ * pages made before.
  */
 
 // ---------------------------------------------------------------- index
@@ -37,6 +38,7 @@ export function mockIndex() {
     total: courses.length,
     online: courses.filter((c) => c.courseType === "ONLINE").length,
     offline: courses.filter((c) => c.courseType === "OFFLINE").length,
+    oneTime: courses.filter((c) => c.courseType === "ONE_TIME").length,
   };
 }
 
@@ -87,6 +89,18 @@ export function listCourses(params: CourseListParams & { page?: number; size?: n
 }
 
 /**
+ * The catalogue query for a page about a sample or a real course: the same
+ * content as the course itself, so a real course (reached through a real
+ * expert while the catalogue shows samples) suggests real courses beside it.
+ */
+export function listCoursesFor(
+  sample: boolean,
+  params: CourseListParams & { page?: number; size?: number },
+): Promise<Page<CourseSummary>> {
+  return sample ? listCourses(params) : courseServerApi.list(params);
+}
+
+/**
  * One course's page. A slug that is not in the sample set falls through to
  * the API, so a real course stays reachable by its link either way.
  */
@@ -115,59 +129,80 @@ function mockExpertSummaries(): ExpertSummary[] {
       ratingCount,
       enrolledCount: own.reduce((s, c) => s + c.enrolledCount, 0),
       online: own.some((c) => c.courseType === "ONLINE"),
-      offline: own.some((c) => c.courseType === "OFFLINE"),
+      offline: own.some((c) => isInPerson(c.courseType)),
       avatarUrl: null,
       academicTitle: e.title,
       department: e.department,
       headline: e.headline,
+      expertiseCategoryIds: [e.categoryId],
+      customExpertise: e.custom ?? [],
+      approved: true,
     };
   }).sort((a, b) => b.enrolledCount - a.enrolledCount);
 }
 
-export async function listExpertsSource(): Promise<ExpertSummary[]> {
-  return SHOWCASE ? mockExpertSummaries() : realListExperts();
+function mockExpertProfile(e: MockExpert): ExpertProfile {
+  const s = mockExpertSummaries().find((x) => x.id === e.id)!;
+  return {
+    id: e.id,
+    userId: e.id,
+    firstName: e.firstName,
+    lastName: e.lastName,
+    headline: e.headline,
+    bio: e.bio ?? null,
+    yearsExperience: e.years,
+    websiteUrl: null,
+    linkedinUrl: null,
+    approvalStatus: "APPROVED",
+    approvedAt: null,
+    ratingAvg: String(s.ratingAvg),
+    ratingCount: s.ratingCount,
+    expertiseCategoryIds: [e.categoryId],
+    customExpertise: e.custom ?? [],
+    avatarMediaId: null,
+    avatarUrl: null,
+    academicTitle: e.title,
+    department: e.department,
+    education: null,
+    certifications: null,
+    languages: e.languages ?? null,
+    googleScholarUrl: null,
+    researchGateUrl: null,
+    orcid: null,
+    githubUrl: null,
+  };
 }
 
+/**
+ * Whether an expert id is a sample expert that the site still links to: while
+ * the catalogue is sample content, every sample course names one as its
+ * expert, and that link must not lead nowhere just because the directory now
+ * lists real experts. So their page answers with the sample profile and the
+ * sample courses, for their id only. Never true of a real expert (sample ids
+ * are not UUIDs, so they cannot collide) or once the catalogue is real.
+ */
+export function isSampleExpert(id: string): boolean {
+  return SHOWCASE && MOCK_EXPERTS.some((e) => e.id === id);
+}
+
+/**
+ * The experts directory: the approved experts with a published course — or
+ * the sample experts, while SHOWCASE_EXPERTS is on. Sample experts are never
+ * mixed into the real list.
+ */
+export async function listExpertsSource(): Promise<ExpertSummary[]> {
+  return SHOWCASE_EXPERTS ? mockExpertSummaries() : realListExperts();
+}
+
+/** One expert's public profile; null for an unknown or unapproved one. */
 export async function expertProfileSource(id: string): Promise<ExpertProfile | null> {
-  if (SHOWCASE) {
-    const e = MOCK_EXPERTS.find((x) => x.id === id);
-    if (e) {
-      const s = mockExpertSummaries().find((x) => x.id === id)!;
-      return {
-        id: e.id,
-        userId: e.id,
-        firstName: e.firstName,
-        lastName: e.lastName,
-        headline: e.headline,
-        bio: e.bio ?? null,
-        yearsExperience: e.years,
-        websiteUrl: null,
-        linkedinUrl: null,
-        approvalStatus: "APPROVED",
-        approvedAt: null,
-        ratingAvg: String(s.ratingAvg),
-        ratingCount: s.ratingCount,
-        expertiseCategoryIds: [e.categoryId],
-        avatarMediaId: null,
-        avatarUrl: null,
-        academicTitle: e.title,
-        department: e.department,
-        education: null,
-        certifications: null,
-        languages: e.languages ?? null,
-        googleScholarUrl: null,
-        researchGateUrl: null,
-        orcid: null,
-        githubUrl: null,
-      };
-    }
-  }
+  const sample = isSampleExpert(id) ? MOCK_EXPERTS.find((e) => e.id === id) : undefined;
+  if (sample) return mockExpertProfile(sample);
   return expertServerApi.byId(id).catch(() => null);
 }
 
+/** The courses an expert's page lists: the sample ones for a sample expert. */
 export async function coursesByExpertSource(id: string): Promise<CourseSummary[]> {
-  if (SHOWCASE && MOCK_EXPERTS.some((e) => e.id === id)) {
-    return mockCourses().filter((c) => c.tutorId === id);
-  }
+  if (isSampleExpert(id)) return mockCourses().filter((c) => c.tutorId === id);
   return realCoursesByExpert(id);
 }

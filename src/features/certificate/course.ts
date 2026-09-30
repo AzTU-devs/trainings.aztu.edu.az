@@ -54,7 +54,7 @@ export function courseCertificate(input: {
     recipient: input.recipient ?? null,
     courseTitle: input.title,
     categoryName: input.categoryName ?? null,
-    hours: hoursText(t, { totalHours: input.totalHours, seconds: input.seconds }),
+    hours: hoursText(t, locale, { totalHours: input.totalHours, seconds: input.seconds }),
     dateISO: date,
     expertName: input.expertName ?? null,
     certificateId: certificateId(input.idSeed ?? input.courseId, date.slice(0, 4)),
