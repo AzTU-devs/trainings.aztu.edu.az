@@ -40,6 +40,14 @@ services:
     env_file:
       - .env
 
+    # Loopback only. The image listens on 0.0.0.0 (HOSTNAME in the Dockerfile), which
+    # under host networking is every interface of the server, so port 3000 on its public
+    # address reached the site past nginx and its TLS. Host nginx proxies to 127.0.0.1:3000
+    # and the healthcheck calls 127.0.0.1, so nothing legitimate needs more. `environment:`
+    # beats env_file, so a HOSTNAME line in .env cannot widen it again.
+    environment:
+      HOSTNAME: 127.0.0.1
+
     healthcheck:
       # Liveness only: this route deliberately does not call the backend, so an
       # API outage cannot take the frontend out of rotation.

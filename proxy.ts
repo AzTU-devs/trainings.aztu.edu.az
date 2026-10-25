@@ -99,11 +99,43 @@ function accessMaxAge(expiresAt?: string): number {
     : ACCESS_FALLBACK_MAX_AGE;
 }
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * A state-changing request to this site's own /api/ routes from another site.
+ *
+ * Those routes act on the visitor's session cookies: sign-in, sign-out, refresh,
+ * registration, password reset. The cookies are SameSite=Lax, which already keeps
+ * them off cross-site POSTs in current browsers; refusing the request outright as
+ * well means the routes do not rest on one cookie attribute (older browsers, a
+ * sibling *.aztu.edu.az host, which counts as the same site). Browsers send Origin
+ * with every POST, and Sec-Fetch-Site where supported. Hosts are compared, not
+ * whole origins: behind nginx the request URL here says http, the browser https.
+ * Server-to-server callers send neither header and are unaffected.
+ */
+function isCrossSiteWrite(req: NextRequest): boolean {
+  if (SAFE_METHODS.has(req.method)) return false;
+  if (req.headers.get("sec-fetch-site") === "cross-site") return true;
+  const origin = req.headers.get("origin");
+  if (origin === null) return false;
+  try {
+    return new URL(origin).host !== req.headers.get("host");
+  } catch {
+    return true; // "null" and other opaque origins
+  }
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
   // Skip API routes — those are not locale-scoped
   if (pathname.startsWith("/api/")) {
+    if (isCrossSiteWrite(req)) {
+      return NextResponse.json(
+        { status: 403, message: "Cross-site request refused" },
+        { status: 403, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     const res = NextResponse.next();
     res.headers.set("x-pathname", pathname);
     return res;
