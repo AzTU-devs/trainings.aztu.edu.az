@@ -82,11 +82,12 @@ export function CertificateTemplate({
 
         <div className="cert-col">
           <div className="cert-brand">
-            {/* Declared at about the size it is shown (the file is 276 × 512),
-                so the optimiser serves a small file for a small mark. */}
-            <Image src="/brand/aztu-mark.png" alt="" width={28} height={52} className="cert-shield" />
+            {/* The navy lockup always: the sheet keeps its paper colours at
+                night. The file is already small (93 × 128), so it is served
+                as is. Its "AZTU" wordmark is why the name beside it is just
+                the product's. */}
+            <Image src="/brand/aztu-logo-dark.png" alt="AzTU" width={93} height={128} unoptimized className="cert-mark" />
             <p className="cert-logo">
-              <small>AZTU</small>{" "}
               <b>EduPlatform</b>
             </p>
           </div>

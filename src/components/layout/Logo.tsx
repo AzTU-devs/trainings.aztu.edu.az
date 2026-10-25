@@ -1,47 +1,27 @@
 import { cn } from "@/lib/utils/cn";
 import { AztuMark } from "./AztuMark";
 
+/**
+ * The site's brand block: the AzTU lockup, then the product name. The lockup
+ * already says "AZTU", so the name beside it is just "EduPlatform".
+ * Styled by `.brand` in globals.css; `size="lg"` is the footer and the
+ * sign-in panel's larger setting. Callers wrap it in their own link.
+ */
 export function Logo({
   className,
   showText = true,
-  variant = "auto",
-  tone = "auto",
+  size = "md",
+  fetchPriority,
 }: {
   className?: string;
   showText?: boolean;
-  variant?: "auto" | "light" | "dark" | "mark";
-  /** `onDeep` inverts the wordmark for the navy canvas. */
-  tone?: "auto" | "onDeep";
+  size?: "md" | "lg";
+  fetchPriority?: "high" | "low" | "auto";
 }) {
-  const mark = <AztuMark tone={tone === "onDeep" ? "onDeep" : "auto"} className="size-9" />;
-
-  if (variant === "mark") {
-    return <span className={cn("inline-flex items-center", className)}>{mark}</span>;
-  }
-
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      {mark}
-      {showText ? (
-        <span className="flex flex-col gap-0.5 leading-none">
-          <span
-            className={cn(
-              "text-[10px] font-bold uppercase tracking-[0.2em]",
-              tone === "onDeep" ? "text-gold-300" : "text-gold-700 dark:text-gold-400",
-            )}
-          >
-            AzTU
-          </span>
-          <span
-            className={cn(
-              "font-display text-[17px] font-extrabold leading-none",
-              tone === "onDeep" ? "text-white" : "text-foreground",
-            )}
-          >
-            EduPlatform
-          </span>
-        </span>
-      ) : null}
+    <span className={cn("brand", size === "lg" && "lg", className)}>
+      <AztuMark fetchPriority={fetchPriority} />
+      {showText ? <span className="wm">EduPlatform</span> : null}
     </span>
   );
 }

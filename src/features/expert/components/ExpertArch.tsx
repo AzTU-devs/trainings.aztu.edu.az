@@ -11,23 +11,31 @@ import { initialsOf } from "../types";
  * colour with one drafted shape behind them — typographic, never a fake
  * silhouette.
  */
-export function ExpertArch({
-  id,
-  name,
-  avatarUrl,
-  k,
-  className,
-}: {
+export function ExpertArch(props: PortraitProps) {
+  return <Portrait {...props} shape="arch" />;
+}
+
+/**
+ * The same portrait as a plain rounded panel, for the top of an expert card
+ * (ExpertCard), where the card's own outline already frames it.
+ */
+export function ExpertPhoto(props: PortraitProps) {
+  return <Portrait {...props} shape="panel" />;
+}
+
+type PortraitProps = {
   id: string;
   name: string;
   avatarUrl?: string | null;
   /** Hue-engine class of the expert's main subject area. */
   k: string;
   className?: string;
-}) {
+};
+
+function Portrait({ id, name, avatarUrl, k, className, shape }: PortraitProps & { shape: "arch" | "panel" }) {
   const photo = mediaSrc(avatarUrl);
   return (
-    <div className={cn("av arch aspect-[5/6] w-full", k, className)}>
+    <div className={cn("av aspect-[5/6] w-full", shape, k, className)}>
       {photo ? (
         <Image src={photo} alt="" fill unoptimized sizes="(min-width: 1024px) 20vw, 60vw" className="object-cover" />
       ) : (

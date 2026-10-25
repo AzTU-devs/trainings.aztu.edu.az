@@ -14,15 +14,14 @@ import { categoryLabel } from "@/features/category/label";
 import { categoryStyle } from "@/features/category/style";
 import { CategoryBento, TopicChip, type CategoryItem } from "@/features/category/components/CategoryTiles";
 import { ExpertArch } from "@/features/expert/components/ExpertArch";
+import { ExpertCard } from "@/features/expert/components/ExpertCard";
 import { initialsOf, type ExpertSummary } from "@/features/expert/types";
 import { SUPPORT_EMAIL } from "@/components/layout/Footer";
 import { HeroSearch } from "@/components/bright/HeroSearch";
 import { Mosaic, MosaicBand } from "@/components/bright/Mosaic";
 import { RailControls } from "@/components/bright/RailControls";
 import { Svg } from "@/components/bright/Svg";
-import { StarIcon } from "@/components/bright/bits";
 import { protractorSvg } from "@/lib/art";
-import { formatCompact, formatRating } from "@/lib/utils/format";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { getT } from "@/i18n/server";
 import type { TFunction } from "@/i18n/format";
@@ -689,35 +688,9 @@ function ExpertsSection({
         </div>
         <div className="min-w-0 lg:col-span-8">
           {shown.length >= 3 ? (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-12 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 lg:gap-6">
               {shown.map((e) => (
-                <article key={e.id} className="xcard group relative">
-                  <ExpertArch id={e.id} name={e.displayName} avatarUrl={e.avatarUrl} k={kOf(e)} />
-                  <div className="px-1 pt-4">
-                    <h3 className="t-md">
-                      <LocaleLink href={`/experts/${e.id}`} className="stretched">
-                        {e.displayName}
-                      </LocaleLink>
-                    </h3>
-                    {byline(e) ? <p className="clamp-2 mt-1 text-[14px] text-ink-2">{byline(e)}</p> : null}
-                    <div className="meta mt-2.5">
-                      {e.ratingCount > 0 ? (
-                        <span className="rate">
-                          <StarIcon />
-                          {formatRating(e.ratingAvg, locale)}
-                        </span>
-                      ) : null}
-                      <span>
-                        <Layers className="i" aria-hidden />
-                        {t("ui.courseCount", { count: e.courseCount })}
-                      </span>
-                      <span>
-                        <Users className="i" aria-hidden />
-                        {formatCompact(e.enrolledCount, locale)}
-                      </span>
-                    </div>
-                  </div>
-                </article>
+                <ExpertCard key={e.id} expert={e} k={kOf(e)} t={t} locale={locale} />
               ))}
             </div>
           ) : (

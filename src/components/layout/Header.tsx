@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import { swatchSvg, type ArtKind } from "@/lib/art";
 import { cn } from "@/lib/utils/cn";
 import { fullName, type User } from "@/types/user";
 import { useSwitchLocale } from "./LocaleSwitcher";
+import { Logo } from "./Logo";
 
 /*
  * The site header for the "Bright" design.
@@ -57,13 +57,8 @@ function logicalPath(pathname: string): string {
 
 function Brand({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <LocaleLink href="/" className="brand" aria-label="AzTU EduPlatform" onClick={onNavigate}>
-      <Image className="logo-l" src="/brand/aztu-mark.png" alt="" width={18} height={34} priority />
-      <Image className="logo-d" src="/brand/aztu-mark-white.png" alt="" width={18} height={34} priority />
-      <span className="wm">
-        <small>AZTU</small>
-        <b>EduPlatform</b>
-      </span>
+    <LocaleLink href="/" className="flex rounded-xl" aria-label="AzTU EduPlatform" onClick={onNavigate}>
+      <Logo fetchPriority={onNavigate ? undefined : "high"} />
     </LocaleLink>
   );
 }

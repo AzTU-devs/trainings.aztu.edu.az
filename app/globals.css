@@ -458,11 +458,15 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
 .site-header .bar { height: var(--header-h); transition: height .3s var(--ease-out); }
 .site-header.is-scrolled, .site-header.solid { background: color-mix(in oklch, var(--paper) 84%, transparent); backdrop-filter: blur(16px) saturate(1.6); -webkit-backdrop-filter: blur(16px) saturate(1.6); box-shadow: 0 1px 0 var(--line); }
 .site-header.is-scrolled .bar { height: 60px; }
-.brand { display:flex; align-items:center; gap:10px; }
-.brand img { height: 34px; width: auto; }
-.brand .wm { display:flex; flex-direction:column; line-height:1; }
-.brand .wm small { font: 700 10px/1 var(--f-sans); letter-spacing: .22em; color: var(--gold-ink); }
-.brand .wm b { font: 800 18px/1 var(--f-display); letter-spacing: -.02em; color: var(--ink); margin-top: 4px; }
+/* Brand block (Logo.tsx): the stacked AzTU lockup, then the product name.
+   The lockup is portrait, so its height sets the size; 44px keeps the AZTU
+   wordmark legible and fits the 60px scrolled bar. */
+.brand { --logo-h: 44px; display:flex; align-items:center; gap:12px; }
+.brand.lg { --logo-h: 56px; gap:14px; }
+.site-header.is-scrolled .brand { --logo-h: 40px; }
+.aztu-logo { height: var(--logo-h, 44px); width: auto; flex: none; transition: height .3s var(--ease-out); }
+.brand .wm { font: 800 18px/1 var(--f-display); letter-spacing: -.02em; color: var(--ink); white-space: nowrap; }
+.brand.lg .wm { font-size: 21px; }
 .logo-d { display:none; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo-l { display:none; } :root:not([data-theme="light"]) .logo-d { display:block; } }
 :root[data-theme="dark"] .logo-l { display:none; } :root[data-theme="dark"] .logo-d { display:block; }
@@ -603,8 +607,34 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
 .av.round { border-radius: 999px; }
 .av.arch { border-radius: 999px 999px 26px 26px; }
 .av .ini { position:relative; z-index:1; }
+.av.panel { border-radius: 16px; }
 .xcard .av { transition: transform .5s var(--ease-out), border-radius .5s var(--ease-out); }
 .xcard:hover .av { transform: translateY(-6px); }
+
+/* Expert card (ExpertCard.tsx): portrait and text on one surface. The name's
+   stretched link covers the card, which fills its grid cell so a row shares
+   one height; the figures sit on the bottom edge, under a hairline. */
+.expert-card { position:relative; display:flex; flex-direction:column; height:100%; padding:8px; border-radius:24px; background:var(--surface); color:var(--ink);
+  box-shadow: 0 0 0 1px var(--line); transition: box-shadow .3s, transform .45s var(--ease-out); }
+.expert-card:hover { transform: translateY(-4px); box-shadow: 0 0 0 1px var(--k-300, var(--line-2)), var(--shadow-md); }
+.expert-card:has(.stretched:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
+.expert-card .stretched:focus-visible { outline: none; }
+.expert-card .stretched::after { border-radius: 24px; }
+.expert-card .av > img, .expert-card .av > svg { transition: transform .6s var(--ease-out); }
+.expert-card:hover .av > img, .expert-card:hover .av > svg { transform: scale(1.035); }
+.expert-card .body { display:flex; flex:1; flex-direction:column; padding: 14px 8px 6px; }
+.expert-card .name { font: 700 18px/1.25 var(--f-display); letter-spacing: -.012em; text-wrap: pretty; transition: color .2s; }
+.expert-card:hover .name { color: color-mix(in oklch, var(--ink) 62%, var(--k-700)); }
+.expert-card .meta { margin-top:auto; padding-top: 12px; column-gap: 12px; font-size: 13px; }
+.expert-card .meta::before { content:""; flex-basis:100%; height:1px; margin-bottom: 4px; background: var(--line); }
+@media (max-width: 639px) {
+  .expert-card { padding: 6px; border-radius: 20px; }
+  .expert-card .stretched::after { border-radius: 20px; }
+  .expert-card .av.panel { border-radius: 14px; }
+  .expert-card .body { padding: 12px 6px 4px; }
+  .expert-card .name { font-size: 16px; }
+  .expert-card .meta { column-gap: 10px; font-size: 12.5px; }
+}
 
 /* ---------- 13. Category tiles (bento) ---------- */
 .cat-tile { position:relative; overflow:hidden; isolation:isolate; display:flex; flex-direction:column; border-radius: 30px; background: var(--k-100); color: var(--k-900); padding: 24px;

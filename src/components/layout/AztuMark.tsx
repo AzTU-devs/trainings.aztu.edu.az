@@ -1,59 +1,57 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 
-const NAVY = "/brand/aztu-mark.png";
-const WHITE = "/brand/aztu-mark-white.png";
+/*
+ * The AzTU logo: the stacked lockup — the shield on its square plate over the
+ * "AZTU" wordmark. Two files, both resized from the university's originals
+ * to 93 × 128 (twice the tallest size the site draws them at):
+ *
+ * - aztu-logo-dark.png  — navy plate, navy/blue wordmark: for light surfaces.
+ * - aztu-logo-light.png — white plate, white wordmark: for dark surfaces.
+ */
+const ON_LIGHT = "/brand/aztu-logo-dark.png";
+const ON_DARK = "/brand/aztu-logo-light.png";
+const W = 93;
+const H = 128;
 
 /**
- * The AzTU shield.
+ * Both variants are rendered and `.logo-l` / `.logo-d` (globals.css) hide one
+ * by the colour scheme — the same rule as the rest of the theme, including a
+ * `data-theme` override — so the right one is on screen at first paint with
+ * no JavaScript. The height comes from the caller (`.aztu-logo` reads
+ * `--logo-h`); the width follows the file's proportions.
  *
- * Both files are the university's own mark, trimmed to the glyph and put on
- * transparency — one navy for light surfaces, one white for the navy canvas.
- * The supplied source art is dark-on-white with an opaque background, which is
- * why it cannot simply be dropped onto a dark surface as-is.
- *
- * `tone="auto"` swaps on the colour scheme by rendering both and hiding one,
- * so no JavaScript is involved and there is no flash on first paint.
+ * Lazy by default, as Next's docs advise for a light/dark pair: only the
+ * visible one is fetched. `fetchPriority="high"` hurries it along in the header.
  */
 export function AztuMark({
   className,
-  tone = "auto",
+  fetchPriority,
 }: {
   className?: string;
-  /** `onDeep` forces the white mark, for the navy canvas. */
-  tone?: "auto" | "onDeep";
+  fetchPriority?: "high" | "low" | "auto";
 }) {
-  // Callers size the box (they all pass `size-*`); the mark letterboxes inside
-  // it via object-contain, so the shield keeps its proportions at any size.
-  const box = cn("relative inline-block size-9 shrink-0", className);
-
-  if (tone === "onDeep") {
-    return (
-      <span className={box}>
-        <Image src={WHITE} alt="AzTU" fill sizes="64px" className="object-contain" priority />
-      </span>
-    );
-  }
-
+  const img = cn("aztu-logo", className);
   return (
-    <span className={box}>
+    <>
       <Image
-        src={NAVY}
+        src={ON_LIGHT}
         alt="AzTU"
-        fill
-        sizes="64px"
-        className="object-contain dark:hidden"
-        priority
+        width={W}
+        height={H}
+        unoptimized
+        fetchPriority={fetchPriority}
+        className={cn(img, "logo-l")}
       />
       <Image
-        src={WHITE}
-        alt=""
-        aria-hidden
-        fill
-        sizes="64px"
-        className="hidden object-contain dark:block"
-        priority
+        src={ON_DARK}
+        alt="AzTU"
+        width={W}
+        height={H}
+        unoptimized
+        fetchPriority={fetchPriority}
+        className={cn(img, "logo-d")}
       />
-    </span>
+    </>
   );
 }

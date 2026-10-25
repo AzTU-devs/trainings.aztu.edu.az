@@ -106,8 +106,8 @@
   align-items: center;
   gap: calc(var(--mm) * 2.4);
 }
-.cert-shield {
-  height: calc(var(--mm) * 10.5);
+.cert-mark {
+  height: calc(var(--mm) * 13);
   width: auto;
 }
 .cert-logo {
@@ -116,13 +116,7 @@
   align-items: flex-start;
   line-height: 1;
 }
-.cert-logo small {
-  font: 700 calc(var(--mm) * 2.1) / 1 var(--f-sans);
-  letter-spacing: 0.24em;
-  color: var(--c-gold-ink);
-}
 .cert-logo b {
-  margin-top: calc(var(--mm) * 0.9);
   font: 800 calc(var(--mm) * 5.4) / 1 var(--f-display);
   letter-spacing: -0.02em;
   color: var(--c-navy);

@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowRight, Layers, Users } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { categoryOfExpert, indexFor } from "@/features/course/catalog-index.server";
 import { categoryStyle } from "@/features/category/style";
 import { expertAreas } from "@/features/expert/areas";
 import { ExpertAreaLabels } from "@/features/expert/components/ExpertAreas";
-import { ExpertArch } from "@/features/expert/components/ExpertArch";
+import { ExpertCard } from "@/features/expert/components/ExpertCard";
 import { SHOWCASE_EXPERTS } from "@/features/showcase/flag";
 import { listExpertsSource } from "@/features/showcase/source.server";
-import { StarIcon } from "@/components/bright/bits";
-import { formatCompact, formatRating } from "@/lib/utils/format";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -65,43 +63,20 @@ export default async function ExpertsPage({ params }: Props) {
 
       <section className="wrap pb-20 pt-12 lg:pb-28 lg:pt-16" aria-label={t("expertsPage.title")}>
         {experts.length ? (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-12 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
             {experts.map((e) => {
               const main = categoryOfExpert(index, e);
               const { picked, own } = expertAreas(index.categories, e, t, locale, { fallback: main });
               return (
-                <article key={e.id} className="xcard group relative">
-                  <ExpertArch id={e.id} name={e.displayName} avatarUrl={e.avatarUrl} k={categoryStyle(main).k} />
-                  <div className="px-1 pt-4">
-                    <ExpertAreaLabels picked={picked} own={own} ownTitle={t("expertsPage.ownArea")} />
-                    <h2 className="t-md mt-2">
-                      <LocaleLink href={`/experts/${e.id}`} className="stretched">
-                        {e.displayName}
-                      </LocaleLink>
-                    </h2>
-                    {e.academicTitle || e.headline ? (
-                      <p className="clamp-2 mt-1 text-[14px] text-ink-2">
-                        {[e.academicTitle, e.headline ?? e.department].filter(Boolean).join(" · ")}
-                      </p>
-                    ) : null}
-                    <div className="meta mt-2.5">
-                      {e.ratingCount > 0 ? (
-                        <span className="rate">
-                          <StarIcon />
-                          {formatRating(e.ratingAvg, locale)}
-                        </span>
-                      ) : null}
-                      <span>
-                        <Layers className="i" aria-hidden />
-                        {t("ui.courseCount", { count: e.courseCount })}
-                      </span>
-                      <span>
-                        <Users className="i" aria-hidden />
-                        {formatCompact(e.enrolledCount, locale)}
-                      </span>
-                    </div>
-                  </div>
-                </article>
+                <ExpertCard
+                  key={e.id}
+                  expert={e}
+                  k={categoryStyle(main).k}
+                  t={t}
+                  locale={locale}
+                  heading="h2"
+                  areas={<ExpertAreaLabels picked={picked} own={own} ownTitle={t("expertsPage.ownArea")} />}
+                />
               );
             })}
             <Invite t={t} />

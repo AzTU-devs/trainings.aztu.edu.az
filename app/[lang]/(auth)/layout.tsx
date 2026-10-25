@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
@@ -40,13 +39,8 @@ export default async function AuthLayout({ children, params }: Props) {
             stretching it. */}
         <aside className="fmt k-navy hidden !rounded-[40px] lg:sticky lg:top-5 lg:flex lg:h-[calc(100dvh-2.5rem)] lg:min-h-[36rem] lg:flex-col lg:justify-between lg:self-start lg:p-10 xl:p-12">
           <span className="absolute -right-24 -top-28 -z-10 size-[380px] rounded-full bg-[var(--k-200)]" aria-hidden />
-          <Link href={localeHref(locale, "/")} className="brand w-fit rounded-2xl outline-offset-4" aria-label="AzTU EduPlatform">
-            <Image className="logo-l" src="/brand/aztu-mark.png" alt="" width={18} height={34} />
-            <Image className="logo-d" src="/brand/aztu-mark-white.png" alt="" width={18} height={34} />
-            <span className="wm">
-              <small>AZTU</small>
-              <b>EduPlatform</b>
-            </span>
+          <Link href={localeHref(locale, "/")} className="flex w-fit rounded-2xl outline-offset-4" aria-label="AzTU EduPlatform">
+            <Logo size="lg" />
           </Link>
 
           <div className="max-w-md">
@@ -89,7 +83,7 @@ export default async function AuthLayout({ children, params }: Props) {
         {/* Form column */}
         <div className="flex min-w-0 flex-col px-4 pb-8 pt-4 sm:px-6 lg:px-0 lg:pb-4 lg:pt-0">
           <header className="flex items-center justify-between gap-4 lg:pl-1">
-            <Link href={localeHref(locale, "/")} className="rounded-2xl lg:hidden">
+            <Link href={localeHref(locale, "/")} className="flex rounded-2xl lg:hidden">
               <Logo />
             </Link>
             <Link

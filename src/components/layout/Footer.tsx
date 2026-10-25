@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 import { useLocale, useT } from "@/i18n/client";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { locales, type Locale } from "@/i18n/config";
+import { Logo } from "./Logo";
 import { useSwitchLocale } from "./LocaleSwitcher";
 
 /** The support address shown on the site; the platform's own contact point. */
@@ -29,13 +29,8 @@ export function Footer() {
       <div className="wrap pt-16 lg:pt-24">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <LocaleLink href="/" className="brand" aria-label="AzTU EduPlatform">
-              <Image className="logo-l" src="/brand/aztu-mark.png" alt="" width={18} height={34} />
-              <Image className="logo-d" src="/brand/aztu-mark-white.png" alt="" width={18} height={34} />
-              <span className="wm">
-                <small>AZTU</small>
-                <b>EduPlatform</b>
-              </span>
+            <LocaleLink href="/" className="flex w-fit rounded-xl" aria-label="AzTU EduPlatform">
+              <Logo size="lg" />
             </LocaleLink>
             <p className="mt-5 max-w-sm text-ink-2">{t("ui.footerBlurb")}</p>
             <div className="seg mt-6" role="radiogroup" aria-label={t("ui.language")}>

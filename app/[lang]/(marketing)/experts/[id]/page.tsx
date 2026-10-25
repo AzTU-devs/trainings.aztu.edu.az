@@ -197,19 +197,23 @@ export default async function PublicExpertPage({ params }: Props) {
               ) : null}
             </div>
             {details.length ? (
-              <div className="grid gap-4 lg:col-span-5">
+              // One card, a section per field. The fields are part of "About",
+              // so their titles are h3s under its h2.
+              <div className="divide-y divide-line self-start rounded-[26px] bg-surface shadow-[0_0_0_1px_var(--line)] lg:col-span-5">
                 {details.map(([icon, title, items]) => (
-                  <div key={title} className="rounded-[26px] bg-surface p-6 shadow-[0_0_0_1px_var(--line)]">
-                    <p className="flex items-center gap-2 font-semibold">
-                      {icon}
+                  <section key={title} className="p-6 sm:px-7">
+                    <h3 className="flex items-center gap-3 font-semibold">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--k-100)] text-[var(--k-700)] [&_.i]:!size-[18px]">
+                        {icon}
+                      </span>
                       {title}
-                    </p>
-                    <ul className="mt-3 grid gap-1.5 text-[15px] text-ink-2">
+                    </h3>
+                    <ul className="mt-3 grid gap-1.5 pl-12 text-[15px] text-ink-2">
                       {items.map((i) => (
                         <li key={i}>{i}</li>
                       ))}
                     </ul>
-                  </div>
+                  </section>
                 ))}
               </div>
             ) : null}
