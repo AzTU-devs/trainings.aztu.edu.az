@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { unstable_rethrow } from "next/navigation";
 import { serverEnv } from "@/lib/env";
 import type { ApiEnvelope, ApiError, FieldErrorItem } from "@/types/api";
 
@@ -35,6 +36,17 @@ function unwrap<T>(body: unknown): T {
   return body as T;
 }
 
+function networkCode(cause: unknown): string {
+  const c = cause as { cause?: { code?: string }; code?: string; message?: string };
+  return c?.cause?.code ?? c?.code ?? c?.message ?? String(cause);
+}
+
+/** Path and origin only: the query can carry search terms, and never a token. */
+function logFailure(method: string | undefined, url: string, what: string) {
+  const u = new URL(url);
+  console.error(`[api] ${method ?? "GET"} ${u.pathname} via ${u.origin} failed: ${what}`);
+}
+
 export async function serverFetch<T>(
   path: string,
   opts: FetchOptions = {},
@@ -55,12 +67,28 @@ export async function serverFetch<T>(
   if (revalidate !== undefined) next.revalidate = revalidate;
   if (tags) next.tags = tags;
 
-  const res = await fetch(buildUrl(path, searchParams), {
-    ...rest,
-    headers: reqHeaders,
-    body: body ? JSON.stringify(body) : undefined,
-    next: Object.keys(next).length ? next : undefined,
-  });
+  const url = buildUrl(path, searchParams);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...rest,
+      headers: reqHeaders,
+      body: body ? JSON.stringify(body) : undefined,
+      next: Object.keys(next).length ? next : undefined,
+    });
+  } catch (cause) {
+    // Next.js's own signals (a page found to be dynamic during the build, and the
+    // like) are thrown through fetch too; they pass untouched and are not failures.
+    unstable_rethrow(cause);
+    // Many pages turn a failed call into an empty list (`.catch(() => [])`), so an
+    // API this server cannot reach looked like an empty catalogue: the expert
+    // sign-up page said there were no categories while the API had seven. Said
+    // here once, with the address tried, it shows up in `docker logs`.
+    logFailure(rest.method, url, networkCode(cause));
+    throw cause;
+  }
+
+  if (res.status >= 500) logFailure(rest.method, url, `HTTP ${res.status}`);
 
   if (!res.ok) {
     let parsed: {

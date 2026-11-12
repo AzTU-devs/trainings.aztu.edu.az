@@ -47,6 +47,14 @@ services:
     # beats env_file, so a HOSTNAME line in .env cannot widen it again.
     environment:
       HOSTNAME: 127.0.0.1
+      # Server-side renders and the sign-in routes reach the API over loopback: it runs
+      # on this host, on 8080. Pinned here because `environment:` beats env_file. An
+      # older .env pointed this at https://api-trainings.aztu.edu.az, which needs the
+      # server to reach its own public address; behind this network's NAT it cannot,
+      # so every server-side call failed and pages showed empty lists (the expert
+      # sign-up page: "no categories yet"). It also put every visitor's server-side
+      # calls into one API rate-limit bucket.
+      INTERNAL_API_URL: http://127.0.0.1:8080
 
     healthcheck:
       # Liveness only: this route deliberately does not call the backend, so an
