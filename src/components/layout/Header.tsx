@@ -9,20 +9,19 @@ import { useUnreadCount } from "@/features/notification/hooks";
 import { useLocale, useT } from "@/i18n/client";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { locales, localeNames, type Locale } from "@/i18n/config";
-import { swatchSvg, type ArtKind } from "@/lib/art";
+import { CategoryIcon } from "@/features/category/icons";
+import type { CategoryStyle } from "@/features/category/style";
 import { cn } from "@/lib/utils/cn";
 import { fullName, type User } from "@/types/user";
 import { useSwitchLocale } from "./LocaleSwitcher";
 import { Logo } from "./Logo";
 
 /*
- * The site header for the "Bright" design.
- *
- * Sticky. Over the home page's hero it starts transparent and condenses into a
- * translucent bar once the page scrolls; everywhere else it starts in that
- * solid state. Desktop has the categories menu (a panel of subject areas with
- * their counts); below `lg` everything moves into a sheet that slides in from
- * the right.
+ * The site header: one quiet row — logo, the main links, a compact search,
+ * the language switch and the account actions. Sticky on the page's own
+ * background; a hairline appears under it once the page scrolls. Desktop has
+ * the categories menu (the subject areas with their counts); below `lg`
+ * everything moves into a sheet that slides in from the right.
  */
 
 type SiteCategory = {
@@ -31,7 +30,7 @@ type SiteCategory = {
   count: number;
   countLabel: string;
   k: string;
-  art: ArtKind;
+  art: CategoryStyle["art"];
 };
 
 function useSiteCategories(enabled: boolean) {
@@ -81,7 +80,6 @@ export function Header() {
   const locale = useLocale();
   const pathname = usePathname();
   const path = logicalPath(pathname);
-  const isHome = path === "/";
   const { user, status } = useAuth();
   const signedIn = status === "authenticated" && !!user;
   const logout = useLogout();
@@ -146,11 +144,11 @@ export function Header() {
     <>
       <header
         ref={headerRef}
-        className={cn("site-header", (!isHome || scrolled) && "is-scrolled")}
+        className={cn("site-header", scrolled && "is-scrolled")}
       >
         <div className="wrap relative">
           <div className="bar flex items-center gap-1">
-            <span className="mr-3 xl:mr-7">
+            <span className="mr-4 xl:mr-8">
               <Brand />
             </span>
 
@@ -236,7 +234,7 @@ export function Header() {
                   >
                     <Bell className="i" aria-hidden />
                     {unread > 0 ? (
-                      <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-gold px-1 text-[10px] font-bold leading-4 text-[var(--on-gold)]">
+                      <span className="absolute right-1.5 top-1.5 grid min-w-4 place-items-center rounded-full bg-sky px-1 text-[10px] font-bold leading-4 text-[var(--on-gold)]">
                         {unread > 9 ? "9+" : unread}
                       </span>
                     ) : null}
@@ -244,7 +242,7 @@ export function Header() {
                   <div className="relative hidden lg:block">
                     <button
                       type="button"
-                      className="av round k-data ml-1 size-10 bg-[var(--k-200)] text-[14px]"
+                      className="av round ml-1 size-10 text-[14px]"
                       aria-label={t("ui.accountMenu")}
                       aria-expanded={userOpen}
                       aria-controls={userMenuId}
@@ -276,7 +274,7 @@ export function Header() {
                           </UserLink>
                           <button
                             type="button"
-                            className="flex h-11 items-center gap-3 rounded-[14px] px-3 text-left text-[15px] text-ink-2 hover:bg-[color-mix(in_oklch,var(--ink)_5%,transparent)] hover:text-ink"
+                            className="flex h-11 items-center gap-3 rounded-[12px] px-3 text-left text-[15px] text-ink-2 hover:bg-[color-mix(in_oklch,var(--ink)_5%,transparent)] hover:text-ink"
                             onClick={() => logout.mutate()}
                           >
                             <LogOut className="i" aria-hidden />
@@ -316,48 +314,32 @@ export function Header() {
           </div>
 
           <div className={cn("mega hidden lg:block", megaOpen && "open")} id={megaId}>
-            <div className="mega-panel grid grid-cols-[1fr_300px] gap-3">
-              <div>
-                <p className="kicker px-3 pb-3 pt-2">
-                  <span className="rule" />
-                  {t("ui.megaKicker")}
-                </p>
-                <div className="grid grid-cols-2 gap-1 xl:grid-cols-4">
-                  {cats.data?.items.map((c) => (
-                    <LocaleLink
-                      key={c.id}
-                      href={`/courses?categoryId=${c.id}`}
-                      className={cn("mega-item", c.k)}
-                    >
-                      <span
-                        className="sw-sq"
-                        aria-hidden
-                        dangerouslySetInnerHTML={{ __html: swatchSvg(c.art) }}
-                      />
-                      <span>
-                        <b className="block text-[15px] font-semibold leading-tight">{c.name}</b>
-                        <small className="mt-1 block text-[13px] text-ink-3">{c.countLabel}</small>
-                      </span>
-                    </LocaleLink>
-                  ))}
-                  {cats.isError ? (
-                    <p className="col-span-full px-3 py-4 text-[14px] text-ink-3">{t("ui.categoriesUnavailable")}</p>
-                  ) : null}
-                </div>
+            <div className="mega-panel">
+              <p className="px-3 pb-2 pt-3 text-[13px] font-semibold text-ink-3">{t("ui.megaKicker")}</p>
+              <div className="grid grid-cols-2 gap-1 xl:grid-cols-4">
+                {cats.data?.items.map((c) => (
+                  <LocaleLink key={c.id} href={`/courses?categoryId=${c.id}`} className={cn("mega-item", c.k)}>
+                    <span className="cat-ic" aria-hidden>
+                      <CategoryIcon style={c} />
+                    </span>
+                    <span className="min-w-0">
+                      <b className="block text-[15px] font-semibold leading-tight">{c.name}</b>
+                      <small className="mt-1 block text-[13px] text-ink-3">{c.countLabel}</small>
+                    </span>
+                  </LocaleLink>
+                ))}
+                {cats.isError ? (
+                  <p className="col-span-full px-3 py-4 text-[14px] text-ink-3">{t("ui.categoriesUnavailable")}</p>
+                ) : null}
               </div>
-              <LocaleLink
-                href="/courses"
-                className="group relative flex flex-col overflow-hidden rounded-[22px] bg-navy-tint p-6"
-              >
-                <span className="kicker">{t("ui.megaCatalogKicker")}</span>
-                <span className="mt-3 font-display text-[26px] font-extrabold leading-tight tracking-tight">
-                  {t("ui.megaCatalogTitle")}
-                </span>
-                <span className="mt-2 text-[14px] text-ink-2">{t("ui.megaCatalogText")}</span>
-                <span className="link mt-auto pt-6">
+              <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line px-3 pb-2 pt-4">
+                <LocaleLink href="/categories" className="link text-[14px]">
+                  {t("landing.allCategories")} <ArrowRight className="i" aria-hidden />
+                </LocaleLink>
+                <LocaleLink href="/courses" className="link text-[14px]">
                   {t("ui.megaCatalogLink")} <ArrowRight className="i" aria-hidden />
-                </span>
-              </LocaleLink>
+                </LocaleLink>
+              </div>
             </div>
           </div>
         </div>
@@ -381,7 +363,7 @@ function UserLink({ href, icon, children }: { href: string; icon: React.ReactNod
   return (
     <LocaleLink
       href={href}
-      className="flex h-11 items-center gap-3 rounded-[14px] px-3 text-[15px] text-ink-2 hover:bg-[color-mix(in_oklch,var(--ink)_5%,transparent)] hover:text-ink"
+      className="flex h-11 items-center gap-3 rounded-[12px] px-3 text-[15px] text-ink-2 hover:bg-[color-mix(in_oklch,var(--ink)_5%,transparent)] hover:text-ink"
     >
       {icon}
       {children}
@@ -442,7 +424,7 @@ function MobileMenu({
     >
       <div className="scrim" onClick={onClose} />
       <div className="panel outline-none" tabIndex={-1} ref={panelRef}>
-        <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-line px-5">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-5">
           <Brand onNavigate={onClose} />
           <button className="btn-icon" type="button" onClick={onClose} aria-label={t("ui.menuClose")}>
             <X className="i" aria-hidden />
@@ -463,22 +445,26 @@ function MobileMenu({
                 href={href}
                 onClick={onClose}
                 aria-current={current ? "page" : undefined}
-                className="flex items-center gap-3 py-2.5 font-display text-[28px] font-bold tracking-tight"
+                className="flex items-center gap-3 py-2.5 font-display text-[22px] font-bold tracking-tight"
               >
                 {label}
-                {current ? <span className="size-2 rounded-full bg-gold" aria-hidden /> : null}
+                {current ? <span className="size-2 rounded-full bg-sky" aria-hidden /> : null}
               </LocaleLink>
             );
           })}
           {signedIn ? (
-            <LocaleLink href="/dashboard" onClick={onClose} className="py-2.5 font-display text-[28px] font-bold tracking-tight">
+            <LocaleLink href="/dashboard" onClick={onClose} className="py-2.5 font-display text-[22px] font-bold tracking-tight">
               {t("ui.dashboard")}
             </LocaleLink>
           ) : null}
-          <p className="kicker mb-2 mt-6">
-            <span className="rule" />
+          <LocaleLink
+            href="/categories"
+            onClick={onClose}
+            aria-current={path.startsWith("/categories") ? "page" : undefined}
+            className="mb-2 mt-6 text-[13px] font-semibold text-ink-3 hover:text-ink"
+          >
             {t("ui.navCategories")}
-          </p>
+          </LocaleLink>
           {categories.map((c) => (
             <LocaleLink
               key={c.id}
@@ -486,11 +472,9 @@ function MobileMenu({
               onClick={onClose}
               className={cn("flex items-center gap-3 py-2", c.k)}
             >
-              <span
-                className="sw-sq !size-10 !rounded-[12px]"
-                aria-hidden
-                dangerouslySetInnerHTML={{ __html: swatchSvg(c.art) }}
-              />
+              <span className="cat-ic sm" aria-hidden>
+                <CategoryIcon style={c} />
+              </span>
               <span className="text-[15px] font-medium">{c.name}</span>
               <span className="ml-auto text-[13px] text-ink-3">{c.count || ""}</span>
             </LocaleLink>

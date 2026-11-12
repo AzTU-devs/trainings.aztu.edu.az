@@ -30,10 +30,8 @@ export function courseLabels(t: TFunction, locale: string, now: number = Date.no
     format,
     isNew: t("ui.new"),
     newCourse: t("ui.newCourse"),
-    newest: t("ui.newestCourse"),
     expert: t("ui.expert"),
     free: t("ui.free"),
-    viewCourse: t("ui.viewCourse"),
     duration(seconds: number | null | undefined): string | null {
       if (!seconds || seconds <= 0) return null;
       // Round to whole minutes first, so 2h 59m 40s reads "3 h", not "2 h 60 min".

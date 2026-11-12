@@ -30,9 +30,7 @@ import {
 } from "@/features/rooms/components/RoomBooking";
 import { RoomCalendar } from "@/features/rooms/components/RoomCalendar";
 import { CourseTabs } from "@/features/course/components/CourseTabs";
-import { Svg } from "@/components/bright/Svg";
-import { RailControls } from "@/components/bright/RailControls";
-import { hash, mapSvg } from "@/lib/art";
+import { Breadcrumb } from "@/components/layout/PageHeader";
 import { env } from "@/lib/env";
 import { cn } from "@/lib/utils/cn";
 import { LocaleLink } from "@/i18n/LocaleLink";
@@ -42,10 +40,11 @@ import { defaultLocale, isLocale, type Locale } from "@/i18n/config";
 import "@/features/rooms/rooms-detail.css";
 
 /*
- * One university room, in the course page's layout: the room's colour field
- * as the hero, a sticky card with today's availability and the reserve
- * button, the facts strip on the hero's edge, in-page tabs, and the busy
- * calendar with its reserve dialog.
+ * One university room, in the course page's layout: a plain page head, a
+ * sticky card with today's availability and the reserve button, the facts
+ * strip, in-page tabs, and the busy calendar with its reserve dialog. The
+ * page is tinted in the brand's navy (the calendar's busy scale) rather
+ * than the room's own hue.
  *
  * "Next free" on this page means the first time the visitor could book: it
  * follows the room's printed rules (requests 2 working days ahead) and the
@@ -96,7 +95,6 @@ export default async function RoomDetailPage({ params }: Props) {
   const room = await getRoom(slug);
   if (!room) notFound();
   const t = await getT(locale);
-  const k = `k-${room.hue}`;
 
   // Baku's clock, read once; everything below derives from these strings.
   const now = nowInBaku();
@@ -159,7 +157,7 @@ export default async function RoomDetailPage({ params }: Props) {
   );
 
   const reserveCard = (
-    <div className={cn("enrol p-6 sm:p-7", k)}>
+    <div className="enrol p-6">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[13.5px] font-semibold text-ink-2">{t("roomPage.todayDate", { date: dayText(today, t) })}</span>
         {statusPill}
@@ -216,30 +214,28 @@ export default async function RoomDetailPage({ params }: Props) {
 
   return (
     <RoomBooking room={bookingRoom} slots={slots} now={now} range={range} portalUrl={env.NEXT_PUBLIC_PORTAL_URL}>
-      <div className={cn("c-page overflow-x-clip", k)}>
-        <div className="wrap grid gap-x-10 pb-20 lg:grid-cols-12 lg:pb-28">
-          {/* ============ HERO: the room's colour field, full bleed ============ */}
-          <section className="c-hero-row min-w-0 pb-20 pt-5 lg:col-span-8 lg:row-start-1 lg:pb-24 lg:pt-12" aria-labelledby="r-title">
-            <div className="mb-6 max-w-[560px] lg:hidden">
-              <RoomCover room={room} className="aspect-[16/10] !rounded-[24px]" />
-            </div>
-            <nav aria-label={t("ui.breadcrumb")} className="crumbs flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px]">
-              <LocaleLink href="/">{t("ui.home")}</LocaleLink>
-              <span aria-hidden>/</span>
-              <LocaleLink href="/rooms">{t("ui.navRooms")}</LocaleLink>
-              <span aria-hidden>/</span>
-              <LocaleLink href={`/rooms?building=${room.buildingCode.toLowerCase()}`}>{room.building}</LocaleLink>
-            </nav>
+      <div className="k-navy overflow-x-clip">
+        <div className="wrap grid gap-x-12 pb-16 lg:grid-cols-12 lg:pb-24">
+          {/* ============ HEAD ============ */}
+          <section className="page-head min-w-0 lg:col-span-8 lg:row-start-1" aria-labelledby="r-title">
+            <Breadcrumb
+              label={t("ui.breadcrumb")}
+              items={[
+                { label: t("ui.home"), href: "/" },
+                { label: t("ui.navRooms"), href: "/rooms" },
+                { label: room.building, href: `/rooms?building=${room.buildingCode.toLowerCase()}` },
+              ]}
+            />
             <div className="mt-6 flex flex-wrap items-center gap-2.5 lg:mt-8">
-              <span className="cat-label">{kind}</span>
+              <span className="text-[13px] font-semibold text-ink-2">{kind}</span>
               {/* Phones have no side card and its sample note, so say it here too. */}
               <span className="pill pill-gold">{t("roomCard.sample")}</span>
             </div>
             <h1 id="r-title" className="d-lg mt-3 max-w-[48rem]">
               {room.name}
             </h1>
-            <p className="sub mt-5 max-w-[44rem] text-[17px] leading-relaxed lg:text-[19px]">{room.summary}</p>
-            <div className="meta mt-6 !gap-x-5 !gap-y-2.5 !text-[14.5px]">
+            <p className="lead mt-4 max-w-[44rem]">{room.summary}</p>
+            <div className="meta mt-5 !gap-x-5 !gap-y-2.5 !text-[14.5px]">
               <span>
                 <Users className="i" aria-hidden />
                 {t("roomPage.seats", { count: room.capacity })}
@@ -258,24 +254,22 @@ export default async function RoomDetailPage({ params }: Props) {
               </span>
             </div>
             {/* Phones and tablets have no side card: today's state sits here. */}
-            <div className="mt-8 inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[22px] bg-surface p-1.5 pr-4 text-ink shadow-[0_0_0_1px_var(--line),var(--shadow-sm)] lg:hidden">
+            <div className="mt-6 inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[12px] bg-surface p-1.5 pr-4 text-ink shadow-[0_0_0_1px_var(--line)] lg:hidden">
               {statusPill}
               <NextBookableLine className="py-0.5 pl-1 text-[14px] font-medium sm:pl-0" />
             </div>
           </section>
 
-          {/* ============ RESERVE: starts in the hero, stays beside the content ============ */}
+          {/* ============ RESERVE: beside the content, sticky ============ */}
           <aside className="relative z-20 hidden pt-12 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1 lg:block" aria-label={t("roomPage.reserve")}>
-            <div className="sticky top-[84px]">
-              <div className="rounded-[32px] bg-surface p-2 shadow-[0_0_0_1px_var(--line),var(--shadow-lg)]">
-                <RoomCover room={room} className="aspect-[16/10] !rounded-[24px]" />
-                <div className="[&_.enrol]:!shadow-none">{reserveCard}</div>
-              </div>
+            <div className="sticky top-[88px] overflow-hidden rounded-[16px] bg-surface shadow-[0_0_0_1px_var(--line)]">
+              <RoomCover room={room} className="aspect-[16/9]" />
+              {reserveCard}
             </div>
           </aside>
 
           <div className="min-w-0 lg:col-span-8 lg:col-start-1 lg:row-start-2">
-            <div className="facts rd-facts relative z-10 -mt-12" style={{ "--n": facts.length } as React.CSSProperties}>
+            <div className="facts rd-facts" style={{ "--n": facts.length } as React.CSSProperties}>
               {facts.map(([icon, l, v]) => (
                 <div key={l} className="fact">
                   <span className="l">
@@ -290,7 +284,7 @@ export default async function RoomDetailPage({ params }: Props) {
             <CourseTabs tabs={tabs} label={t("roomPage.sections")} />
 
             {/* About */}
-            <section id="about" className="scroll-mt-[150px] pt-12" aria-labelledby="about-t">
+            <section id="about" className="scroll-mt-[136px] pt-12" aria-labelledby="about-t">
               <h2 id="about-t" className="d-md">
                 {t("roomPage.aboutTitle")}
               </h2>
@@ -300,7 +294,7 @@ export default async function RoomDetailPage({ params }: Props) {
                 ))}
               </div>
               {room.amenities.length ? (
-                <div className="outcomes mt-10 p-5 sm:p-8">
+                <div className="outcomes mt-10 p-5 sm:p-6">
                   <h3 className="t-lg">{t("roomPage.amenitiesTitle")}</h3>
                   <ul className="rd-amen mt-5">
                     {room.amenities.map((a) => {
@@ -320,7 +314,7 @@ export default async function RoomDetailPage({ params }: Props) {
             </section>
 
             {/* Calendar */}
-            <section id="calendar" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="cal-t">
+            <section id="calendar" className="scroll-mt-[136px] pt-14 lg:pt-16" aria-labelledby="cal-t">
               <h2 id="cal-t" className="d-md">
                 {t("roomPage.calendarTitle")}
               </h2>
@@ -331,7 +325,7 @@ export default async function RoomDetailPage({ params }: Props) {
             </section>
 
             {/* Equipment */}
-            <section id="equipment" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="eq-t">
+            <section id="equipment" className="scroll-mt-[136px] pt-14 lg:pt-16" aria-labelledby="eq-t">
               <h2 id="eq-t" className="d-md">
                 {t("roomPage.equipmentTitle")}
               </h2>
@@ -348,7 +342,7 @@ export default async function RoomDetailPage({ params }: Props) {
             </section>
 
             {/* Rules */}
-            <section id="rules" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="rules-t">
+            <section id="rules" className="scroll-mt-[136px] pt-14 lg:pt-16" aria-labelledby="rules-t">
               <h2 id="rules-t" className="d-md">
                 {t("roomPage.rulesTitle")}
               </h2>
@@ -373,27 +367,24 @@ export default async function RoomDetailPage({ params }: Props) {
             </section>
 
             {/* Location */}
-            <section id="location" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="loc-t">
+            <section id="location" className="scroll-mt-[136px] pt-14 lg:pt-16" aria-labelledby="loc-t">
               <h2 id="loc-t" className="d-md">
                 {t("roomPage.locationTitle")}
               </h2>
-              <div className="mt-7 grid overflow-hidden rounded-[30px] bg-surface shadow-[0_0_0_1px_var(--line)] sm:grid-cols-[1.1fr_1fr]">
-                <div className={cn("relative aspect-[5/3] sm:aspect-auto sm:min-h-[240px]", k)}>
-                  <Svg markup={mapSvg(hash(room.buildingCode))} className="[&>svg]:absolute [&>svg]:inset-0 [&>svg]:size-full" />
-                </div>
-                <div className="flex flex-col gap-4 p-6 sm:p-8">
-                  <p className="font-display text-[21px] font-bold leading-snug tracking-tight">
+              <div className="mt-7 flex flex-col gap-5 rounded-[16px] bg-surface p-6 shadow-[0_0_0_1px_var(--line)] sm:flex-row sm:items-start sm:p-8">
+                <span className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-surface-2 text-ink-2">
+                  <MapPin className="i" aria-hidden />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  <p className="t-lg">
                     {t("roomPage.roomAt", { building: room.building, code: room.buildingCode, floor, room: room.roomNumber })}
                   </p>
-                  <p className="flex items-start gap-2 text-ink-2">
-                    <MapPin className="i mt-0.5 !size-[18px] text-ink-3" aria-hidden />
-                    {t("roomPage.address")}
-                  </p>
+                  <p className="text-ink-2">{t("roomPage.address")}</p>
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${room.coords.lat},${room.coords.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="link mt-auto"
+                    className="link mt-2"
                   >
                     {t("course2.openMap")} <ArrowUpRight className="i" aria-hidden />
                   </a>
@@ -406,24 +397,19 @@ export default async function RoomDetailPage({ params }: Props) {
 
       {/* ============ OTHER ROOMS ============ */}
       {others.length ? (
-        <section className="overflow-x-clip pb-20 lg:pb-28" aria-labelledby="rel-t">
+        <section className="border-t border-line py-16 lg:py-20" aria-labelledby="rel-t">
           <div className="wrap">
-            <div className="mb-8 flex items-end justify-between gap-6">
+            <div className="s-head">
               <h2 id="rel-t" className="d-md">
                 {t("roomPage.related")}
               </h2>
-              <div className="flex items-center gap-4">
-                <LocaleLink href="/rooms" className="link hidden text-[15px] sm:inline-flex">
-                  {t("roomPage.allRooms")} <ArrowUpRight className="i" aria-hidden />
-                </LocaleLink>
-                <RailControls target="rail-rooms" prev={t("ui.prev")} next={t("ui.next")} />
-              </div>
+              <LocaleLink href="/rooms" className="link">
+                {t("roomPage.allRooms")} <ArrowUpRight className="i" aria-hidden />
+              </LocaleLink>
             </div>
-            <div className="scroller bleed pad-y" id="rail-rooms" tabIndex={0} aria-label={t("roomPage.related")}>
+            <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
               {others.map((r) => (
-                <div key={r.id} className="w-[84%] max-w-[340px] sm:w-[46%] lg:w-[calc((1360px-80px-72px)/4)] lg:max-w-none">
-                  <RoomCard room={r} locale={locale} now={now} />
-                </div>
+                <RoomCard key={r.id} room={r} locale={locale} now={now} />
               ))}
             </div>
           </div>

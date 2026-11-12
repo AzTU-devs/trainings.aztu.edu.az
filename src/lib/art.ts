@@ -1,7 +1,8 @@
 /*
- * Generative art for the "Bright Modern Learning" design: course covers,
- * mosaic tiles, category swatches, expert monograms, the in-person location
- * plan and the closing protractor.
+ * Generative course covers, drawn for the participant area's course cards
+ * (the public site shows a course's photo or a plain header with its
+ * category's icon instead), and the hash the certificate and room pages seed
+ * their details with.
  *
  * Pure functions that return SVG markup, so the art is drawn on the server and
  * costs the browser no JavaScript. Shapes paint only with role classes (f100,
@@ -10,18 +11,13 @@
  *
  * Deterministic: the seed is an FNV-1a hash of the course id or slug, so a
  * course looks the same on every page and on the server and in the browser.
- * The only caller-supplied text that reaches the markup is an expert's
- * initials, and it is escaped.
+ * No caller-supplied text reaches the markup.
  */
 
 /** The eight subject families the art (and the hue engine) knows about. */
 export type ArtKind = "it" | "data" | "eng" | "biz" | "res" | "build" | "trans" | "energy";
 
 type Motif = (r: () => number, label: string) => string;
-
-function esc(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-}
 
 /* deterministic PRNG from a numeric seed */
 function rng(seed: number): () => number {
@@ -366,106 +362,6 @@ function coverSvg(cat: ArtKind, seed: number, opts: { variant?: number } = {}): 
   const body = list[v](r, L);
   return `<svg class="art" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
     <rect width="320" height="200" class="f100"/>${gridPath(320, 200, 20)}${body}</svg>`;
-}
-
-/* ---------- mosaic tiles: 100 x 100, background comes from the tile ---------- */
-const T: Record<string, () => string> = {
-  quarter: () => `<path d="M0 100V8A92 92 0 0 1 92 100Z" class="f500"/><circle cx="72" cy="28" r="10" class="f0"/>`,
-  half: () => `<path d="M8 56A42 42 0 0 1 92 56Z" class="f300"/><rect x="8" y="64" width="84" height="12" rx="6" class="f700"/><circle cx="50" cy="56" r="9" class="fg"/>`,
-  rings: () => `<g class="spin"><circle cx="50" cy="50" r="38" class="s500 fnone" stroke-width="6" stroke-dasharray="44 16"/></g><circle cx="50" cy="50" r="22" class="s300 fnone" stroke-width="6"/><circle cx="50" cy="50" r="8" class="f700"/>`,
-  dots: () => { let d = ''; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) d += `<circle cx="${20 + i * 20}" cy="${20 + j * 20}" r="${(i + j) % 3 === 0 ? 6 : 4.5}" class="${i === 2 && j === 1 ? 'fg' : ((i + j) % 2 ? 'f500' : 'f300')}"/>`; return d; },
-  arch: () => `<path d="M22 100V52A28 28 0 0 1 78 52V100Z" class="f0"/><path d="M36 100V60A14 14 0 0 1 64 60V100Z" class="f500"/>`,
-  stairs: () => `<path d="M0 100V76H24V52H48V28H72V4H100V100Z" class="f500"/><path d="M0 100V88H36V64H60V40H84V16H100V100Z" class="f300" opacity=".0"/><circle cx="24" cy="30" r="9" class="fg"/>`,
-  cross: () => `<circle cx="50" cy="50" r="40" class="s700 fnone" stroke-width="1.5" stroke-dasharray="3 5"/><circle cx="50" cy="50" r="26" class="f0"/><path d="M50 8V92M8 50H92" class="s700" stroke-width="1.5"/><circle cx="50" cy="50" r="6" class="f700"/>`,
-  wave: () => { const w = (y: number, ph: number) => { let d = `M0 ${y}`; for (let x = 0; x <= 100; x += 5) d += `L${x} ${(y + Math.sin(x / 9 + ph) * 7).toFixed(1)}`; return d; }; return `<g class="drift"><path d="${w(34, 0)}" class="s300 rnd fnone" stroke-width="6"/><path d="${w(54, 1)}" class="s500 rnd fnone" stroke-width="6"/><path d="${w(74, 2)}" class="s700 rnd fnone" stroke-width="6"/></g>`; },
-  star: () => `<path d="M50 10 C54 38 62 46 90 50 C62 54 54 62 50 90 C46 62 38 54 10 50 C38 46 46 38 50 10Z" class="fn"/>`,
-  route: () => `<path d="M16 80 C40 80 36 24 62 24 S84 60 84 60" class="s500 rnd fnone" stroke-width="9"/><circle cx="16" cy="80" r="8" class="f0 s900" stroke-width="3"/><circle cx="84" cy="62" r="8" class="fg"/>`,
-  bars: () => `<rect x="16" y="54" width="16" height="30" rx="6" class="f300"/><rect x="42" y="38" width="16" height="46" rx="6" class="f500"/><rect x="68" y="18" width="16" height="66" rx="6" class="f700"/>`,
-  window: () => `<rect x="12" y="20" width="76" height="60" rx="12" class="f0"/><circle cx="24" cy="31" r="3" class="f300"/><circle cx="33" cy="31" r="3" class="fg"/><path d="M36 48 L28 56 L36 64M64 48 L72 56 L64 64" class="s700 rnd fnone" stroke-width="5"/><path d="M54 45 L46 67" class="s500 rnd" stroke-width="5"/>`,
-  book: () => `<path d="M50 30 C38 24 24 24 12 28 V76 C24 72 38 72 50 78Z" class="f0"/><path d="M50 30 C62 24 76 24 88 28 V76 C76 72 62 72 50 78Z" class="f300"/><path d="M50 30V78" class="s700" stroke-width="2"/>`,
-  gear: () => { let t = ''; for (let i = 0; i < 8; i++) t += `<rect x="-6" y="-38" width="12" height="14" rx="3" transform="rotate(${i * 45})" class="f500"/>`; return `<g transform="translate(50 50)"><g class="spin">${t}<circle r="28" class="f500"/></g><circle r="11" class="f100"/></g>`; },
-  play: () => `<circle cx="50" cy="50" r="34" class="f0"/><path d="M50 16 A34 34 0 1 1 18 62" class="s500 rnd fnone" stroke-width="6"/><path d="M43 37 L63 50 L43 63Z" class="f700"/>`,
-  blocks: () => `<rect x="14" y="54" width="32" height="32" rx="8" class="f500"/><rect x="54" y="54" width="32" height="32" rx="8" class="f300"/><rect x="34" y="16" width="32" height="32" rx="8" class="f0"/>`,
-  circle: () => `<circle cx="50" cy="50" r="30" class="f300"/><circle cx="50" cy="50" r="14" class="f0"/>`,
-};
-export function tileSvg(kind: string): string {
-  return `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">${(T[kind] || T.circle)()}</svg>`;
-}
-
-/* ---------- category swatch (square, used in mega menu / rails) ---------- */
-const SWATCH: Record<ArtKind, string> = { it: 'window', data: 'dots', eng: 'gear', biz: 'bars', res: 'book', build: 'arch', trans: 'route', energy: 'wave' };
-export function swatchSvg(cat: ArtKind): string { return tileSvg(SWATCH[cat] ?? 'circle'); }
-
-/* ---------- expert portrait (no photo) 200 x 240 ----------
-   Typographic, not a fake silhouette: the initials are set large on the
-   expert's primary-category field, with one drafted shape behind them. */
-export function monogramSvg(initials: string, seed: number): string {
-  initials = esc(initials);
-  const r = rng(seed);
-  const v = Math.floor(r() * 3);
-  let shape;
-  if (v === 0) shape = `<circle cx="150" cy="70" r="84" class="f200"/><circle cx="150" cy="70" r="40" class="f300"/>`;
-  else if (v === 1) shape = `<path d="M200 0V168A112 112 0 0 1 88 56V0Z" class="f200"/><path d="M200 0V100A56 56 0 0 1 144 44V0Z" class="f300"/>`;
-  else shape = `<rect x="96" y="-40" width="140" height="190" rx="70" class="f200"/><circle cx="166" cy="54" r="30" class="f300"/>`;
-  const [gx, gy] = ([[150, 70], [36, 44], [166, 54]] as const)[v];
-  return `<svg viewBox="0 0 200 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-    <rect width="200" height="240" class="f100"/>
-    ${gridPath(200, 240, 20)}
-    ${shape}
-    <path class="dimline" d="M22 134H112M22 128V140M112 128V140"/>
-    <text x="22" y="214" style="font:800 86px var(--f-display);letter-spacing:-.055em" class="f900">${initials}</text>
-    <circle cx="${gx}" cy="${gy}" r="9" class="fg"/>
-  </svg>`;
-}
-/* small round avatar version (header chips, reviews, enrol card) */
-export function avatarSvg(initials: string): string {
-  initials = esc(initials);
-  return `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><rect width="48" height="48" class="f200"/><circle cx="40" cy="6" r="16" class="f300"/>
-    <text x="24" y="31" text-anchor="middle" style="font:800 18px var(--f-display);letter-spacing:-.04em" class="f900">${initials}</text></svg>`;
-}
-
-/* ---------- location map for in-person courses 400 x 240 ----------
-   A drafted city block plan, not a real map: blocks, one avenue, a route
-   and the pin. Real address text sits next to it. */
-export function mapSvg(seed: number): string {
-  const r = rng(seed);
-  let blocks = '';
-  const xs = [0, 64, 128, 210, 274, 338], ys = [0, 58, 116, 178];
-  for (let i = 0; i < xs.length; i++) for (let j = 0; j < ys.length; j++) {
-    const w = (xs[i + 1] || 404) - xs[i] - 12, h = (ys[j + 1] || 244) - ys[j] - 12;
-    if (w <= 0 || h <= 0) continue;
-    const cls = (i === 2 && j === 1) ? 'f300' : (r() > .78 ? 'f200' : 'f0');
-    blocks += `<rect x="${xs[i] + 6}" y="${ys[j] + 6}" width="${w}" height="${h}" rx="10" class="${cls}"/>`;
-  }
-  return `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-    <rect width="400" height="240" class="f100"/>${blocks}
-    <path d="M-10 212 L410 150" class="s300" stroke-width="16" fill="none"/>
-    <path d="M60 236 C 90 170, 150 170, 170 120" class="s700 rnd fnone" stroke-width="4" stroke-dasharray="2 9"/>
-    <circle cx="60" cy="236" r="9" class="f0 s700" stroke-width="3"/>
-    <g transform="translate(170 116)"><circle r="30" class="f500" opacity=".25"/><path d="M0 4 C-12 -10 -18 -18 -18 -28 A18 18 0 0 1 18 -28 C18 -18 12 -10 0 4Z" class="fn"/><circle cy="-28" r="6.5" class="fg"/></g>
-  </svg>`;
-}
-
-/* ---------- drafting protractor (closing call to action) 480 x 300 ---------- */
-export function protractorSvg(): string {
-  let ticks = '';
-  for (let a = 0; a <= 180; a += 5) {
-    const rad = Math.PI - (a * Math.PI) / 180, long = a % 30 === 0;
-    const r1 = 196, r2 = long ? 176 : 186;
-    ticks += `M${(240 + Math.cos(rad) * r1).toFixed(1)} ${(300 - Math.sin(rad) * r1).toFixed(1)}L${(240 + Math.cos(rad) * r2).toFixed(1)} ${(300 - Math.sin(rad) * r2).toFixed(1)}`;
-  }
-  const arm = (deg: number, len: number) => { const rad = Math.PI - deg * Math.PI / 180; return [240 + Math.cos(rad) * len, 300 - Math.sin(rad) * len]; };
-  const [ax, ay] = arm(62, 232);
-  return `<svg viewBox="0 0 480 300" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
-    <path d="M20 300A220 220 0 0 1 460 300Z" class="f200"/>
-    <path d="M64 300A176 176 0 0 1 416 300Z" class="f100"/>
-    <path d="${ticks}" class="s700" stroke-width="2" opacity=".55"/>
-    <path d="M112 300A128 128 0 0 1 368 300" class="s500 fnone" stroke-width="22"/>
-    <path d="M112 300A128 128 0 0 1 ${arm(62, 128).map(n => n.toFixed(1)).join(' ')}" class="sn fnone" stroke-width="22"/>
-    <path d="M240 300L${ax.toFixed(1)} ${ay.toFixed(1)}" class="s900" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="11" class="fg"/>
-    <circle cx="240" cy="300" r="62" class="fn"/>
-  </svg>`;
 }
 
 /** A 320×200 course cover in the category's colours. */

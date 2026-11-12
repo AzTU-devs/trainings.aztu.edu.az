@@ -8,6 +8,7 @@ import { ExpertAreaLabels } from "@/features/expert/components/ExpertAreas";
 import { ExpertCard } from "@/features/expert/components/ExpertCard";
 import { SHOWCASE_EXPERTS } from "@/features/showcase/flag";
 import { listExpertsSource } from "@/features/showcase/source.server";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -38,32 +39,17 @@ export default async function ExpertsPage({ params }: Props) {
 
   return (
     <>
-      <section className="relative isolate overflow-x-clip" aria-labelledby="ex-h1">
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] overflow-hidden">
-          <div className="absolute -top-72 right-[-8%] size-[760px] rounded-full bg-[radial-gradient(closest-side,var(--gold-tint),transparent)]" />
-        </div>
-        <div className="wrap pt-8 lg:pt-14">
-          <nav aria-label={t("ui.breadcrumb")} className="flex items-center gap-2 text-[13.5px] text-ink-3">
-            <LocaleLink href="/" className="hover:text-ink">
-              {t("ui.home")}
-            </LocaleLink>
-            <span aria-hidden>/</span>
-            <span className="text-ink-2" aria-current="page">
-              {t("ui.navExperts")}
-            </span>
-          </nav>
-          <div className="mt-4 grid items-end gap-x-8 gap-y-6 lg:grid-cols-12">
-            <h1 id="ex-h1" className="d-lg lg:col-span-7">
-              {t("expertsPage.title")}
-            </h1>
-            <p className="lead lg:col-span-5 lg:pb-1.5">{t("expertsPage.sub")}</p>
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        id="ex-h1"
+        title={t("expertsPage.title")}
+        lead={t("expertsPage.sub")}
+        crumbs={[{ label: t("ui.home"), href: "/" }, { label: t("ui.navExperts") }]}
+        crumbsLabel={t("ui.breadcrumb")}
+      />
 
-      <section className="wrap pb-20 pt-12 lg:pb-28 lg:pt-16" aria-label={t("expertsPage.title")}>
+      <section className="wrap pb-16 pt-2 lg:pb-24" aria-label={t("expertsPage.title")}>
         {experts.length ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
             {experts.map((e) => {
               const main = categoryOfExpert(index, e);
               const { picked, own } = expertAreas(index.categories, e, t, locale, { fallback: main });
@@ -97,15 +83,12 @@ export default async function ExpertsPage({ params }: Props) {
   );
 }
 
+/** The last cell of the grid: the way in for someone who would like to teach. */
 function Invite({ t }: { t: Awaited<ReturnType<typeof getT>> }) {
   return (
-    <div className="k-gold relative isolate flex flex-col overflow-hidden rounded-[30px] bg-[var(--k-100)] p-7 text-[var(--k-900)]">
-      <svg className="absolute -right-10 -top-10 -z-10 w-40" viewBox="0 0 100 100" aria-hidden>
-        <circle cx="50" cy="50" r="40" className="s300 fnone" strokeWidth="8" />
-        <circle cx="50" cy="50" r="16" className="f300" />
-      </svg>
-      <p className="font-display text-[22px] font-bold tracking-tight">{t("landing.shareTitle")}</p>
-      <p className="mt-2 max-w-[17rem] text-[15px] opacity-85">{t("landing.shareText")}</p>
+    <div className="flex flex-col rounded-[16px] bg-paper-2 p-5 sm:p-6">
+      <p className="t-md">{t("landing.shareTitle")}</p>
+      <p className="mt-2 text-[14.5px] text-ink-2">{t("landing.shareText")}</p>
       <LocaleLink href="/register/tutor" className="btn btn-primary btn-sm mt-6 self-start">
         {t("landing.shareCta")} <ArrowRight className="i i-arrow" aria-hidden />
       </LocaleLink>

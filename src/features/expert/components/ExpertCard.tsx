@@ -7,14 +7,14 @@ import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils/cn";
 import { formatCompact, formatRating } from "@/lib/utils/format";
 import type { ExpertSummary } from "../types";
-import { ExpertPhoto } from "./ExpertArch";
+import { ExpertPortrait } from "./ExpertPortrait";
 
 /**
  * An expert in a grid (the experts directory, the home page): one card — the
  * portrait, then the areas, name, title line and figures — on a single
- * surface (`.expert-card` in globals.css). The name is the link, stretched
- * over the whole card. The card fills its grid cell, so a row shares one
- * height, and the figures sit on the bottom edge so they line up across it.
+ * surface (`.card.expert-card` in globals.css). The name is the link,
+ * stretched over the whole card. The card fills its grid cell, so a row
+ * shares one height, and the figures sit on the bottom edge so they line up.
  */
 export function ExpertCard({
   expert: e,
@@ -26,7 +26,7 @@ export function ExpertCard({
   className,
 }: {
   expert: ExpertSummary;
-  /** Hue-engine class of the expert's main subject area. */
+  /** Hue-engine class of the expert's main subject area (tints their area labels). */
   k: string;
   t: TFunction;
   locale: Locale;
@@ -38,8 +38,8 @@ export function ExpertCard({
 }) {
   const byline = [e.academicTitle, e.headline ?? e.department].filter(Boolean).join(" · ");
   return (
-    <article className={cn("expert-card", k, className)}>
-      <ExpertPhoto id={e.id} name={e.displayName} avatarUrl={e.avatarUrl} k={k} />
+    <article className={cn("card expert-card", k, className)}>
+      <ExpertPortrait name={e.displayName} avatarUrl={e.avatarUrl} sizes="(min-width: 1024px) 25vw, 50vw" />
       <div className="body">
         {areas}
         <Heading className={cn("name", areas ? "mt-2" : null)}>

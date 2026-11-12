@@ -1,7 +1,7 @@
 /* ==========================================================================
    Room detail page — app/[lang]/(marketing)/rooms/[slug]/page.tsx
 
-   The page itself reuses the course page's classes (.c-hero-row, .facts,
+   The page itself reuses the course page's classes (.page-head, .facts,
    .ptabs, .enrol, .inc, .actionbar…). This file adds only what a room needs
    on top: the amenity tiles, the equipment and rule lists, the busy calendar
    (RoomCalendar.tsx) and the reserve dialog (ReserveDialog.tsx).
@@ -14,18 +14,18 @@
 /* ---------- page ---------- */
 .rd-amen { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 136px), 1fr)); gap: 8px; }
 @media (min-width: 640px) { .rd-amen { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; } }
-.rd-amen li { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 9px 10px 9px 9px; border-radius: 18px;
-  background: var(--surface); box-shadow: inset 0 0 0 1px var(--k-200); font: 600 14.5px/1.25 var(--f-sans); color: var(--ink); }
-.rd-amen .ic { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; flex: none; background: var(--k-100); color: var(--k-700); }
+.rd-amen li { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 10px 8px 8px; border-radius: var(--r-ctl);
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font: 600 14.5px/1.25 var(--f-sans); color: var(--ink); }
+.rd-amen .ic { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; flex: none; background: var(--surface-2); color: var(--ink-2); }
 .rd-amen .ic svg.i { width: 20px; height: 20px; }
-@media (max-width: 639px) { .rd-amen li { font-size: 13.5px; } .rd-amen .ic { width: 38px; height: 38px; border-radius: 12px; } }
+@media (max-width: 639px) { .rd-amen li { font-size: 13.5px; } .rd-amen .ic { width: 36px; height: 36px; } }
 
-.rd-list { border-radius: 24px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
+.rd-list { border-radius: var(--r-card); background: var(--surface); box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
 .rd-list li { display: flex; align-items: flex-start; gap: 14px; padding: 15px 18px; font-size: 15.5px; line-height: 1.5; color: var(--ink-2); }
 .rd-list li + li { border-top: 1px solid var(--line); }
-.rd-list .num { font: 600 12.5px/1 var(--f-mono); color: var(--k-700); width: 34px; height: 34px; border-radius: 11px; background: var(--k-100);
+.rd-list .num { font: 600 12.5px/1 var(--f-mono); color: var(--ink-2); width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2);
   display: grid; place-items: center; flex: none; margin-top: -4px; }
-.rd-list .dot { width: 34px; height: 24px; display: grid; place-items: center; flex: none; color: var(--k-700); }
+.rd-list .dot { width: 32px; height: 24px; display: grid; place-items: center; flex: none; color: var(--ink-3); }
 .rd-list .dot svg.i { width: 18px; height: 18px; }
 @media (min-width: 768px) {
   .rd-list.cols { display: grid; grid-template-columns: 1fr 1fr; }
@@ -45,7 +45,7 @@
   .rd-facts .fact:nth-child(n+4) { border-top: 1px solid var(--line); }
 }
 
-.rd-next { font: 800 40px/1 var(--f-display); letter-spacing: -.035em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rd-next { font: 700 36px/1 var(--f-display); letter-spacing: -.025em; color: var(--ink); font-variant-numeric: tabular-nums; }
 .rd-next small { font-size: 22px; font-weight: 700; color: var(--ink-3); letter-spacing: -.02em; }
 
 /* status pill (also the day panel's); used with .k-navy, the calendar's busy scale */
@@ -65,7 +65,7 @@
 .rc-in { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
 @container (min-width: 700px) { .rc-in { grid-template-columns: minmax(0, 1.06fr) minmax(0, 1fr); align-items: start; } }
 
-.rc-month, .rc-dayp { background: var(--surface); border-radius: 28px; box-shadow: 0 0 0 1px var(--line); padding: 16px; }
+.rc-month, .rc-dayp { background: var(--surface); border-radius: var(--r-card); box-shadow: 0 0 0 1px var(--line); padding: 16px; }
 @container (min-width: 440px) { .rc-month, .rc-dayp { padding: 22px; } }
 /* The month panel is its own container: its cells size by the panel, which
    is half the calendar beside the timeline and all of it on phones. */
@@ -104,7 +104,7 @@
 .rc-day.past:not(.sel):hover { box-shadow: inset 0 0 0 1.5px var(--ink-3); }
 .rc-day.today { box-shadow: inset 0 0 0 2px var(--navy); }
 .rc-day.today .n { font-weight: 800; }
-.rc-day.sel { background: var(--navy); color: var(--on-navy); box-shadow: 0 8px 20px -10px color-mix(in oklch, var(--navy) 80%, transparent); }
+.rc-day.sel { background: var(--navy); color: var(--on-navy); box-shadow: none; }
 .rc-day.sel .bar i { background: color-mix(in oklch, var(--on-navy) 30%, transparent); }
 .rc-day.sel.l1 .bar i:nth-child(-n+1), .rc-day.sel.l2 .bar i:nth-child(-n+2), .rc-day.sel.l3 .bar i:nth-child(-n+3), .rc-day.sel.l4 .bar i { background: var(--on-navy); }
 .rc-day.sel .cl { color: color-mix(in oklch, var(--on-navy) 80%, transparent); }
@@ -193,10 +193,10 @@
 .rsv { position: fixed; inset: 0; z-index: 95; display: flex; align-items: flex-end; justify-content: center; }
 .rsv-scrim { position: absolute; inset: 0; background: var(--scrim); animation: rsv-fade .25s var(--ease-out); }
 .rsv-panel { position: relative; width: 100%; max-width: 680px; max-height: 94dvh; display: flex; flex-direction: column; overflow: hidden;
-  background: var(--paper); border-radius: 28px 28px 0 0; box-shadow: var(--shadow-lg); animation: rsv-up .38s var(--ease-out); }
+  background: var(--paper); border-radius: var(--r-card) var(--r-card) 0 0; box-shadow: var(--shadow-lg); animation: rsv-up .38s var(--ease-out); }
 @media (min-width: 640px) {
   .rsv { align-items: center; padding: 24px; }
-  .rsv-panel { border-radius: 32px; max-height: min(900px, calc(100dvh - 48px)); animation-name: rsv-pop; }
+  .rsv-panel { border-radius: var(--r-card); max-height: min(900px, calc(100dvh - 48px)); animation-name: rsv-pop; }
 }
 @keyframes rsv-fade { from { opacity: 0; } }
 @keyframes rsv-up { from { transform: translateY(48px); opacity: 0; } }
@@ -225,7 +225,7 @@
 .rsv-label small { font-size: 12.5px; font-weight: 400; color: var(--ink-3); }
 .rsv-sub { font: 600 12.5px/1.2 var(--f-sans); color: var(--ink-3); }
 
-.rsv-input { width: 100%; height: 48px; padding: 0 14px; border: 0; border-radius: 14px; outline: none; background: var(--surface); color: var(--ink);
+.rsv-input { width: 100%; height: 48px; padding: 0 14px; border: 0; border-radius: var(--r-ctl); outline: none; background: var(--surface); color: var(--ink);
   box-shadow: inset 0 0 0 1px var(--line-2); font: 500 15.5px/1.2 var(--f-sans); font-variant-numeric: tabular-nums; transition: box-shadow .15s; }
 .rsv-input:hover { box-shadow: inset 0 0 0 1px var(--ink-3); }
 .rsv-input:focus { box-shadow: inset 0 0 0 2px var(--focus); }
@@ -269,7 +269,7 @@
 
 .rsv-okmark { width: 56px; height: 56px; border-radius: 19px; display: grid; place-items: center; flex: none; background: var(--k-100); color: var(--k-700); }
 .rsv-okmark svg.i { width: 26px; height: 26px; }
-.rsv-sum { border-radius: 22px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); padding: 2px 18px; }
+.rsv-sum { border-radius: var(--r-card); background: var(--surface); box-shadow: 0 0 0 1px var(--line); padding: 2px 18px; }
 .rsv-sum > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; padding: 12px 0; font-size: 14.5px; line-height: 1.45; }
 .rsv-sum > div + div { border-top: 1px dashed var(--line); }
 .rsv-sum dt { color: var(--ink-3); }

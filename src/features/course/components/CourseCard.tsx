@@ -1,28 +1,26 @@
-import Image from "next/image";
 import { Clock, Sparkles } from "lucide-react";
 import { LocaleLink } from "@/i18n/LocaleLink";
-import { Svg } from "@/components/bright/Svg";
 import { LevelMeter, StarIcon } from "@/components/bright/bits";
-import { coverArt } from "@/lib/art";
 import { cn } from "@/lib/utils/cn";
+import { CategoryIcon } from "@/features/category/icons";
 import type { CategoryStyle } from "@/features/category/style";
 import { FORMAT_ICON } from "../format-icons";
+import { CoverPhoto } from "./CoverPhoto";
 import { mediaSrc } from "../media";
 import type { CourseLabels } from "../labels";
 import type { CourseSummary } from "../types";
 
 /*
- * Course cards for the "Bright" design. Server components: every string comes
- * in through `labels` (see ../labels.ts), so nothing here needs the i18n hooks.
+ * Course cards. Server components: every string comes in through `labels`
+ * (see ../labels.ts), so nothing here needs the i18n hooks.
  *
- * A course without a thumbnail gets a generated cover in its category's
- * colours; a course with one gets the photo plus a small category "tab" in the
- * corner, so both kinds of cover belong to the same system.
+ * A course with a thumbnail shows it; one without gets a plain header with
+ * its category's icon. Then the title, the expert and up to three facts.
  */
 
 type CardProps = {
   course: CourseSummary;
-  /** The category the course is shown under; null paints it in brand navy. */
+  /** The category the course is shown under; null draws the neutral icon. */
   category: { name: string; style: CategoryStyle } | null;
   labels: CourseLabels;
 };
@@ -32,6 +30,7 @@ function FormatIcon({ type }: { type: CourseSummary["courseType"] }) {
   return <Icon className="i" aria-hidden />;
 }
 
+/** The photo, or a plain header with the category's icon; the format pill on top. */
 export function CourseCover({
   course,
   category,
@@ -40,30 +39,28 @@ export function CourseCover({
   className,
 }: CardProps & { pills?: boolean; className?: string }) {
   const photo = mediaSrc(course.thumbnailUrl);
-  const art = category?.style.art ?? "it";
+  const icon = (
+    <span className="cat-ic" aria-hidden>
+      <CategoryIcon style={category?.style} />
+    </span>
+  );
   return (
-    <div className={cn("cover", photo && "photo", className)}>
+    <div className={cn("cover plain", category?.style.k ?? "k-navy", className)}>
       {photo ? (
-        <Image src={photo} alt="" fill unoptimized sizes="(min-width: 1024px) 25vw, 80vw" />
+        <CoverPhoto src={photo} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 88px">
+          {icon}
+        </CoverPhoto>
       ) : (
-        <Svg markup={coverArt(art, course.id || course.slug)} />
+        icon
       )}
       {pills ? (
-        <>
-          <div className="ov left-3 top-3">
-            <span className="pill pill-glass">
-              <FormatIcon type={course.courseType} />
-              {labels.format[course.courseType]}
-            </span>
-          </div>
-          {labels.isNewCourse(course) ? (
-            <div className="ov right-3 top-3">
-              <span className="pill pill-gold">{labels.isNew}</span>
-            </div>
-          ) : null}
-        </>
+        <div className="ov left-3 top-3">
+          <span className="pill pill-glass">
+            <FormatIcon type={course.courseType} />
+            {labels.format[course.courseType]}
+          </span>
+        </div>
       ) : null}
-      {photo ? <span className="ktab" aria-hidden /> : null}
     </div>
   );
 }
@@ -113,74 +110,30 @@ export function CourseMeta({
 }
 
 /**
- * Image-first card. `resp` turns it into a compact row below 640px (the
- * catalogue), where a column of tall cards would push results off the screen.
+ * The course card. `resp` turns it into a compact row below 640px (the
+ * catalogue, the home page), where a column of tall cards would push
+ * everything else off the screen.
  */
-export function CourseCard({ course, category, labels, resp }: CardProps & { resp?: boolean }) {
-  return (
-    <article className={cn("ccard group", category?.style.k ?? "k-navy", resp && "resp")}>
-      <CourseCover course={course} category={category} labels={labels} />
-      <div className="body flex min-w-0 flex-col gap-2 px-1">
-        {category ? <span className="cat-label">{category.name}</span> : null}
-        <h3 className="title clamp-2">
-          <LocaleLink className="stretched" href={`/courses/${course.slug}`}>
-            {course.title}
-          </LocaleLink>
-        </h3>
-        {course.tutorDisplayName ? <p className="who">{course.tutorDisplayName}</p> : null}
-        <div className="meta mt-0.5">
-          <CourseMeta course={course} labels={labels} />
-        </div>
-      </div>
-    </article>
-  );
-}
-
-/**
- * The wide spotlight used when there are too few courses for a rail or a
- * grid: one course given the room, with its subtitle and expert.
- */
-export function WideCourseCard({
+export function CourseCard({
   course,
   category,
   labels,
-  cta,
-  initials,
-}: CardProps & { cta?: boolean; initials: string }) {
-  const k = category?.style.k ?? "k-navy";
+  resp,
+  heading: Heading = "h3",
+}: CardProps & { resp?: boolean; heading?: "h2" | "h3" }) {
   return (
-    <article className={cn("ccard wide group", k)}>
+    <article className={cn("card ccard group", resp && "resp")}>
       <CourseCover course={course} category={category} labels={labels} />
-      <div className="relative flex flex-col gap-4">
-        {category ? <span className="cat-label">{category.name}</span> : null}
-        <h3 className="d-md">
+      <div className="body min-w-0">
+        <Heading className="title clamp-2">
           <LocaleLink className="stretched" href={`/courses/${course.slug}`}>
             {course.title}
           </LocaleLink>
-        </h3>
-        {course.subtitle ? <p className="text-[17px] leading-relaxed text-ink-2">{course.subtitle}</p> : null}
-        {course.tutorDisplayName ? (
-          <div className="mt-1 flex items-center gap-3">
-            <span className="av round size-11 bg-[var(--k-200)] text-[15px]">
-              <span className="ini">{initials}</span>
-            </span>
-            <div className="leading-tight">
-              <div className="text-[13px] text-ink-3">{labels.expert}</div>
-              <div className="font-semibold">{course.tutorDisplayName}</div>
-            </div>
-          </div>
-        ) : null}
-        <div className="meta text-[14.5px]">
+        </Heading>
+        {course.tutorDisplayName ? <p className="who">{course.tutorDisplayName}</p> : null}
+        <div className="meta">
           <CourseMeta course={course} labels={labels} />
-          <span className="font-semibold !text-ink">{labels.free}</span>
         </div>
-        {cta ? (
-          <div className="relative z-[5] pt-2">
-            <LocaleLink href={`/courses/${course.slug}`} className="btn btn-primary">
-              {labels.viewCourse}
-            </LocaleLink>
-          </div>
-        ) : null}
       </div>
     </article>
   );

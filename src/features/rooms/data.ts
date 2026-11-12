@@ -13,8 +13,8 @@ import type { Room } from "./types";
  *
  * No room has a `photo`: the only pictures at hand are the sample courses'
  * stock covers (a laptop, a dashboard, hands drafting), which do not show a
- * room and would repeat the course cards. Every room gets its generated floor
- * plan instead; a real photo can be set here once one exists.
+ * room and would repeat the course cards. Every room gets a plain header with
+ * its kind's icon instead; a real photo can be set here once one exists.
  *
  * The busy calendar is generated, deterministically, in ./schedule.ts and
  * re-exported below so a page can import everything from here. Client

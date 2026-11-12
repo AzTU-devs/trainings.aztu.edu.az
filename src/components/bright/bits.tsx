@@ -44,16 +44,6 @@ export function Stars({ value, label, large }: { value: number; label: string; l
   );
 }
 
-/** Small label with the gold rule before it. */
-export function Kicker({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <p className={cn("kicker", className)}>
-      <span className="rule" />
-      {children}
-    </p>
-  );
-}
-
 /** A compact row for "nothing here yet" inside a page section — never a big empty box. */
 export function SoftEmpty({
   icon,

@@ -35,21 +35,19 @@ import { CertificateStage } from "@/features/certificate/CertificateStage";
 import { certificateDate, courseCertificate } from "@/features/certificate/course";
 import { bakuDateISO } from "@/features/certificate/date";
 import { ReviewsSection } from "@/features/review/components/ReviewsSection";
-import { categoryOfExpert, indexFor } from "@/features/course/catalog-index.server";
+import { indexFor } from "@/features/course/catalog-index.server";
 import { FORMAT_ICON } from "@/features/course/format-icons";
 import { courseLabels } from "@/features/course/labels";
 import { categoryLabel } from "@/features/category/label";
 import { categoryStyle } from "@/features/category/style";
-import { ExpertArch, ExpertDot } from "@/features/expert/components/ExpertArch";
+import { ExpertPortrait } from "@/features/expert/components/ExpertPortrait";
 import { expertProfileSource, getCourse, listCoursesFor } from "@/features/showcase/source.server";
 import { mockReviews } from "@/features/showcase/data";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { RichText } from "@/components/common/RichText";
 import { hasRichText, plainExcerpt, richTextToPlain } from "@/lib/rich-text.server";
-import { Svg } from "@/components/bright/Svg";
 import { SoftEmpty, StarIcon, Stars } from "@/components/bright/bits";
-import { RailControls } from "@/components/bright/RailControls";
-import { mapSvg } from "@/lib/art";
+import { Breadcrumb } from "@/components/layout/PageHeader";
 import { formatCompact, formatRating } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { LocaleLink } from "@/i18n/LocaleLink";
@@ -203,9 +201,6 @@ export default async function CourseDetailPage({ params }: Props) {
   const roster = rosterOf(course);
   const profiles = await Promise.all(roster.map((r) => expertProfileSource(r.tutorId)));
   const lead = roster[0] ? { ...roster[0], profile: profiles[0] as ExpertProfile | null } : null;
-  const leadK = lead
-    ? categoryStyle(categoryOfExpert(index, { id: lead.tutorId, expertiseCategoryIds: lead.profile?.expertiseCategoryIds }) ?? category).k
-    : k;
 
   // Related: the same field first, then the newest others.
   const related = await listCoursesFor(sample, { page: 0, size: 12 })
@@ -287,7 +282,7 @@ export default async function CourseDetailPage({ params }: Props) {
       ];
 
   const enrolCard = (
-    <div className={cn("enrol p-6 sm:p-7", k)}>
+    <div className="enrol p-6">
       <div className="flex items-center justify-between gap-4">
         <span className="price">{labels.free}</span>
         {labels.isNewCourse(summary) ? <span className="pill pill-gold">{labels.isNew}</span> : null}
@@ -324,24 +319,18 @@ export default async function CourseDetailPage({ params }: Props) {
 
   return (
     <>
-      <div className={cn("c-page overflow-x-clip", k)}>
-        <div className="wrap grid gap-x-10 pb-20 lg:grid-cols-12 lg:pb-28">
-          {/* ============ HERO: the category's colour field, full bleed ============ */}
-          <section className="c-hero-row min-w-0 pb-20 pt-5 lg:col-span-8 lg:row-start-1 lg:pb-24 lg:pt-12" aria-labelledby="c-title">
-            <div className="mb-6 max-w-[560px] lg:hidden">
-              <CourseCover course={coverCourse} category={category ? { name: catName!, style } : null} labels={labels} pills={false} className="aspect-[16/10] !rounded-[24px]" />
-            </div>
-            <nav aria-label={t("ui.breadcrumb")} className="crumbs flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px]">
-              <LocaleLink href="/">{t("ui.home")}</LocaleLink>
-              <span aria-hidden>/</span>
-              <LocaleLink href="/courses">{t("ui.navCourses")}</LocaleLink>
-              {category ? (
-                <>
-                  <span aria-hidden>/</span>
-                  <LocaleLink href={`/courses?categoryId=${category.id}`}>{catName}</LocaleLink>
-                </>
-              ) : null}
-            </nav>
+      <div className={cn("overflow-x-clip", k)}>
+        <div className="wrap grid gap-x-12 pb-16 lg:grid-cols-12 lg:pb-24">
+          {/* ============ HEAD ============ */}
+          <section className="page-head min-w-0 lg:col-span-8 lg:row-start-1" aria-labelledby="c-title">
+            <Breadcrumb
+              label={t("ui.breadcrumb")}
+              items={[
+                { label: t("ui.home"), href: "/" },
+                { label: t("ui.navCourses"), href: "/courses" },
+                ...(category ? [{ label: catName!, href: `/courses?categoryId=${category.id}` }] : []),
+              ]}
+            />
             {catName ? (
               <div className="mt-6 lg:mt-8">
                 <span className="cat-label">{catName}</span>
@@ -351,17 +340,17 @@ export default async function CourseDetailPage({ params }: Props) {
               {course.title}
             </h1>
             {course.subtitle ? (
-              <p className="sub mt-5 max-w-[44rem] text-[17px] leading-relaxed lg:text-[19px]">{course.subtitle}</p>
+              <p className="lead mt-4 max-w-[44rem]">{course.subtitle}</p>
             ) : null}
-            <div className="meta mt-6 !gap-x-5 !gap-y-2.5 !text-[14.5px]">
+            <div className="meta mt-5 !gap-x-5 !gap-y-2.5 !text-[14.5px]">
               {course.ratingCount > 0 ? (
                 <span className="rate">
                   <Stars value={Number(course.ratingAvg)} label={labels.starsLabel(course.ratingAvg)} />
                   <b className="ml-1">{formatRating(course.ratingAvg, locale)}</b>
-                  <small className="!text-[14px] !text-[inherit]">({t("course2.ratingsCount", { count: course.ratingCount })})</small>
+                  <small className="!text-[14px]">({t("course2.ratingsCount", { count: course.ratingCount })})</small>
                 </span>
               ) : (
-                <span className="fresh !text-[inherit]">
+                <span className="fresh">
                   <Sparkles className="i" aria-hidden />
                   {t("course2.noRatings")}
                 </span>
@@ -382,12 +371,12 @@ export default async function CourseDetailPage({ params }: Props) {
               ) : null}
             </div>
             {lead ? (
-              <div className="mt-8">
-                <a href="#expert" className="group/e flex items-center gap-3">
-                  <ExpertDot name={lead.displayName} avatarUrl={lead.profile?.avatarUrl} k={leadK} className="ring-4 ring-[var(--k-50)]" />
+              <div className="mt-6">
+                <a href="#expert" className="group/e inline-flex items-center gap-3">
+                  <ExpertPortrait name={lead.displayName} avatarUrl={lead.profile?.avatarUrl} sizes="44px" className="round size-11 text-[15px]" />
                   <span className="leading-tight">
-                    <span className="block text-[13px] opacity-75">{labels.expert}</span>
-                    <span className="block text-[16px] font-semibold underline-offset-4 group-hover/e:underline">
+                    <span className="block text-[13px] text-ink-3">{labels.expert}</span>
+                    <span className="block text-[15.5px] font-semibold underline-offset-4 group-hover/e:underline">
                       {lead.displayName}
                       {roster.length > 1 ? ` +${roster.length - 1}` : ""}
                     </span>
@@ -395,20 +384,21 @@ export default async function CourseDetailPage({ params }: Props) {
                 </a>
               </div>
             ) : null}
+            <div className="mt-8 max-w-[560px] overflow-hidden rounded-[16px] shadow-[0_0_0_1px_var(--line)] lg:hidden">
+              <CourseCover course={coverCourse} category={category ? { name: catName!, style } : null} labels={labels} pills={false} className="aspect-[16/9]" />
+            </div>
           </section>
 
-          {/* ============ ENROL: starts in the hero, stays beside the content ============ */}
+          {/* ============ ENROL: beside the content, sticky ============ */}
           <aside className="relative z-20 hidden pt-12 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1 lg:block" aria-label={t("course2.enrol")}>
-            <div className="sticky top-[84px]">
-              <div className="rounded-[32px] bg-surface p-2 shadow-[0_0_0_1px_var(--line),var(--shadow-lg)]">
-                <CourseCover course={coverCourse} category={category ? { name: catName!, style } : null} labels={labels} pills={false} className="aspect-[16/10] !rounded-[24px]" />
-                <div className="[&_.enrol]:!shadow-none">{enrolCard}</div>
-              </div>
+            <div className="sticky top-[88px] overflow-hidden rounded-[16px] bg-surface shadow-[0_0_0_1px_var(--line)]">
+              <CourseCover course={coverCourse} category={category ? { name: catName!, style } : null} labels={labels} pills={false} className="aspect-[16/9]" />
+              {enrolCard}
             </div>
           </aside>
 
           <div className="min-w-0 lg:col-span-8 lg:col-start-1 lg:row-start-2">
-            <div className="facts relative z-10 -mt-12" style={{ "--n": facts.length } as React.CSSProperties}>
+            <div className="facts" style={{ "--n": facts.length } as React.CSSProperties}>
               {facts.map(([icon, l, v]) => (
                 <div key={l} className="fact">
                   <span className="l">
@@ -423,17 +413,17 @@ export default async function CourseDetailPage({ params }: Props) {
             <CourseTabs tabs={tabs} label={t("course2.sections")} />
 
             {/* About */}
-            <section id="about" className="scroll-mt-[150px] pt-12" aria-labelledby="learn-t">
+            <section id="about" className="scroll-mt-[136px] pt-12" aria-labelledby="learn-t">
               {hasOutcomes ? (
-                <div className="outcomes p-6 sm:p-9">
+                <div className="outcomes p-6 sm:p-8">
                   <h2 id="learn-t" className="d-md">
                     {t("course2.outcomes")}
                   </h2>
                   <RichText
                     value={course.learningOutcomes}
-                    className="rich-check mt-7 text-[16px] leading-snug"
+                    className="rich-check mt-6 text-[16px] leading-snug"
                     plain={(text) => (
-                      <ul className="mt-7 grid gap-x-8 gap-y-4 text-[16px] leading-snug sm:grid-cols-2">
+                      <ul className="mt-6 grid gap-x-8 gap-y-4 text-[16px] leading-snug sm:grid-cols-2">
                         {itemsOf(text).map((o) => (
                           <li key={o}>
                             <span className="ck">
@@ -488,7 +478,7 @@ export default async function CourseDetailPage({ params }: Props) {
                           <ul className="mt-4 grid gap-3 text-[15.5px] text-ink-2">
                             {itemsOf(text).map((r) => (
                               <li key={r} className="flex items-start gap-3">
-                                <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-[var(--k-500)]" />
+                                <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-ink-3" />
                                 <span>{r}</span>
                               </li>
                             ))}
@@ -502,7 +492,7 @@ export default async function CourseDetailPage({ params }: Props) {
             </section>
 
             {/* Curriculum */}
-            <section id="curriculum" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="cur-t">
+            <section id="curriculum" className="scroll-mt-[136px] pt-14 lg:pt-16" aria-labelledby="cur-t">
               <div>
                 <h2 id="cur-t" className="d-md">
                   {t("course2.curriculum")}
@@ -536,7 +526,7 @@ export default async function CourseDetailPage({ params }: Props) {
                   ))}
                 </ol>
               ) : legacySyllabus ? (
-                <div className="mt-7 rounded-[22px] bg-surface p-6 shadow-[0_0_0_1px_var(--line)] sm:p-7">
+                <div className="mt-7 rounded-[12px] bg-surface p-6 shadow-[0_0_0_1px_var(--line)]">
                   <RichText value={legacySyllabus} className="text-[15.5px] leading-relaxed text-ink-2" />
                 </div>
               ) : null}
@@ -596,16 +586,16 @@ export default async function CourseDetailPage({ params }: Props) {
 
             {/* Location (in person) */}
             {off ? (
-              <section id="location" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="loc-t">
+              <section id="location" className="scroll-mt-[136px] pt-14 lg:pt-16" aria-labelledby="loc-t">
                 <h2 id="loc-t" className="d-md">
                   {t("course2.location")}
                 </h2>
-                <div className="mt-7 grid overflow-hidden rounded-[30px] bg-surface shadow-[0_0_0_1px_var(--line)] sm:grid-cols-[1.1fr_1fr]">
-                  <div className={cn("relative aspect-[5/3] sm:aspect-auto sm:min-h-[240px]", k)}>
-                    <Svg markup={mapSvg(4)} className="[&>svg]:absolute [&>svg]:inset-0 [&>svg]:size-full" />
-                  </div>
-                  <div className="flex flex-col gap-4 p-6 sm:p-8">
-                    <p className="font-display text-[21px] font-bold leading-snug tracking-tight">{off.addressLine ?? off.city}</p>
+                <div className="mt-7 flex flex-col gap-5 rounded-[16px] bg-surface p-6 shadow-[0_0_0_1px_var(--line)] sm:flex-row sm:items-start sm:p-8">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-surface-2 text-ink-2">
+                    <MapPin className="i" aria-hidden />
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                    <p className="t-lg">{off.addressLine ?? off.city}</p>
                     <p className="text-ink-2">
                       {[off.city, oneTime ? day : dates, time].filter(Boolean).join(" · ")}
                     </p>
@@ -614,7 +604,7 @@ export default async function CourseDetailPage({ params }: Props) {
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([off.addressLine, off.city].filter(Boolean).join(", "))}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="link mt-auto"
+                        className="link mt-2"
                       >
                         {t("course2.openMap")} <ArrowUpRight className="i" aria-hidden />
                       </a>
@@ -626,13 +616,13 @@ export default async function CourseDetailPage({ params }: Props) {
 
             {/* Expert */}
             {lead ? (
-              <section id="expert" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="exp-t">
+              <section id="expert" className="scroll-mt-[136px] pt-14 lg:pt-16" aria-labelledby="exp-t">
                 <h2 id="exp-t" className="d-md">
                   {labels.expert}
                 </h2>
-                <div className="mt-7 rounded-[36px] bg-paper-2 p-6 sm:p-9">
-                  <article className="xcard group relative grid items-start gap-6 sm:grid-cols-[200px_1fr] sm:gap-9">
-                    <ExpertArch id={lead.tutorId} name={lead.displayName} avatarUrl={lead.profile?.avatarUrl} k={leadK} className="w-[160px] sm:w-full" />
+                <div className="mt-7 rounded-[16px] bg-surface p-6 shadow-[0_0_0_1px_var(--line)] sm:p-8">
+                  <article className="grid items-start gap-5 sm:grid-cols-[96px_1fr] sm:gap-8">
+                    <ExpertPortrait name={lead.displayName} avatarUrl={lead.profile?.avatarUrl} sizes="96px" className="round size-20 text-[26px] sm:size-24 sm:text-[30px]" />
                     <div>
                       <h3 className="t-lg">
                         <LocaleLink href={`/experts/${lead.tutorId}`} className="underline-offset-4 hover:underline">
@@ -658,11 +648,11 @@ export default async function CourseDetailPage({ params }: Props) {
                           </span>
                         ) : null}
                       </div>
-                      {lead.profile?.bio ? <p className="mt-5 max-w-2xl leading-relaxed text-ink-2">{lead.profile.bio}</p> : null}
+                      {lead.profile?.bio ? <p className="mt-4 max-w-2xl leading-relaxed text-ink-2">{lead.profile.bio}</p> : null}
                       {lead.profile?.languages ? (
                         <p className="mt-4 text-[14px] text-ink-3">{t("course2.expertLanguages", { value: lead.profile.languages })}</p>
                       ) : null}
-                      <LocaleLink href={`/experts/${lead.tutorId}`} className="link mt-6">
+                      <LocaleLink href={`/experts/${lead.tutorId}`} className="link mt-5">
                         {t("course2.expertProfile")} <ArrowUpRight className="i" aria-hidden />
                       </LocaleLink>
                     </div>
@@ -671,8 +661,8 @@ export default async function CourseDetailPage({ params }: Props) {
                 {roster.length > 1 ? (
                   <div className="mt-4 flex flex-wrap gap-3">
                     {roster.slice(1).map((r, i) => (
-                      <LocaleLink key={r.tutorId} href={`/experts/${r.tutorId}`} className="chip">
-                        <ExpertDot name={r.displayName} avatarUrl={profiles[i + 1]?.avatarUrl} k={leadK} className="!size-8 text-[12px]" />
+                      <LocaleLink key={r.tutorId} href={`/experts/${r.tutorId}`} className="chip !pl-1">
+                        <ExpertPortrait name={r.displayName} avatarUrl={profiles[i + 1]?.avatarUrl} sizes="28px" className="round size-7 text-[11px]" />
                         {r.displayName}
                       </LocaleLink>
                     ))}
@@ -684,14 +674,13 @@ export default async function CourseDetailPage({ params }: Props) {
             {/* Certificate: sample courses only — the platform does not issue
                 certificates yet, so a real course promises none. */}
             {sample ? (
-              <section id="certificate" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="cert-t">
+              <section id="certificate" className="scroll-mt-[136px] pt-14 lg:pt-16" aria-labelledby="cert-t">
                 <h2 id="cert-t" className="d-md">
                   {t("certificate.courseTitle")}
                 </h2>
                 <p className="mt-2 max-w-[40rem] text-[15.5px] text-ink-2">{t("certificate.courseLine")}</p>
                 <CertificateStage
-                  className="mt-7"
-                  k={k}
+                  className="cert-plain mt-7"
                   {...courseCertificate({
                     t,
                     locale,
@@ -710,7 +699,7 @@ export default async function CourseDetailPage({ params }: Props) {
             ) : null}
 
             {/* Reviews */}
-            <section id="reviews" className="scroll-mt-[150px] pt-16 lg:pt-20" aria-labelledby="rev-t">
+            <section id="reviews" className="scroll-mt-[136px] pt-14 lg:pt-16" aria-labelledby="rev-t">
               <h2 id="rev-t" className="d-md">
                 {t("course2.reviews")}
               </h2>
@@ -728,19 +717,19 @@ export default async function CourseDetailPage({ params }: Props) {
 
       {/* ============ RELATED: same field first ============ */}
       {related.length ? (
-        <section className="overflow-x-clip pb-20 lg:pb-28" aria-labelledby="rel-t">
+        <section className="border-t border-line py-16 lg:py-20" aria-labelledby="rel-t">
           <div className="wrap">
-            <div className="mb-8 flex items-end justify-between gap-6">
+            <div className="s-head">
               <h2 id="rel-t" className="d-md">
                 {t("course2.related")}
               </h2>
-              <RailControls target="rail-rel" prev={t("ui.prev")} next={t("ui.next")} />
+              <LocaleLink href="/courses" className="link">
+                {t("ui.allCourses")} <ArrowUpRight className="i" aria-hidden />
+              </LocaleLink>
             </div>
-            <div className="scroller bleed pad-y" id="rail-rel" tabIndex={0} aria-label={t("course2.related")}>
-              {related.slice(0, 8).map((c) => (
-                <div key={c.id} className="w-[80%] max-w-[330px] sm:w-[44%] lg:w-[calc((1360px-80px-72px)/4)] lg:max-w-none">
-                  <CourseCard course={c} category={relFor(c)} labels={labels} />
-                </div>
+            <div className="grid gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+              {related.slice(0, 4).map((c) => (
+                <CourseCard key={c.id} course={c} category={relFor(c)} labels={labels} resp />
               ))}
             </div>
           </div>
@@ -752,7 +741,7 @@ export default async function CourseDetailPage({ params }: Props) {
       <div className="actionbar">
         <div className="mx-auto flex max-w-xl items-center gap-4">
           <div className="shrink-0 leading-tight">
-            <p className="font-display text-[22px] font-extrabold tracking-tight">{labels.free}</p>
+            <p className="font-display text-[20px] font-bold tracking-tight">{labels.free}</p>
             <p className="text-[12.5px] text-ink-3">
               {off
                 ? t("course2.seatsLeft", { count: Math.max(0, off.studentLimit - off.enrolledCount) })
@@ -800,9 +789,9 @@ function SampleReviews({ course, t, locale }: { course: Course; t: TFunction; lo
   }
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[300px_1fr] lg:gap-12">
-      <div className="rounded-[28px] bg-paper-2 p-7 lg:sticky lg:top-[150px]">
+      <div className="rounded-[16px] bg-surface p-6 shadow-[0_0_0_1px_var(--line)] lg:sticky lg:top-[136px]">
         <div className="flex items-end gap-3">
-          <span className="font-display text-[64px] font-extrabold leading-[.85] tracking-[-.04em]">
+          <span className="font-display text-[48px] font-bold leading-[.9] tracking-[-.03em]">
             {formatRating(course.ratingAvg, locale)}
           </span>
           <span className="pb-1">
@@ -815,7 +804,7 @@ function SampleReviews({ course, t, locale }: { course: Course; t: TFunction; lo
             <li key={i} className="grid grid-cols-[34px_1fr_44px] items-center gap-3 text-[14px]">
               <span className="inline-flex items-center gap-1 font-medium text-ink-2">
                 {5 - i}
-                <StarIcon className="size-3.5 fill-[var(--gold)]" />
+                <StarIcon className="size-3.5 fill-[var(--star)]" />
               </span>
               <span className="hbar">
                 <i style={{ width: `${((n / total) * 100).toFixed(1)}%` }} />
@@ -829,7 +818,7 @@ function SampleReviews({ course, t, locale }: { course: Course; t: TFunction; lo
         {reviews.map((r) => (
           <article key={r.name} className="review">
             <div className="flex items-center gap-3">
-              <span className={cn("av round size-10 bg-[var(--k-200)] text-[14px]", r.k)}>
+              <span className="av round size-10 text-[14px]">
                 <span className="ini">{r.initials}</span>
               </span>
               <div className="leading-tight">

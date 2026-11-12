@@ -9,16 +9,16 @@ import { categoryLabel } from "@/features/category/label";
 import { categoryStyle } from "@/features/category/style";
 import { expertAreas } from "@/features/expert/areas";
 import { ExpertAreaChips } from "@/features/expert/components/ExpertAreas";
-import { ExpertArch } from "@/features/expert/components/ExpertArch";
+import { ExpertPortrait } from "@/features/expert/components/ExpertPortrait";
 import { externalHref, orcidHref } from "@/features/expert/links";
 import { fullExpertName, type ExpertProfile } from "@/features/expert/types";
 import { SHOWCASE } from "@/features/showcase/flag";
 import { coursesByExpertSource, expertProfileSource, isSampleExpert } from "@/features/showcase/source.server";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { Breadcrumb } from "@/components/layout/PageHeader";
 import { StarIcon } from "@/components/bright/bits";
 import { env } from "@/lib/env";
 import { formatCompact, formatRating } from "@/lib/utils/format";
-import { cn } from "@/lib/utils/cn";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { getT } from "@/i18n/server";
 import { defaultLocale, isLocale, type Locale } from "@/i18n/config";
@@ -120,36 +120,29 @@ export default async function PublicExpertPage({ params }: Props) {
 
   return (
     <>
-      <div className={cn("c-page overflow-x-clip", k)}>
-        <div className="wrap">
-          <section className="c-hero-row grid items-end gap-8 pb-16 pt-6 sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-12 lg:pb-20 lg:pt-12" aria-labelledby="x-title">
-            <div className="max-w-[15rem]">
-              <ExpertArch id={expert.id} name={name} avatarUrl={expert.avatarUrl} k={k} className="shadow-[0_0_0_1.5px_var(--k-200),var(--shadow-md)]" />
-            </div>
-            <div className="pb-2">
-              <nav aria-label={t("ui.breadcrumb")} className="crumbs flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px]">
-                <LocaleLink href="/">{t("ui.home")}</LocaleLink>
-                <span aria-hidden>/</span>
-                <LocaleLink href="/experts">{t("ui.navExperts")}</LocaleLink>
-              </nav>
+      <div className={k}>
+        <section className="page-head wrap" aria-labelledby="x-title">
+          <Breadcrumb
+            label={t("ui.breadcrumb")}
+            items={[{ label: t("ui.home"), href: "/" }, { label: t("ui.navExperts"), href: "/experts" }, { label: name }]}
+          />
+          <div className="mt-6 grid items-start gap-6 sm:grid-cols-[160px_1fr] sm:gap-10 lg:mt-8 lg:grid-cols-[200px_1fr]">
+            <ExpertPortrait name={name} avatarUrl={expert.avatarUrl} sizes="200px" className="panel aspect-square w-[120px] text-[36px] sm:w-full sm:text-[48px]" />
+            <div className="min-w-0">
               {main ? (
-                <div className="mt-5">
-                  <span className="cat-label">{categoryLabel(main, t, locale)}</span>
-                </div>
+                <span className="cat-label">{categoryLabel(main, t, locale)}</span>
               ) : own[0] ? (
-                <div className="mt-5">
-                  <span className="own-label" title={t("expertsPage.ownArea")}>
-                    {own[0]}
-                  </span>
-                </div>
+                <span className="own-label" title={t("expertsPage.ownArea")}>
+                  {own[0]}
+                </span>
               ) : null}
               <h1 id="x-title" className="d-lg mt-3">
                 {name}
               </h1>
               {expert.academicTitle || expert.department ? (
-                <p className="sub mt-3 text-[17px]">{[expert.academicTitle, expert.department].filter(Boolean).join(", ")}</p>
+                <p className="mt-2 text-[17px] text-ink-2">{[expert.academicTitle, expert.department].filter(Boolean).join(", ")}</p>
               ) : null}
-              {expert.headline ? <p className="sub mt-2 text-[16px]">{expert.headline}</p> : null}
+              {expert.headline ? <p className="mt-1 text-[16px] text-ink-2">{expert.headline}</p> : null}
               <div className="meta mt-5 !text-[14.5px]">
                 {expert.ratingCount > 0 ? (
                   <span className="rate">
@@ -177,56 +170,58 @@ export default async function PublicExpertPage({ params }: Props) {
               {links.length ? (
                 <div className="mt-6 flex flex-wrap gap-2">
                   {links.map(([label, href]) => (
-                    <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="chip plain">
-                      {label} <ArrowUpRight className="i !size-4" aria-hidden />
+                    <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="chip sm plain">
+                      {label} <ArrowUpRight className="i !size-4 text-ink-3" aria-hidden />
                     </a>
                   ))}
                 </div>
               ) : null}
             </div>
-          </section>
+          </div>
+        </section>
 
-          <div className="grid gap-10 py-14 lg:grid-cols-12 lg:py-20">
-            <div className="lg:col-span-7">
-              <h2 className="d-md">{t("expertsPage.about")}</h2>
-              <p className="mt-5 max-w-2xl text-[16.5px] leading-[1.7] text-ink-2">
-                {expert.bio || expert.headline || t("expertsPage.noBio")}
-              </p>
-              {showAreas ? (
-                <ExpertAreaChips className="mt-8" picked={picked} own={own} ownTitle={t("expertsPage.ownArea")} />
-              ) : null}
-            </div>
-            {details.length ? (
-              // One card, a section per field. The fields are part of "About",
-              // so their titles are h3s under its h2.
-              <div className="divide-y divide-line self-start rounded-[26px] bg-surface shadow-[0_0_0_1px_var(--line)] lg:col-span-5">
-                {details.map(([icon, title, items]) => (
-                  <section key={title} className="p-6 sm:px-7">
-                    <h3 className="flex items-center gap-3 font-semibold">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--k-100)] text-[var(--k-700)] [&_.i]:!size-[18px]">
-                        {icon}
-                      </span>
-                      {title}
-                    </h3>
-                    <ul className="mt-3 grid gap-1.5 pl-12 text-[15px] text-ink-2">
-                      {items.map((i) => (
-                        <li key={i}>{i}</li>
-                      ))}
-                    </ul>
-                  </section>
-                ))}
-              </div>
+        <div className="wrap">
+        <div className="grid gap-10 border-t border-line py-12 lg:grid-cols-12 lg:gap-16 lg:py-16">
+          <div className="lg:col-span-7">
+            <h2 className="d-md">{t("expertsPage.about")}</h2>
+            <p className="mt-4 max-w-2xl text-[16.5px] leading-[1.7] text-ink-2">
+              {expert.bio || expert.headline || t("expertsPage.noBio")}
+            </p>
+            {showAreas ? (
+              <ExpertAreaChips className="mt-8" picked={picked} own={own} ownTitle={t("expertsPage.ownArea")} />
             ) : null}
           </div>
+          {details.length ? (
+            // One card, a section per field. The fields are part of "About",
+            // so their titles are h3s under its h2.
+            <div className="divide-y divide-line self-start rounded-[16px] bg-surface shadow-[0_0_0_1px_var(--line)] lg:col-span-5">
+              {details.map(([icon, title, items]) => (
+                <section key={title} className="p-5 sm:px-6">
+                  <h3 className="flex items-center gap-3 font-semibold">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-[8px] bg-surface-2 text-ink-2 [&_.i]:!size-[17px]">
+                      {icon}
+                    </span>
+                    {title}
+                  </h3>
+                  <ul className="mt-3 grid gap-1.5 pl-11 text-[15px] text-ink-2">
+                    {items.map((i) => (
+                      <li key={i}>{i}</li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          ) : null}
+        </div>
         </div>
       </div>
 
-      <section className="wrap pb-20 lg:pb-28" aria-labelledby="xc-title">
-        <h2 id="xc-title" className="d-md">
+      <section className="wrap pb-16 lg:pb-24" aria-labelledby="xc-title">
+        <h2 id="xc-title" className="d-md border-t border-line pt-12 lg:pt-16">
           {t("expertsPage.courses")}
         </h2>
         {courses.length ? (
-          <div className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
             {courses.map((c) => {
               const cat = categoryOf(index, c.id);
               return (
@@ -235,19 +230,20 @@ export default async function PublicExpertPage({ params }: Props) {
                   course={c}
                   category={cat ? { name: categoryLabel(cat, t, locale), style: categoryStyle(cat) } : null}
                   labels={labels}
+                  resp
                 />
               );
             })}
           </div>
         ) : (
           <div className="soft-empty mt-8">
-            <span className="grid size-12 shrink-0 place-items-center rounded-[16px] bg-surface text-ink-3 shadow-[0_0_0_1px_var(--line)]">
+            <span className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-surface text-ink-3 shadow-[0_0_0_1px_var(--line)]">
               <BookOpen className="i" aria-hidden />
             </span>
             <p className="font-semibold">{t("expertsPage.noCourses")}</p>
           </div>
         )}
-        <p className="mt-10 text-[14px] text-ink-3">{t("expertsPage.participantsNote", { count: formatCompact(enrolled, locale) })}</p>
+        <p className="mt-8 text-[14px] text-ink-3">{t("expertsPage.participantsNote", { count: formatCompact(enrolled, locale) })}</p>
       </section>
 
       {/* Real experts only, like the course page's Course data. Every value is

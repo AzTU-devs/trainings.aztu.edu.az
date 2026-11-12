@@ -17,7 +17,7 @@ export type Room = {
   building: string; buildingCode: string; floor: number; roomNumber: string;
   capacity: number; areaM2: number;
   hue: "it" | "data" | "eng" | "biz" | "res" | "build" | "trans" | "energy" | "navy" | "gold"; // .k-* class family
-  photo?: string;                      // a real photo of this room, once one exists; otherwise the generated floor plan is used
+  photo?: string;                      // a real photo of this room, once one exists; otherwise a plain header with its kind's icon
   summary: string;                     // one line for cards
   description: string[];               // 2–3 paragraphs for the detail page
   equipment: string[];                 // "Proyektor", "32 iş stansiyası (Intel i7, 32 GB)", …

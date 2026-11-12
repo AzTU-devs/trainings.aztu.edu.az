@@ -4,9 +4,10 @@ import type { Category } from "./types";
 /**
  * Which colour family and which drawing a category gets.
  *
- * `k` is the hue-engine class (globals.css, "Category hue engine"): every
- * shade a tile, cover or label uses is derived from one hue per family. `art`
- * picks the family's motifs in src/lib/art.ts.
+ * `k` is the hue-engine class (globals.css, "Category hue engine"): the tint
+ * of a category's icon and label dot is derived from one hue per family.
+ * `art` names the family: its icon (./icons.ts) and, in the participant
+ * area, the motifs of its generated covers (src/lib/art.ts).
  */
 export type CategoryStyle = { k: string; art: ArtKind };
 
@@ -47,15 +48,3 @@ export function categoryStyle(category: Pick<Category, "slug" | "name"> | null |
   // borrowing another category's colour and implying they are related.
   return { k: "k-navy", art: "it" };
 }
-
-/** The single-shape motif each family uses on tiles, swatches and the mosaic. */
-export const TILE_MOTIF: Record<ArtKind, string> = {
-  it: "window",
-  data: "dots",
-  eng: "gear",
-  biz: "bars",
-  res: "book",
-  build: "arch",
-  trans: "route",
-  energy: "wave",
-};

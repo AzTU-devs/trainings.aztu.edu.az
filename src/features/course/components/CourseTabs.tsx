@@ -22,7 +22,7 @@ export function CourseTabs({ tabs, label }: { tabs: { id: string; label: string;
   }, [tabs]);
   return (
     <nav
-      className="sticky top-[60px] z-30 -mx-5 mt-10 border-b border-line bg-[color-mix(in_oklch,var(--paper)_90%,transparent)] px-5 backdrop-blur-md sm:mx-0 sm:px-0"
+      className="sticky top-[var(--header-h)] z-30 -mx-5 mt-10 border-b border-line bg-paper px-5 sm:mx-0 sm:px-0"
       aria-label={label}
     >
       <div className="ptabs">

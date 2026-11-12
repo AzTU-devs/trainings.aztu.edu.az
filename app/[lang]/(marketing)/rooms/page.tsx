@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { ArrowUpRight, Building2, CalendarDays, DoorOpen, FlaskConical, Info, LayoutGrid, Send, Users, X } from "lucide-react";
+import { ArrowUpRight, Building2, DoorOpen, FlaskConical, Info, SearchX, Users, X } from "lucide-react";
 import { listRooms } from "@/features/rooms/source.server";
 import { nowInBaku } from "@/features/rooms/data";
 import { ROOM_KINDS, type Room, type RoomKind } from "@/features/rooms/types";
-import { KIND_STYLE, RoomCard } from "@/features/rooms/components/RoomCard";
+import { RoomCard } from "@/features/rooms/components/RoomCard";
 import { RoomFilters } from "@/features/rooms/components/RoomFilters";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { LocaleLink } from "@/i18n/LocaleLink";
 import { getT } from "@/i18n/server";
 import type { TFunction } from "@/i18n/format";
@@ -34,9 +35,9 @@ import "@/features/rooms/rooms-list.css";
  * src/features/rooms/source.server.ts); with it off the list is empty and the
  * page says the catalogue is coming, pointing experts to the dashboard where
  * real rooms are booked. While they are samples the page says so where it
- * makes its claims: a "Sample" pill beside the kicker, on top of the head
- * with the campus figures, and a one-line note right above the cards, whose
- * "free today" lines would otherwise read as live availability.
+ * makes its claims: a "Sample" pill above the title, beside the campus
+ * figures, and a one-line note right above the cards, whose "free today"
+ * lines would otherwise read as live availability.
  */
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
@@ -131,89 +132,54 @@ export default async function RoomsPage({ params, searchParams }: Props) {
   return (
     <>
       {/* ============ 1. HEAD ============ */}
-      <section className="relative isolate overflow-x-clip" aria-labelledby="rooms-h1">
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[460px] overflow-hidden">
-          <div className="absolute -top-72 right-[-8%] size-[760px] rounded-full bg-[radial-gradient(closest-side,var(--gold-tint),transparent)]" />
-        </div>
-        <div className="wrap pt-8 lg:pt-14">
-          <nav aria-label={t("ui.breadcrumb")} className="flex items-center gap-2 text-[13.5px] text-ink-3">
-            <LocaleLink href="/" className="hover:text-ink">
-              {t("ui.home")}
-            </LocaleLink>
-            <span aria-hidden>/</span>
-            <span className="text-ink-2" aria-current="page">
-              {t("ui.navRooms")}
-            </span>
-          </nav>
-          <div className="mt-5 grid items-end gap-x-10 gap-y-8 lg:grid-cols-12">
-            <div className="lg:col-span-6">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <p className="kicker">
-                  <span className="rule" />
-                  {t("roomsList.kicker")}
-                </p>
-                {rooms.length ? <span className="pill pill-gold">{t("roomCard.sample")}</span> : null}
-              </div>
-              <h1 id="rooms-h1" className="d-lg mt-4">
-                {t("roomsList.title")}
-              </h1>
-              {/* Without rooms the page cannot promise to show them. */}
-              <p className="lead mt-4 max-w-[34rem]">{t(rooms.length ? "roomsList.lede" : "roomsList.ledeSoon")}</p>
-            </div>
-            {rooms.length ? <Stats rooms={rooms} buildings={buildings.length} t={t} /> : null}
+      <PageHeader
+        id="rooms-h1"
+        title={t("roomsList.title")}
+        // Without rooms the page cannot promise to show them.
+        lead={t(rooms.length ? "roomsList.lede" : "roomsList.ledeSoon")}
+        crumbs={[{ label: t("ui.home"), href: "/" }, { label: t("ui.navRooms") }]}
+        crumbsLabel={t("ui.breadcrumb")}
+        above={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <p className="kicker">{t("roomsList.kicker")}</p>
+            {rooms.length ? <span className="pill pill-gold">{t("roomCard.sample")}</span> : null}
           </div>
-        </div>
-
+        }
+        aside={rooms.length ? <Stats rooms={rooms} buildings={buildings.length} t={t} /> : undefined}
+      >
         {rooms.length ? (
-          <div className="wrap mt-9 lg:mt-12">
-            <div className="scroller bleed pad-y" role="group" aria-label={t("roomsList.kindFilter")}>
-              {/* Links, so the active one is marked with aria-current, not
-                  aria-pressed (which the link role does not take). */}
+          <div className="chip-row scroll mt-8" role="group" aria-label={t("roomsList.kindFilter")}>
+            {/* Links, so the active one is marked with aria-current, not
+                aria-pressed (which the link role does not take). */}
+            <Link
+              href={localeHref(locale, withParam(raw, "kind", null))}
+              className="chip"
+              aria-current={!f.kind ? "true" : undefined}
+              scroll={false}
+            >
+              {t("roomsList.allRooms")} <span className="n">{allCount}</span>
+            </Link>
+            {kinds.map(({ kind, count }) => (
               <Link
-                href={localeHref(locale, withParam(raw, "kind", null))}
-                className="cat-mini k-navy"
-                aria-current={!f.kind ? "true" : undefined}
+                key={kind}
+                href={localeHref(locale, withParam(raw, "kind", f.kind === kind ? null : kind.toLowerCase()))}
+                className={cn("chip", !count && "dim")}
+                aria-current={f.kind === kind ? "true" : undefined}
                 scroll={false}
               >
-                <span className="sw grid place-items-center !bg-[var(--brand-navy)] text-white">
-                  <LayoutGrid className="i" aria-hidden />
-                </span>
-                <span>
-                  <b>{t("roomsList.allRooms")}</b>
-                  <small>{t("roomsList.roomCount", { count: allCount })}</small>
-                </span>
+                {t(`rooms.kind_${kind}`)} <span className="n">{count}</span>
               </Link>
-              {kinds.map(({ kind, count }) => {
-                const { icon: Icon, k } = KIND_STYLE[kind];
-                return (
-                  <Link
-                    key={kind}
-                    href={localeHref(locale, withParam(raw, "kind", f.kind === kind ? null : kind.toLowerCase()))}
-                    className={cn("cat-mini", k, !count && "dim")}
-                    aria-current={f.kind === kind ? "true" : undefined}
-                    scroll={false}
-                  >
-                    <span className="sw ico">
-                      <Icon className="i" aria-hidden />
-                    </span>
-                    <span>
-                      <b>{t(`rooms.kind_${kind}`)}</b>
-                      <small>{t("roomsList.roomCount", { count })}</small>
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
+            ))}
           </div>
         ) : null}
-      </section>
+      </PageHeader>
 
       {rooms.length ? (
         <>
           {/* ============ 2. RESULTS ============ */}
-          <section className="rm-list wrap pb-20 pt-6 lg:pb-28 lg:pt-8" aria-labelledby="rooms-count">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-              <h2 id="rooms-count" className="mr-auto font-display text-[20px] font-bold tracking-tight lg:text-[22px]">
+          <section className="rm-list wrap pb-16 lg:pb-24" aria-labelledby="rooms-count">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-4 border-t border-line pt-6 lg:pt-10">
+              <h2 id="rooms-count" className="t-lg mr-auto">
                 {t("roomsList.roomCount", { count: results.length })}
               </h2>
               <RoomFilters buildings={buildings} capSteps={CAP_STEPS} />
@@ -240,7 +206,7 @@ export default async function RoomsPage({ params, searchParams }: Props) {
             </p>
 
             {results.length ? (
-              <div className="rm-grid grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 lg:gap-y-14">
+              <div className="rm-grid grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
                 {results.map((room) => (
                   <RoomCard key={room.id} room={room} locale={locale} now={now} />
                 ))}
@@ -278,7 +244,7 @@ function Stats({ rooms, buildings, t }: { rooms: Room[]; buildings: number; t: T
     },
   ];
   return (
-    <div className="rm-stats-box lg:col-span-6">
+    <div className="rm-stats-box">
       <dl className="rm-stats" aria-label={`${t("roomsList.stats")} (${t("roomCard.sample")})`}>
         {items.map(({ icon: Icon, label, value }) => (
           <div key={label}>
@@ -296,23 +262,11 @@ function Stats({ rooms, buildings, t }: { rooms: Room[]; buildings: number; t: T
 
 function EmptyResult({ t }: { t: TFunction }) {
   return (
-    <div className="empty k-build relative overflow-hidden px-6 py-14 sm:py-20">
-      {/* an empty floor plan, measured */}
-      <svg viewBox="0 0 240 150" className="mx-auto w-[220px]" aria-hidden>
-        <circle cx="120" cy="75" r="70" className="f100" />
-        <path
-          className="grid"
-          d="M60 20V130M80 20V130M100 20V130M120 20V130M140 20V130M160 20V130M180 20V130M60 40H180M60 60H180M60 80H180M60 100H180M60 120H180"
-          opacity=".7"
-        />
-        <rect x="66" y="38" width="108" height="72" className="f0" />
-        <path d="M140 110H66V38H174V110H158" className="s900 fnone" strokeWidth="5" strokeLinejoin="round" />
-        <path d="M140 110V94" className="s700" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M140 94A16 16 0 0 1 156 110" className="dimline" strokeDasharray="3 4" />
-        <path d="M100 66L140 82M140 66L100 82" className="s500 rnd" strokeWidth="6" />
-        <circle cx="186" cy="30" r="7" className="fg" />
-      </svg>
-      <h3 className="t-lg mt-6">{t("roomsList.emptyTitle")}</h3>
+    <div className="empty px-6 py-14 sm:py-20">
+      <span className="empty-ic">
+        <SearchX className="i" aria-hidden />
+      </span>
+      <h3 className="t-lg mt-5">{t("roomsList.emptyTitle")}</h3>
       <p className="mx-auto mt-2 max-w-md text-ink-2">{t("roomsList.emptyText")}</p>
       <LocaleLink href="/rooms" scroll={false} className="btn btn-primary mt-7">
         {t("catalog.clearFilters")}
@@ -330,46 +284,33 @@ function PanelLink({ href, t, className }: { href: string; t: TFunction; classNa
 }
 
 function HowBooking({ t, portalRooms }: { t: TFunction; portalRooms: string }) {
-  const steps = [
-    { icon: DoorOpen, title: t("roomsList.step1Title"), text: t("roomsList.step1Text") },
-    { icon: CalendarDays, title: t("roomsList.step2Title"), text: t("roomsList.step2Text") },
-    { icon: Send, title: t("roomsList.step3Title"), text: t("roomsList.step3Text") },
-  ];
   return (
-    <section className="pb-20 lg:pb-28" aria-labelledby="how-t">
-      <div className="wrap">
-        <div className="rm-how k-navy grid gap-8 p-5 sm:gap-10 sm:p-10 lg:grid-cols-12 lg:gap-12 lg:p-14">
-          <div className="flex flex-col lg:col-span-5">
-            <p className="kicker">
-              <span className="rule" />
-              {t("roomsList.howKicker")}
-            </p>
-            <h2 id="how-t" className="d-md mt-4">
-              {t("roomsList.howTitle")}
-            </h2>
-            <p className="mt-4 max-w-md text-[17px] leading-relaxed text-ink-2">{t("roomsList.howSub")}</p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <PanelLink href={portalRooms} t={t} />
-              <LocaleLink href="/register/tutor" className="btn btn-ghost">
-                {t("catalog.applyExpert")}
-              </LocaleLink>
-            </div>
+    <section className="section band" aria-labelledby="how-t">
+      <div className="wrap grid gap-10 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-4">
+          <p className="kicker">{t("roomsList.howKicker")}</p>
+          <h2 id="how-t" className="d-lg mt-3">
+            {t("roomsList.howTitle")}
+          </h2>
+          <p className="lead mt-3">{t("roomsList.howSub")}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <PanelLink href={portalRooms} t={t} />
+            <LocaleLink href="/register/tutor" className="btn btn-ghost">
+              {t("catalog.applyExpert")}
+            </LocaleLink>
           </div>
-          <ol className="rm-steps lg:col-span-7">
-            {steps.map(({ icon: Icon, title, text }, i) => (
-              <li key={title}>
-                <span className="n" aria-hidden>
-                  <Icon className="i" />
-                </span>
-                <div>
-                  <p className="mono text-[12px] text-ink-3">{String(i + 1).padStart(2, "0")}</p>
-                  <h3 className="mt-1">{title}</h3>
-                  <p>{text}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
         </div>
+        <ol className="steps self-start lg:col-span-8">
+          {[1, 2, 3].map((n) => (
+            <li key={n}>
+              <span className="n" aria-hidden>
+                {String(n).padStart(2, "0")}
+              </span>
+              <h3>{t(`roomsList.step${n}Title`)}</h3>
+              <p>{t(`roomsList.step${n}Text`)}</p>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );
@@ -378,10 +319,10 @@ function HowBooking({ t, portalRooms }: { t: TFunction; portalRooms: string }) {
 /** SHOWCASE off: no rooms to show, and no pretend ones. */
 function ComingSoon({ t, portalRooms }: { t: TFunction; portalRooms: string }) {
   return (
-    <section className="wrap pb-20 pt-10 lg:pb-28 lg:pt-14" aria-labelledby="soon-t">
-      <div className="soft-empty flex-col items-start !gap-5 !p-7 sm:flex-row sm:items-center sm:!p-9">
-        <span className="grid size-14 shrink-0 place-items-center rounded-[18px] bg-surface text-ink-3 shadow-[0_0_0_1px_var(--line)]">
-          <DoorOpen className="i !size-6" aria-hidden />
+    <section className="wrap pb-16 pt-2 lg:pb-24" aria-labelledby="soon-t">
+      <div className="soft-empty flex-col items-start !gap-5 !p-6 sm:flex-row sm:items-center sm:!p-8">
+        <span className="grid size-12 shrink-0 place-items-center rounded-[12px] bg-surface text-ink-3 shadow-[0_0_0_1px_var(--line)]">
+          <DoorOpen className="i" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
           <h2 id="soon-t" className="t-lg">
